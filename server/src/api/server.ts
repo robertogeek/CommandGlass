@@ -258,13 +258,13 @@ function readJson(req: IncomingMessage, limit = 16_384): Promise<unknown> {
 }
 
 function html(res: ServerResponse, status: number, body: string) {
-  send(res, status, MIME['.html']!, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>SC Master</title>
+  send(res, status, MIME['.html']!, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CommandGlass</title>
 <style>body{background:#071216;color:#cfe9ee;font-family:system-ui,sans-serif;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center}a{color:#6fe3f0}code{color:#6fe3f0}</style>${body}`);
 }
 
 function serveStatic(res: ServerResponse, path: string) {
   if (!existsSync(join(CLIENT_DIST, 'index.html'))) {
-    return html(res, 503, '<div><h1>SC Master</h1><p>Falta compilar la interfaz: ejecuta <code>npm run build</code>.</p></div>');
+    return html(res, 503, '<div><h1>CommandGlass</h1><p>Falta compilar la interfaz: ejecuta <code>npm run build</code>.</p></div>');
   }
   const safe = normalize(decodeURIComponent(path)).replace(/^([/\\])+/, '');
   let file = join(CLIENT_DIST, safe);
@@ -279,8 +279,8 @@ function serveStatic(res: ServerResponse, path: string) {
 
 function manifest(key: string) {
   return {
-    name: 'SC Master',
-    short_name: 'SC Master',
+    name: 'CommandGlass',
+    short_name: 'CommandGlass',
     description: 'Tu mobiGlas inteligente para Star Citizen',
     start_url: `/?k=${key}`,
     scope: '/',
@@ -296,7 +296,7 @@ function manifest(key: string) {
 }
 
 function unauthorizedPage(): string {
-  return `<div><h1>SC Master</h1><p>Este dispositivo aún no está emparejado.</p>
+  return `<div><h1>CommandGlass</h1><p>Este dispositivo aún no está emparejado.</p>
 <p>En el PC abre <code>http://localhost:8777/pair</code> y escanea el código QR con el iPad.</p></div>`;
 }
 

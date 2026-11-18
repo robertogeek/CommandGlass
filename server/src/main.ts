@@ -11,7 +11,7 @@ import { Store } from './store/db.ts';
 const config = loadConfig();
 const store = new Store(dbPath());
 
-console.log('SC Master · mobiGlas para Star Citizen\n');
+console.log('CommandGlass · mobiGlas para Star Citizen\n');
 console.log(`Carpeta del juego: ${config.gameDir}`);
 
 const imp = importBackups(store, backupsDir(config));

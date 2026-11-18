@@ -1,4 +1,4 @@
-# SC Master
+# CommandGlass
 
 Tu mobiGlas inteligente para Star Citizen. Lee el `Game.log` del juego en tiempo real (solo lectura: no toca la memoria ni los ficheros del juego), guarda todo tu historial en una base de datos local y lo muestra en una web app pensada para el iPad.
 
@@ -13,7 +13,7 @@ Requisitos: Node.js 24 o superior.
 
 ```powershell
 npm run setup     # instala dependencias y compila la interfaz
-npm start         # arranca el servidor (o doble clic en "SC Master.cmd")
+npm start         # arranca el servidor (o doble clic en "CommandGlass.cmd")
 ```
 
 Al arrancar, importa los logs archivados de `logbackups/` y empieza a vigilar `Game.log`.
@@ -35,7 +35,7 @@ La sección **Mandos** convierte el iPad en una botonera: cada botón pulsa en e
 - Las teclas se envían por código físico (`SendInput`), así que da igual la distribución del teclado.
 - Solo se envía si **Star Citizen está en primer plano** en el PC; si no, la botonera avisa y no pulsa nada.
 - Un toque es una acción: no hay macros ni secuencias automáticas. Autodestrucción, eyectar, salida de emergencia y reaparecer piden un segundo toque para confirmar.
-- Si ejecutas Star Citizen como administrador, Windows bloquea las pulsaciones que llegan de otro programa: arranca SC Master también como administrador, o el juego sin esos permisos.
+- Si ejecutas Star Citizen como administrador, Windows bloquea las pulsaciones que llegan de otro programa: arranca CommandGlass también como administrador, o el juego sin esos permisos.
 
 ## Configuración
 
