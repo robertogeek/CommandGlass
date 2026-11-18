@@ -191,7 +191,8 @@ button { font: inherit; color: inherit; }
   gap: 4px;
   color: var(--frost);
   font: 600 10px/1 var(--display);
-  letter-spacing: 0.22em;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
   text-transform: uppercase;
 }
 /* logo de la organización (Space Cowboys): imagen propia del usuario */
@@ -969,6 +970,7 @@ button { font: inherit; color: inherit; }
   .g4 > .stat:nth-child(4n + 1) { border-left: 1px solid var(--line); padding-left: 16px; }
   .g4 > .stat:nth-child(odd) { border-left: 0; padding-left: 0; }
   .rail-btn { font-size: 10.5px; letter-spacing: 0.06em; }
+  .brand { letter-spacing: 0.05em; }
   .topbar .title { font-size: 26px; letter-spacing: 0.12em; }
   .pill { padding: 0 12px; font-size: 12px; letter-spacing: 0.06em; }
 

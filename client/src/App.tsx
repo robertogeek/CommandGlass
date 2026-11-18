@@ -117,7 +117,7 @@ function TopBar({ title }: { title: string }) {
     <header className="topbar">
       <div className="brand">
         <img className="org-logo" src={logo} alt="Space Cowboys" width={60} height={51} />
-        <span>SC Master</span>
+        <span>CommandGlass</span>
       </div>
       <h1 className="title">{title}</h1>
       <div className="topbar-status">
