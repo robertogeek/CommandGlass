@@ -17,6 +17,8 @@ app.setAppUserModelId('com.spacecowboys.commandglass');
 
 const here = import.meta.dirname;
 const isDev = !app.isPackaged;
+// Instalada desde la Microsoft Store (paquete MSIX): el arranque con Windows lo gestiona Windows y no hay install.json.
+const isStore = Boolean(process.windowsStore);
 const root = isDev ? join(here, '..', '..') : process.resourcesPath;
 const paths = {
   server: isDev ? join(here, 'server.mjs') : join(root, 'server', 'server.mjs'),
@@ -273,12 +275,14 @@ function createTray() {
         { label: 'Abrir CommandGlass', click: () => showWindow() },
         { label: 'Abrir en el navegador', click: () => void shell.openExternal(`http://localhost:${PORT}/`) },
         { type: 'separator' },
-        {
-          label: 'Abrir al iniciar Windows',
-          type: 'checkbox',
-          checked: getOpenAtLogin(),
-          click: (item) => (setOpenAtLogin(item.checked), refresh()),
-        },
+        isStore
+          ? { label: 'Abrir al iniciar Windows…', click: () => openStartupSettings() }
+          : {
+              label: 'Abrir al iniciar Windows',
+              type: 'checkbox',
+              checked: getOpenAtLogin(),
+              click: (item) => (setOpenAtLogin(item.checked), refresh()),
+            },
         { type: 'separator' },
         { label: 'Salir', click: () => quit() },
       ]),
@@ -305,6 +309,26 @@ app.on('window-all-closed', () => {
 
 function getOpenAtLogin(): boolean {
   return app.getLoginItemSettings({ args: ['--hidden'] }).openAtLogin;
+}
+
+/** En la versión de la Store el inicio con Windows es una StartupTask del paquete: se activa en Configuración. */
+function openStartupSettings() {
+  void shell.openExternal('ms-settings:startupapps');
+}
+
+/**
+ * Carpeta de datos tal como la ve el Explorador. En un paquete MSIX lo que la app escribe en %APPDATA% acaba en
+ * %LOCALAPPDATA%\Packages\<familia>\LocalCache\Roaming, y el Explorador no ve la ruta virtual.
+ */
+function visibleDataDir(dir: string): string {
+  if (!isStore) return dir;
+  // C:\Program Files\WindowsApps\<Nombre>_<versión>_<arq>_<recurso>_<IdEditor>\app\CommandGlass.exe
+  const full = process.execPath.split(/[\\/]/).find((p) => /^[^_]+_[^_]+_[^_]*_[^_]*_[a-z0-9]{13}$/i.test(p));
+  const roaming = app.getPath('appData');
+  if (!full || !process.env.LOCALAPPDATA || !dir.startsWith(roaming)) return dir;
+  const parts = full.split('_');
+  const real = join(process.env.LOCALAPPDATA, 'Packages', `${parts[0]}_${parts.at(-1)}`, 'LocalCache', 'Roaming', dir.slice(roaming.length));
+  return existsSync(real) ? real : dir;
 }
 
 function setOpenAtLogin(on: boolean): boolean {
@@ -347,10 +371,15 @@ function registerIpc() {
     restartServer();
     return true;
   });
-  ipcMain.handle('cg:get-open-at-login', (e) => (fromOurPage(e) ? getOpenAtLogin() : false));
-  ipcMain.handle('cg:set-open-at-login', (e, on: unknown) => (fromOurPage(e) ? setOpenAtLogin(on === true) : getOpenAtLogin()));
+  // En la versión de la Store devuelve null: la ventana ofrece abrir la configuración de Windows en su lugar.
+  ipcMain.handle('cg:get-open-at-login', (e) => (!fromOurPage(e) ? false : isStore ? null : getOpenAtLogin()));
+  ipcMain.handle('cg:set-open-at-login', (e, on: unknown) => {
+    if (!fromOurPage(e)) return false;
+    if (isStore) return (openStartupSettings(), null);
+    return setOpenAtLogin(on === true);
+  });
   ipcMain.handle('cg:open-data-dir', async (e) => {
-    if (fromOurPage(e)) await shell.openPath(dataDirFor(readChannel()));
+    if (fromOurPage(e)) await shell.openPath(visibleDataDir(dataDirFor(readChannel())));
   });
 }
 

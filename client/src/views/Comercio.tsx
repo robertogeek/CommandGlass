@@ -2,6 +2,7 @@ import { Coins, Pickaxe, Receipt, ShoppingBag, Store, Wallet } from 'lucide-reac
 import { useEffect, useState } from 'react';
 import { ago, hhmm, n, shortDay } from '../format.ts';
 import { getJson, postJson, useLive } from '../live.tsx';
+import { Mercado } from '../components/Mercado.tsx';
 
 /**
  * Comercio: cartera estimada (el juego ya no escribe el saldo en el registro), en qué gastas y tus últimas compras.
@@ -55,6 +56,7 @@ export function Comercio() {
 
   return (
     <div className="stack">
+      <Mercado />
       <div className="grid g2">
         <section className="panel" aria-label="Cartera">
           <div className="label"><Wallet size={14} aria-hidden /> Cartera estimada</div>

@@ -10,6 +10,7 @@ import { getContact, listContacts, setContactNote } from '../store/contacts.ts';
 import { briefingFor, factionStats, kindStats, loadMissions } from '../store/missions.ts';
 import type { WikiMissions } from '../game/wiki.ts';
 import type { CommunityContracts } from '../game/starstrings.ts';
+import { UexMarket, bestRoutes, terminalsAt, vehicleByName } from '../game/uex.ts';
 import { COMPONENT_LABEL, type ComponentType, type WikiCatalog } from '../game/catalog.ts';
 import { itemName } from '../parser/names.ts';
 import { loadShips, nameIndex } from '../store/hangar.ts';
@@ -47,12 +48,13 @@ export interface ServerDeps {
   wiki: WikiMissions;
   catalog: WikiCatalog;
   community: CommunityContracts;
+  uex: UexMarket;
 }
 
 /** Acciones que no se envían sin una confirmación explícita desde la interfaz. */
 const DANGEROUS = new Set(['v_self_destruct', 'v_eject', 'force_respawn', 'v_emergency_exit']);
 
-export function startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community }: ServerDeps) {
+export function startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community, uex }: ServerDeps) {
   // Conexiones en directo abiertas; "remote" = desde otro dispositivo (el iPad), no desde este PC.
   const clients = new Map<ServerResponse, { remote: boolean; since: string; agent: string }>();
 
@@ -292,6 +294,107 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
           byShop: group((p) => p.shopName).slice(0, 10),
           recent: recent.map((p) => ({ ...p, name: names.get(p.item) ?? p.item })),
           rewards: rewards.slice(-30).reverse(),
+        });
+      }
+
+      if (path === '/api/trade/token') {
+        // El token se guarda en los ajustes locales y nunca vuelve a la interfaz.
+        if (req.method !== 'POST') return json(res, 405, { error: 'Usa POST' });
+        if (!req.headers['content-type']?.startsWith('application/json')) return json(res, 415, { error: 'Se esperaba JSON' });
+        const body = (await readJson(req)) as { token?: unknown } | null;
+        const token = typeof body?.token === 'string' ? body.token.trim() : null;
+        if (token === '') {
+          setSetting(store, 'uexToken', null);
+          uex.forget();
+          return json(res, 200, { ok: true, configured: false });
+        }
+        if (!token || !/^[A-Za-z0-9]{20,128}$/.test(token)) return json(res, 400, { error: 'Pega el token tal cual lo da UEX: solo letras y números.' });
+        let ok = false;
+        try {
+          ok = await UexMarket.check(token);
+        } catch {
+          return json(res, 502, { error: 'No se ha podido contactar con UEX. Comprueba la conexión a Internet y vuelve a probar.' });
+        }
+        if (!ok) return json(res, 400, { error: 'UEX no reconoce ese token. Cópialo otra vez desde uexcorp.space → My Apps.' });
+        setSetting(store, 'uexToken', token);
+        uex.forget();
+        return json(res, 200, { ok: true, configured: true });
+      }
+
+      const tradeCommodity = /^\/api\/trade\/commodity\/(\d+)$/.exec(path);
+      if (tradeCommodity) {
+        const id = Number(tradeCommodity[1]);
+        const [terminals, prices] = await Promise.all([uex.terminals(), uex.prices()]);
+        const term = new Map(terminals.filter((t) => t.is_available_live && t.is_visible).map((t) => [t.id, t]));
+        const rows = prices
+          .filter((p) => p.id_commodity === id && term.has(p.id_terminal))
+          .map((p) => {
+            const t = term.get(p.id_terminal)!;
+            return {
+              terminal: t.name,
+              system: t.star_system_name,
+              body: t.moon_name ?? t.planet_name,
+              buy: p.price_buy,
+              sell: p.price_sell,
+              scuBuy: p.scu_buy,
+              updated: new Date(1000 * p.date_modified).toISOString(),
+            };
+          });
+        return json(res, 200, {
+          name: prices.find((p) => p.id_commodity === id)?.commodity_name ?? null,
+          buy: rows.filter((r) => r.buy > 0).sort((a, b) => a.buy - b.buy).slice(0, 10),
+          sell: rows.filter((r) => r.sell > 0).sort((a, b) => b.sell - a.sell).slice(0, 10),
+        });
+      }
+
+      if (path === '/api/trade') {
+        const base = { configured: uex.configured, channel, source: 'UEX', sourceUrl: 'https://uexcorp.space' };
+        if (!uex.configured) return json(res, 200, base);
+        const [terminals, commodities, vehicles, prices] = await Promise.all([uex.terminals(), uex.commodities(), uex.vehicles(), uex.prices()]);
+        const states = [tailer.state, ...store.recentStates(30)].filter(Boolean) as LiveState[];
+        const loc = states.find((s) => s.location)?.location ?? null;
+        const shipState = states.find((s) => s.ship)?.ship ?? null;
+        const vehicle = shipState ? vehicleByName(vehicles, shipState.name) : null;
+        const scuParam = Number(url.searchParams.get('scu'));
+        const scu = Number.isFinite(scuParam) && scuParam > 0 ? Math.min(Math.round(scuParam), 100_000) : (vehicle?.scu ?? 0);
+        const { purchases, rewards } = loadEconomy(store);
+        const wallet = walletEstimate(getSetting(store, 'wallet'), purchases, rewards).estimate;
+        const budget = url.searchParams.get('budget') === 'wallet' ? wallet : null;
+        const illegal = url.searchParams.get('illegal') === '1';
+        const system = loc ? (placeInfo(loc.code, loc.system, loc.body).system ?? null) : null;
+        const here = loc ? terminalsAt(terminals, loc.name, system) : [];
+        const hereIds = new Set(here.map((t) => t.id));
+        const comName = new Map(commodities.map((c) => [c.id, c]));
+        const herePrices = prices
+          .filter((p) => hereIds.has(p.id_terminal) && (p.price_buy > 0 || p.price_sell > 0))
+          .map((p) => ({
+            commodity: p.commodity_name,
+            commodityId: p.id_commodity,
+            illegal: Boolean(comName.get(p.id_commodity)?.is_illegal),
+            terminal: p.terminal_name,
+            buy: p.price_buy,
+            sell: p.price_sell,
+            scuBuy: p.scu_buy,
+            updated: new Date(1000 * p.date_modified).toISOString(),
+          }))
+          .sort((a, b) => a.commodity.localeCompare(b.commodity));
+        const opts = { scu: scu || 1, budget, illegal };
+        return json(res, 200, {
+          ...base,
+          error: uex.lastError,
+          fetchedAt: uex.fetchedAt('commodities_prices_all'),
+          place: loc ? { name: loc.name, system, since: loc.since, live: Boolean(tailer.state?.location) } : null,
+          terminals: here.map((t) => ({ id: t.id, name: t.name })),
+          here: herePrices,
+          ship: shipState ? { name: shipState.name, uex: vehicle?.name_full ?? null, scu: vehicle?.scu ?? null } : null,
+          scu,
+          wallet,
+          budget,
+          routesHere: here.length && scu ? bestRoutes(prices, terminals, commodities, { ...opts, from: [...hereIds], limit: 8 }) : [],
+          routesSystem: system && scu ? bestRoutes(prices, terminals, commodities, { ...opts, system, limit: 10 }) : [],
+          commodities: [...new Map(prices.map((p) => [p.id_commodity, p.commodity_name])).entries()]
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name)),
         });
       }
 

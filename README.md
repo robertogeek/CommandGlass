@@ -29,6 +29,7 @@ npm run dist:win   # release\commandglass_v.<versión>.exe
 - La versión sale de `version` en `package.json`: `0.1.0-beta` → `commandglass_v.0.1.0_b.exe`.
 - En GitHub, el flujo **Instalador de Windows** (`.github/workflows/windows-installer.yml`) hace lo mismo en `windows-latest`. Se lanza a mano desde Actions o al subir una etiqueta `v*`. El `.exe` queda en los artefactos de la ejecución; con etiqueta, también en una Release.
 - **Firma**: sale sin firmar mientras el repositorio no tenga secretos de firma. Se activa sola con un certificado `.pfx` (`WIN_CSC_LINK` en base64 + `WIN_CSC_KEY_PASSWORD`) o con Azure Artifact Signing (`AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_SIGNING_ENDPOINT`, `AZURE_SIGNING_ACCOUNT`, `AZURE_SIGNING_PROFILE`, `AZURE_SIGNING_PUBLISHER`). Smart App Control solo acepta certificados de autoridades de confianza o Artifact Signing, no autofirmados.
+- **Microsoft Store**: `npm run dist:store` genera `release\commandglass_v.<versión>.appx`, o lo hace el flujo **Microsoft Store** en Actions. La Store lo firma al publicarlo. Paso a paso, identidad del producto y audiencia privada: [docs/microsoft-store.md](docs/microsoft-store.md).
 - La app de escritorio es Electron (`desktop/`): arranca el servidor como proceso hijo, muestra `/escritorio` (QR y estado) y vive en la bandeja.
 
 ## Desarrollo
@@ -62,7 +63,7 @@ Para que el iPad no se apague mientras juegas: Ajustes → Pantalla y brillo →
 | **Hangar** | Tu equipo personal, tus naves, ficha de cada nave y qué componentes montar | Registro + [api.star-citizen.wiki](https://api.star-citizen.wiki) (precios de UEX a través de la wiki) |
 | **Contratos** | Briefing de lo que tienes en curso, estadísticas por tipo y facción, historial | Registro + api.star-citizen.wiki |
 | **Combate** | Quién te destruye la nave y por qué, lo que más derribas, muertes, delitos (CrimeStat) e historial de combate | Registro del juego |
-| **Comercio** | Cartera estimada, en qué gastas, últimas compras, recompensas y órdenes de refinería terminadas | Registro (el saldo lo indicas tú una vez) |
+| **Comercio** | Precios de mercancías donde estás, mejores rutas para tu nave, dónde comprar o vender cada mercancía, cartera estimada, en qué gastas, compras, recompensas y refinería | [UEX](https://uexcorp.space) (con tu token) + registro (el saldo lo indicas tú una vez) |
 | **Mapa** | Esquema orbital por sistema con tus sitios, tu última ruta y los saltos entre sistemas | Registro del juego |
 | **Archivo** | Resumen de tu año y todas tus sesiones | Registro del juego |
 
@@ -75,6 +76,8 @@ Lo que el registro **no** incluye y por eso es estimado o falta: el saldo de aUE
 Los datos de la wiki se descargan en segundo plano y se guardan en `data/game/` (misiones: renovación semanal; fichas de naves y componentes: 7 días). La wiki pide que se la cite: la interfaz lo hace junto a esos datos.
 
 **Datos de contratos de la comunidad:** la reputación, el cooldown, las naves que esperar y las blueprints posibles de cada contrato salen de [StarStrings](https://github.com/MrKraken/StarStrings) (MrKraken), que los extrae de los ficheros del juego en cada build y publica `src/For_Tool_Creators/contracts.ini` para otras herramientas (rama `master` para LIVE y `sc-ptu` para PTU). Se casa con el registro por el *debug name* del contrato. Se descarga una vez al día a `data/game/community/`.
+
+**Mercado (UEX):** los precios de mercancías salen de la API 2.0 de [UEX](https://uexcorp.space), que reportan los propios jugadores. Cada uno pone su token, gratuito: en uexcorp.space → **My Apps** → crear una app. Se pega una vez en Comercio, se guarda solo en los ajustes locales (`data/sc-master.db`) y nunca vuelve a la interfaz. Terminales, mercancías y naves se descargan una vez al día; los precios, cada 20 minutos, en `data/game/uex/`. Las rutas son dentro del mismo sistema y no tienen en cuenta la distancia. La carga de tu nave sale de UEX; si no la conoce, la indicas tú.
 
 **Nombres:** los sitios, naves, objetos y acciones usan su nombre oficial, sacado de la traducción del propio juego (`global.ini` de `Data.p4k`). Los nombres propios nunca se traducen. El selector EN/ES de la barra superior elige el idioma de los términos del juego (EN por defecto).
 

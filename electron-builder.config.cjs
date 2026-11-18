@@ -60,5 +60,22 @@ module.exports = {
     uninstallDisplayName: 'CommandGlass',
     include: 'desktop/build/installer.nsh',
   },
+  // Paquete para la Microsoft Store (`npm run dist:store`). La Store lo firma al publicarlo: aquí no se firma.
+  // La identidad sale de Partner Center (Administración de productos → Identidad del producto):
+  //   CG_APPX_IDENTITY (Package/Identity/Name), CG_APPX_PUBLISHER (CN=…), CG_APPX_PUBLISHER_NAME.
+  // Sin ellas se usa una identidad de prueba, válida para instalarlo en tu PC con el modo de desarrollador.
+  appx: {
+    identityName: process.env.CG_APPX_IDENTITY || 'SpaceCowboys.CommandGlass',
+    publisher: process.env.CG_APPX_PUBLISHER || 'CN=CommandGlass Dev',
+    publisherDisplayName: process.env.CG_APPX_PUBLISHER_NAME || 'Space Cowboys',
+    displayName: 'CommandGlass',
+    applicationId: 'CommandGlass',
+    backgroundColor: '#04070b',
+    languages: ['es-ES', 'en-US'],
+    customManifestPath: 'appxmanifest.xml',
+    minVersion: '10.0.17763.0',
+    maxVersionTested: '10.0.26100.0',
+    artifactName: `${releaseName(version)}.\${ext}`,
+  },
   publish: null,
 };

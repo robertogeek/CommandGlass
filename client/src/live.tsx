@@ -66,7 +66,11 @@ export async function postJson<T>(url: string, body: unknown): Promise<T> {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  if (!res.ok) {
+    // El servidor explica el problema en "error" (para mostrarlo tal cual).
+    const detail = (await res.json().catch(() => null)) as { error?: string } | null;
+    throw new Error(detail?.error ?? `${res.status} ${url}`);
+  }
   return (await res.json()) as T;
 }
 

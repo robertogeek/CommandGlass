@@ -21,7 +21,8 @@
     "setup": "npm install && npm --prefix client install && npm run build",
     "desktop:build": "npm run build && node scripts/build-desktop.mjs",
     "desktop": "npm run desktop:build && electron .",
-    "dist:win": "npm run desktop:build && electron-builder --win --publish never --config electron-builder.config.cjs"
+    "dist:win": "npm run desktop:build && electron-builder --win --publish never --config electron-builder.config.cjs",
+    "dist:store": "npm run desktop:build && electron-builder --win appx --x64 --publish never --config electron-builder.config.cjs"
   },
   "dependencies": {
     "qrcode": "^1.5.4"

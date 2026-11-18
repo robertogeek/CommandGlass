@@ -30,8 +30,9 @@ interface DesktopInfo {
 
 interface Bridge {
   chooseGameDir(): Promise<{ ok: boolean; canceled?: boolean; gameDir?: string; message?: string }>;
-  getOpenAtLogin(): Promise<boolean>;
-  setOpenAtLogin(on: boolean): Promise<boolean>;
+  /** null en la versión de la Microsoft Store: el inicio con Windows se activa en la configuración de Windows. */
+  getOpenAtLogin(): Promise<boolean | null>;
+  setOpenAtLogin(on: boolean): Promise<boolean | null>;
   openDataDir(): Promise<void>;
   getChannels(): Promise<{ current: string; available: string[] } | null>;
   setChannel(ch: string): Promise<boolean>;
@@ -87,12 +88,16 @@ function Desktop() {
   const [copied, setCopied] = useState(false);
   const [pinTip, setPinTip] = useState(() => !readFlag(PIN_TIP_KEY));
   const [atLogin, setAtLogin] = useState<boolean | null>(null);
+  const [storeLogin, setStoreLogin] = useState(false);
   const [dirMsg, setDirMsg] = useState<string | null>(null);
   const [choosing, setChoosing] = useState(false);
 
   const [channels, setChannels] = useState<{ current: string; available: string[] } | null>(null);
   useEffect(() => {
-    bridge?.getOpenAtLogin().then(setAtLogin).catch(() => setAtLogin(null));
+    bridge
+      ?.getOpenAtLogin()
+      .then((v) => (v === null ? setStoreLogin(true) : setAtLogin(v)))
+      .catch(() => setAtLogin(null));
     bridge?.getChannels().then(setChannels).catch(() => setChannels(null));
   }, []);
   const switchChannel = async (ch: string) => {
@@ -124,7 +129,8 @@ function Desktop() {
 
   const toggleLogin = async () => {
     if (!bridge || atLogin === null) return;
-    setAtLogin(await bridge.setOpenAtLogin(!atLogin));
+    const v = await bridge.setOpenAtLogin(!atLogin);
+    if (v !== null) setAtLogin(v);
   };
 
   const devices = info?.devices ?? [];
@@ -226,15 +232,21 @@ function Desktop() {
               <div className="label"><Power size={14} aria-hidden /> Ajustes</div>
               <div className="kv">
                 <span>Abrir CommandGlass al iniciar Windows</span>
-                <button
-                  className={`seg ${atLogin ? 'on' : ''}`}
-                  role="switch"
-                  aria-checked={atLogin ?? false}
-                  onClick={toggleLogin}
-                  disabled={atLogin === null}
-                >
-                  {atLogin ? 'Activado' : 'Desactivado'}
-                </button>
+                {storeLogin ? (
+                  <button className="chip" onClick={() => void bridge.setOpenAtLogin(true)}>
+                    <Power size={15} aria-hidden /> Configurar en Windows
+                  </button>
+                ) : (
+                  <button
+                    className={`seg ${atLogin ? 'on' : ''}`}
+                    role="switch"
+                    aria-checked={atLogin ?? false}
+                    onClick={toggleLogin}
+                    disabled={atLogin === null}
+                  >
+                    {atLogin ? 'Activado' : 'Desactivado'}
+                  </button>
+                )}
               </div>
               <div className="kv">
                 <span>Tu historial y ajustes</span>
