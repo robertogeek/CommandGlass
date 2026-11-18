@@ -1,7 +1,7 @@
 # Construye el instalador de Windows de CommandGlass.
 # - A mano: pestaña Actions → "Instalador de Windows" → Run workflow.
 # - Automático: al subir una etiqueta de versión (git tag v0.1.0-beta && git push --tags).
-# El .exe queda como artefacto de la ejecución (Summary → Artifacts) y, con etiqueta, en una Release privada.
+# El .exe queda como artefacto de la ejecución (Summary → Artifacts, sin zip) y, con etiqueta, en una Release privada.
 #
 # Firma (opcional, se activa sola si existen los secretos del repositorio):
 #   Certificado .pfx:        WIN_CSC_LINK (pfx en base64) + WIN_CSC_KEY_PASSWORD
@@ -22,9 +22,9 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: 26
           cache: npm
@@ -65,10 +65,11 @@ jobs:
             "{0}: {1} {2}" -f $_.Name, $s.Status, $s.SignerCertificate.Subject
           }
 
-      - uses: actions/upload-artifact@v4
+      # Sin zip: el artefacto es directamente el .exe que se reparte.
+      - uses: actions/upload-artifact@v7
         with:
-          name: commandglass-windows
-          path: release/*.exe
+          path: release/commandglass_v*.exe
+          archive: false
           if-no-files-found: error
 
       - name: Release (solo con etiqueta)
