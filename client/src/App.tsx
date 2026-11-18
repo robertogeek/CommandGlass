@@ -1,4 +1,4 @@
-import { Archive, Coins, FileCheck, MapIcon, Radar, Rocket, ScrollText, Users, type LucideIcon } from 'lucide-react';
+import { Archive, Coins, FileCheck, FileText, MapIcon, MapPin, Radar, Rocket, ScrollText, Server, ShieldAlert, ShieldCheck, Timer, UserRound, Users, type LucideIcon } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Emblem } from './components/Emblem.tsx';
 import { duration } from './format.ts';
@@ -46,8 +46,9 @@ export function App() {
 
   return (
     <div className="app">
+      <span className="hud-notch" aria-hidden />
+      <TopBar title={section.title} />
       <nav className="rail" aria-label="Secciones">
-        <div className="rail-logo"><Emblem size={30} /><span>SC<br />MASTER</span></div>
         {SECTIONS.map((s) => {
           const Icon = s.icon;
           return (
@@ -57,14 +58,13 @@ export function App() {
               onClick={() => go(s.id)}
               aria-current={s.id === section.id ? 'page' : undefined}
             >
-              <Icon size={24} strokeWidth={1.8} aria-hidden />
+              <Icon size={24} strokeWidth={1.5} aria-hidden />
               {s.label}
             </button>
           );
         })}
       </nav>
       <div className="main">
-        <TopBar title={section.title} />
         <main className="view" key={section.id}>
           {section.view ? (
             section.view()
@@ -73,7 +73,7 @@ export function App() {
               <div>
                 <div className="soon-emblem">
                   <Emblem size={128} spin />
-                  <section.icon size={40} strokeWidth={1.4} aria-hidden />
+                  <section.icon size={40} strokeWidth={1.3} aria-hidden />
                 </div>
                 <h2>{section.title}</h2>
                 <p>{section.soon}</p>
@@ -83,6 +83,7 @@ export function App() {
           )}
         </main>
       </div>
+      <StatusBar />
     </div>
   );
 }
@@ -111,12 +112,58 @@ function TopBar({ title }: { title: string }) {
 
   return (
     <header className="topbar">
-      <span className="title">{title}</span>
-      <span className="pill"><span className={`dot ${dot}`} /> {text}</span>
-      {state?.shard && <span className="pill">Shard {state.shard.label}</span>}
-      {state?.startedAt && !state.endedAt && <span className="pill">Sesión {duration(state.startedAt)}</span>}
-      {state?.player.name && <span className="pill">{state.player.name}</span>}
-      <span className="pill">{now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+      <div className="brand">
+        <Emblem size={40} />
+        <span>SC Master</span>
+      </div>
+      <h1 className="title">{title}</h1>
+      <div className="topbar-status">
+        <span className="pill"><span className={`dot ${dot}`} /> {text}</span>
+        {state?.player.name && <span className="pill"><UserRound size={16} strokeWidth={1.6} aria-hidden /> {state.player.name}</span>}
+        <span className="pill clock">
+          <strong>{now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</strong>
+          <small>Hora local</small>
+        </span>
+      </div>
     </header>
+  );
+}
+
+/** Franja inferior tipo HUD: lo esencial del estado, visible desde cualquier sección. */
+function StatusBar() {
+  const { snapshot } = useLive();
+  const s = snapshot?.state ?? null;
+  const lawless = !!s?.jurisdiction?.lawless;
+  const session = s?.startedAt ? duration(s.startedAt, s.endedAt) : null;
+
+  return (
+    <footer className="statusbar" aria-label="Estado">
+      <Seg k="Ubicación" icon={MapPin} v={s ? (s.location?.name ?? 'En ruta') : '—'} />
+      <Seg
+        k="Jurisdicción"
+        icon={lawless ? ShieldAlert : ShieldCheck}
+        v={s?.jurisdiction ? (lawless ? 'Sin ley' : s.jurisdiction.name) : '—'}
+        tone={lawless ? 'warn' : s?.armistice ? 'safe' : undefined}
+      />
+      <Seg k="Nave" icon={Rocket} v={s ? (s.ship?.name ?? 'A pie') : '—'} className="opt" />
+      <div className="status-emblem" aria-hidden>
+        <Emblem size={44} />
+      </div>
+      <Seg k="Contratos" icon={FileText} v={s ? `${s.missions.length} activos` : '—'} className="opt" />
+      <Seg k={s?.endedAt ? 'Última sesión' : 'Sesión'} icon={Timer} v={session ?? '—'} />
+      <Seg k="Shard" icon={Server} v={s?.shard?.label ?? '—'} />
+    </footer>
+  );
+}
+
+function Seg({ k, v, icon: Icon, tone, className }: { k: string; v: string; icon: LucideIcon; tone?: 'warn' | 'safe'; className?: string }) {
+  return (
+    <div className={`seg-hud ${tone ?? ''} ${className ?? ''}`}>
+      <Icon size={18} strokeWidth={1.5} aria-hidden />
+      <div>
+        <div className="k">{k}</div>
+        <div className="v">{v}</div>
+      </div>
+    </div>
   );
 }
