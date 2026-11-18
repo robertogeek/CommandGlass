@@ -1,4 +1,4 @@
-import { Coins, Receipt, ShoppingBag, Store, Wallet } from 'lucide-react';
+import { Coins, Pickaxe, Receipt, ShoppingBag, Store, Wallet } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ago, hhmm, n, shortDay } from '../format.ts';
 import { getJson, postJson, useLive } from '../live.tsx';
@@ -22,7 +22,11 @@ export function Comercio() {
   const [amount, setAmount] = useState('');
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle');
 
-  const load = () => getJson<EconomyResponse>('/api/economy').then(setData).catch(() => setData(null));
+  const [refinery, setRefinery] = useState<{ ts: string; station: string; orders: number }[]>([]);
+  const load = () => {
+    getJson<EconomyResponse>('/api/economy').then(setData).catch(() => setData(null));
+    getJson<{ refinery: { ts: string; station: string; orders: number }[] }>('/api/combat').then((c) => setRefinery(c.refinery)).catch(() => {});
+  };
   const lastEconomy = liveEvents.find((e) => e.category === 'economy')?.id ?? 0;
   useEffect(() => {
     load();
@@ -133,6 +137,20 @@ export function Comercio() {
                 <span className="faint">{s.count} compras · {n(s.spent)} aUEC</span>
               </div>
             ))}
+          </section>
+          <section className="panel" aria-label="Refinería">
+            <div className="label"><Pickaxe size={14} aria-hidden /> Refinería</div>
+            {refinery.length === 0 ? (
+              <div className="empty">Ninguna orden de refinería terminada todavía. Te avisaré en el tablet cuando una esté lista.</div>
+            ) : (
+              refinery.slice(0, 10).map((r, i) => (
+                <div key={i} className="kv">
+                  <span>{r.station}{r.orders > 1 ? ` · ${r.orders} órdenes` : ''}</span>
+                  <span className="faint">{shortDay(r.ts)} {hhmm(r.ts)}</span>
+                </div>
+              ))
+            )}
+            <p className="faint kind-note">El juego solo apunta cuándo termina una orden, no cuándo la empiezas: por eso no hay cuenta atrás.</p>
           </section>
           <section className="panel" aria-label="Recompensas">
             <div className="label"><Coins size={14} aria-hidden /> Últimas recompensas</div>

@@ -1,6 +1,7 @@
 import { Archive, Sparkles } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { day, duration, n } from '../format.ts';
+import { SessionSummaryCard } from '../components/SessionSummary.tsx';
 import { getJson } from '../live.tsx';
 import type { Overview, SessionSummary } from '../types.ts';
 
@@ -79,6 +80,7 @@ function YearInReview() {
 }
 
 export function Archivo() {
+  const [picked, setPicked] = useState<number | null>(null);
   const [o, setO] = useState<Overview | null>(null);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
 
@@ -102,6 +104,7 @@ export function Archivo() {
 
   return (
     <div className="stack">
+      <SessionSummaryCard key={picked ?? 'last'} id={picked ?? 'last'} />
       <YearInReview />
       <div className="panel">
         <div className="label"><Archive size={14} aria-hidden /> Tu historial{o.firstSession && ` desde el ${day(o.firstSession).toLowerCase()}`}</div>
@@ -124,7 +127,9 @@ export function Archivo() {
           <span>Eventos</span>
         </div>
         {sessions.map((s) => (
-          <div className="row" key={s.id}>
+          <div className={`row session-row ${picked === s.id ? 'on' : ''}`} key={s.id} role="button" tabIndex={0}
+            onClick={() => (setPicked(s.id), window.scrollTo({ top: 0 }), document.querySelector('.view')?.scrollTo({ top: 0, behavior: 'smooth' }))}
+            onKeyDown={(e) => e.key === 'Enter' && setPicked(s.id)}>
             <span>{s.started_at ? day(s.started_at) : s.key}</span>
             <span>{s.started_at ? duration(s.started_at, s.ended_at) : '—'}</span>
             <span className="faint">{s.build}</span>

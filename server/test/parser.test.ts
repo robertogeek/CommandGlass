@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { backupKeyFromFilename, backupKeyFromHeader, splitLine } from '../src/parser/line.ts';
-import { locationInfo, setGameNames, shipName } from '../src/parser/names.ts';
+import { locationInfo, setGameNames, shardInfo, shipName } from '../src/parser/names.ts';
 import { LogParser } from '../src/parser/parser.ts';
 import { applyEvent, emptyState } from '../src/state/reducer.ts';
 
@@ -104,6 +104,7 @@ test('jurisdicción sin ley y ubicación', () => {
 test('nombres legibles', () => {
   assert.equal(shipName('AEGS_Vanguard_Hoplite_PU_AI_CRIM_935549459576'), 'Aegis Vanguard Hoplite (IA criminal)');
   assert.equal(locationInfo('Stanton2_Orison').name, 'Orison');
+  assert.equal(shardInfo('ptu_use1b_13055118_010').region, 'use1b');
   // Sin la traducción del juego cargada: respaldo sin traducir.
   assert.equal(locationInfo('RR_JP_NyxPyro').name, 'Pyro Gateway');
 });

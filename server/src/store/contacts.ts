@@ -166,6 +166,12 @@ export function setContactNote(store: Store, name: string, mark: unknown, note: 
   return { mark: cleanMark, note: cleanNote };
 }
 
+/** Jugadores que has marcado como hostiles (en minúsculas), para las alertas. */
+export function hostileNames(store: Store): Set<string> {
+  const rows = store.db.prepare("SELECT name FROM contact_notes WHERE mark = 'hostile'").all() as { name: string }[];
+  return new Set(rows.map((r) => r.name.toLowerCase()));
+}
+
 // ---------------------------------------------------------------- internos
 
 function loadNotes(store: Store): Map<string, { mark: Mark | null; note: string | null }> {

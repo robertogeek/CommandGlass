@@ -50,7 +50,9 @@ export function Hangar() {
 
   useEffect(() => {
     getJson<HangarResponse>('/api/hangar').then(setData).catch(() => setError(true));
+    getJson<{ received: { name: string; ts: string }[] }>('/api/blueprints').then((b) => setBlueprints(b.received)).catch(() => {});
   }, []);
+  const [blueprints, setBlueprints] = useState<{ name: string; ts: string }[]>([]);
 
   const currentShip = snapshot?.state?.ship?.name?.toLowerCase() ?? null;
   const ships = useMemo(() => (data?.ships ?? []).filter((s) => !onlyOwn || s.own), [data, onlyOwn]);
@@ -87,6 +89,19 @@ export function Hangar() {
           )}
         </section>
 
+        <div className="stack">
+        <section className="panel" aria-label="Blueprints">
+          <div className="label"><Sparkles size={14} aria-hidden /> Tus blueprints · {blueprints.length}</div>
+          {blueprints.length === 0 ? (
+            <div className="empty">Aún no has conseguido ninguna. En Contratos, el briefing te dice qué blueprints puede darte cada contrato.</div>
+          ) : (
+            <div className="intel-rep">
+              {blueprints.map((b) => (
+                <span key={b.name} className="badge violet" title={`Conseguida ${ago(b.ts)}`}>{b.name}</span>
+              ))}
+            </div>
+          )}
+        </section>
         <section className="panel" aria-label="Flota">
           <div className="label"><Rocket size={14} aria-hidden /> Flota</div>
           <div className="stat-grid">
@@ -98,6 +113,7 @@ export function Hangar() {
             El juego solo dice cuántos vehículos tienes, no cuáles. Aquí aparecen los que has usado: subido, saltado en cuántico o perdido.
           </p>
         </section>
+        </div>
       </div>
 
       <div className="toolbar">

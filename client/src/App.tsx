@@ -1,4 +1,4 @@
-import { Archive, Coins, FileCheck, FileText, Gamepad2, MapIcon, MapPin, Radar, Rocket, ScrollText, Server, ShieldAlert, ShieldCheck, Timer, UserRound, Users, type LucideIcon } from 'lucide-react';
+import { Archive, Coins, FileCheck, FileText, Gamepad2, MapIcon, MapPin, Radar, Rocket, ScrollText, Server, ShieldAlert, ShieldCheck, Swords, Timer, UserRound, Users, type LucideIcon } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Emblem } from './components/Emblem.tsx';
 import logo from './assets/space-cowboys.png';
@@ -8,6 +8,7 @@ import { useLive } from './live.tsx';
 import { Ahora } from './views/Ahora.tsx';
 import { Archivo } from './views/Archivo.tsx';
 import { Bitacora } from './views/Bitacora.tsx';
+import { Combate } from './views/Combate.tsx';
 import { Comercio } from './views/Comercio.tsx';
 import { Contactos } from './views/Contactos.tsx';
 import { Contratos } from './views/Contratos.tsx';
@@ -31,6 +32,7 @@ const SECTIONS: Section[] = [
   { id: 'contactos', label: 'Contactos', title: 'Contactos', icon: Users, view: () => <Contactos /> },
   { id: 'hangar', label: 'Hangar', title: 'Hangar', icon: Rocket, view: () => <Hangar /> },
   { id: 'contratos', label: 'Contratos', title: 'Contratos', icon: FileCheck, view: () => <Contratos /> },
+  { id: 'combate', label: 'Combate', title: 'Combate', icon: Swords, view: () => <Combate /> },
   { id: 'comercio', label: 'Comercio', title: 'Comercio', icon: Coins, view: () => <Comercio /> },
   { id: 'mapa', label: 'Mapa', title: 'Mapa', icon: MapIcon, view: () => <Mapa /> },
   { id: 'archivo', label: 'Archivo', title: 'Archivo', icon: Archive, view: () => <Archivo /> },
@@ -127,6 +129,7 @@ function TopBar({ title }: { title: string }) {
       <h1 className="title">{title}</h1>
       <div className="topbar-status">
         <LangSwitch />
+        {snapshot?.channel && snapshot.channel !== 'LIVE' && <span className="pill channel-pill">{snapshot.channel}</span>}
         <span className="pill"><span className={`dot ${dot}`} /> {text}</span>
         {state?.player.name && <span className="pill"><UserRound size={16} strokeWidth={1.6} aria-hidden /> {state.player.name}</span>}
         <span className="pill clock">

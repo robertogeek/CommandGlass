@@ -293,7 +293,8 @@ function cap(s: string): string {
 
 /** "pub_euw1b_13165946_220" -> {region:"euw1b", label:"EU oeste · 220"} */
 export function shardInfo(shard: string): { region: string | null; label: string } {
-  const m = /^pub_([a-z]+\d*[a-z]?)_\d+_(\d+)$/.exec(shard);
+  // Servidores de LIVE (pub_) y de pruebas (ptu_, eptu_, tech_).
+  const m = /^(?:pub|ptu|eptu|tech)_([a-z]+\d*[a-z]?)_\d+_(\d+)$/.exec(shard);
   if (!m) return { region: null, label: shard };
   const region = m[1]!;
   const area = region.startsWith('euw') ? 'Europa oeste'

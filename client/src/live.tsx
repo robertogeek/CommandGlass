@@ -1,19 +1,32 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { GameEvent, Snapshot } from './types.ts';
 
+export interface Alert {
+  id: string;
+  ts: string;
+  level: 'info' | 'warn' | 'danger' | 'good';
+  kind: string;
+  title: string;
+  body: string | null;
+  href: string | null;
+}
+
 interface Live {
   snapshot: Snapshot | null;
   /** Eventos recibidos en directo desde que se abrió la app (más reciente primero). */
   liveEvents: GameEvent[];
+  /** Alertas recibidas en directo (más reciente primero). */
+  alerts: Alert[];
   connected: boolean;
 }
 
-const LiveContext = createContext<Live>({ snapshot: null, liveEvents: [], connected: false });
+const LiveContext = createContext<Live>({ snapshot: null, liveEvents: [], alerts: [], connected: false });
 
 export function LiveProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [liveEvents, setLiveEvents] = useState<GameEvent[]>([]);
   const [connected, setConnected] = useState(false);
+  const [alerts, setAlerts] = useState<Alert[]>([]);
 
   useEffect(() => {
     const es = new EventSource('/api/stream');
@@ -28,10 +41,14 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       const incoming = (JSON.parse((e as MessageEvent).data) as GameEvent[]).reverse();
       setLiveEvents((prev) => [...incoming, ...prev].slice(0, 300));
     });
+    es.addEventListener('alerts', (e) => {
+      const incoming = (JSON.parse((e as MessageEvent).data) as Alert[]).reverse();
+      setAlerts((prev) => [...incoming, ...prev].slice(0, 50));
+    });
     return () => es.close();
   }, []);
 
-  return <LiveContext.Provider value={{ snapshot, liveEvents, connected }}>{children}</LiveContext.Provider>;
+  return <LiveContext.Provider value={{ snapshot, liveEvents, alerts, connected }}>{children}</LiveContext.Provider>;
 }
 
 export const useLive = () => useContext(LiveContext);

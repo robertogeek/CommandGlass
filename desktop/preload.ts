@@ -6,4 +6,6 @@ contextBridge.exposeInMainWorld('commandglass', {
   getOpenAtLogin: () => ipcRenderer.invoke('cg:get-open-at-login'),
   setOpenAtLogin: (on: boolean) => ipcRenderer.invoke('cg:set-open-at-login', on),
   openDataDir: () => ipcRenderer.invoke('cg:open-data-dir'),
+  getChannels: () => ipcRenderer.invoke('cg:get-channels'),
+  setChannel: (ch: string) => ipcRenderer.invoke('cg:set-channel', ch),
 });

@@ -273,6 +273,8 @@ export interface TailerStatus {
 export interface Snapshot {
   state: LiveState | null;
   status: TailerStatus;
+  /** Versión del juego: LIVE, PTU, EPTU… */
+  channel?: string;
 }
 
 export interface Overview {

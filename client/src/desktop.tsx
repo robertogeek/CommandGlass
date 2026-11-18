@@ -33,6 +33,8 @@ interface Bridge {
   getOpenAtLogin(): Promise<boolean>;
   setOpenAtLogin(on: boolean): Promise<boolean>;
   openDataDir(): Promise<void>;
+  getChannels(): Promise<{ current: string; available: string[] } | null>;
+  setChannel(ch: string): Promise<boolean>;
 }
 
 declare global {
@@ -88,9 +90,16 @@ function Desktop() {
   const [dirMsg, setDirMsg] = useState<string | null>(null);
   const [choosing, setChoosing] = useState(false);
 
+  const [channels, setChannels] = useState<{ current: string; available: string[] } | null>(null);
   useEffect(() => {
     bridge?.getOpenAtLogin().then(setAtLogin).catch(() => setAtLogin(null));
+    bridge?.getChannels().then(setChannels).catch(() => setChannels(null));
   }, []);
+  const switchChannel = async (ch: string) => {
+    if (!bridge || ch === channels?.current) return;
+    setDirMsg(`Cambiando a ${ch}…`);
+    await bridge.setChannel(ch);
+  };
 
   const copy = async () => {
     if (!info) return;
@@ -177,6 +186,18 @@ function Desktop() {
               </>
             ) : (
               <div className="sub">Comprobando…</div>
+            )}
+            {channels && channels.available.length > 1 && (
+              <div className="kv desk-channel">
+                <span>Versión del juego</span>
+                <div className="segmented" role="group" aria-label="Versión del juego">
+                  {channels.available.map((ch) => (
+                    <button key={ch} className={`seg ${ch === channels.current ? 'on' : ''}`} onClick={() => switchChannel(ch)} aria-pressed={ch === channels.current}>
+                      {ch}
+                    </button>
+                  ))}
+                </div>
+              </div>
             )}
             {bridge && (
               <button className="chip desk-btn" onClick={chooseDir} disabled={choosing}>

@@ -16,6 +16,10 @@ import { loadShips, nameIndex } from '../store/hangar.ts';
 import { JUMPS, MOON_OF, SYSTEMS, loadPlaces, placeInfo } from '../store/places.ts';
 import { getSetting, loadEconomy, setSetting, walletEstimate, type Purchase } from '../store/economy.ts';
 import { buildWrapped } from '../store/wrapped.ts';
+import { alertsFor } from '../alerts.ts';
+import { loadCombat } from '../store/combat.ts';
+import { buildSessionSummary, summaryText } from '../store/sessionSummary.ts';
+import { hostileNames } from '../store/contacts.ts';
 import type { Store, StoredEvent } from '../store/db.ts';
 import type { LiveState } from '../state/reducer.ts';
 
@@ -60,6 +64,10 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
   tailer.on('events', (events: StoredEvent[], state: LiveState) => {
     broadcast('events', events);
     broadcast('state', snapshot(state));
+    // Solo lo reciente: al ponerse al día tras arrancar no deben saltar avisos antiguos.
+    const fresh = events.filter((e) => Date.now() - Date.parse(e.ts) < 120_000);
+    const alerts = fresh.length ? alertsFor(fresh, { hostiles: hostileNames(store) }) : [];
+    if (alerts.length) broadcast('alerts', alerts);
   });
   tailer.on('session', (state: LiveState) => broadcast('state', snapshot(state)));
 
@@ -67,8 +75,11 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
   setInterval(() => broadcast('status', tailer.status()), 15_000);
 
   /** Estado para la interfaz: a cada contrato activo se le añade lo que da (reputación, recompensa) según la wiki. */
+  // Versión del juego según la carpeta: LIVE, PTU, EPTU…
+  const channel = (config.gameDir.replace(/[\\/]+$/, '').split(/[\\/]/).pop() ?? 'LIVE').toUpperCase();
+
   function snapshot(state: LiveState | null) {
-    if (!state) return { state, status: tailer.status() };
+    if (!state) return { state, status: tailer.status(), channel };
     const missions = state.missions.map((m) => {
       const i = wiki.lookup(m.contract, m.title);
       const c = community.lookup(m.contract, m.title);
@@ -94,7 +105,7 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
           : null,
       };
     });
-    return { state: { ...state, missions }, status: tailer.status() };
+    return { state: { ...state, missions }, status: tailer.status(), channel };
   }
 
   const pairUrl = `${lanUrl}/?k=${config.pairKey}`;
@@ -218,6 +229,27 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
           community: community.lookup(mission.contract, mission.title),
           communityInfo: community.info,
         });
+      }
+
+      if (path === '/api/combat') return json(res, 200, loadCombat(store));
+
+      const summaryRoute = /^\/api\/sessions\/(\d+|last)\/summary$/.exec(path);
+      if (summaryRoute) {
+        // "last": la última sesión con actividad (la que está en curso, si estás jugando).
+        const id = summaryRoute[1] === 'last' ? (store.listSessions(1)[0]?.id ?? null) : Number(summaryRoute[1]);
+        const summary = id !== null ? buildSessionSummary(store, id, community) : null;
+        if (!summary) return json(res, 404, { error: 'No encuentro esa sesión' });
+        return json(res, 200, { summary, text: summaryText(summary) });
+      }
+
+      if (path === '/api/blueprints') {
+        const rows = store.db
+          .prepare("SELECT ts, json_extract(data, '$.name') AS name FROM events WHERE type = 'blueprint.received' ORDER BY id DESC")
+          .all() as { ts: string; name: string }[];
+        // Una entrada por blueprint, con la primera vez que la conseguiste.
+        const first = new Map<string, string>();
+        for (const r of rows) first.set(r.name, r.ts);
+        return json(res, 200, { received: [...first.entries()].map(([name, ts]) => ({ name, ts })).sort((a, b) => b.ts.localeCompare(a.ts)) });
       }
 
       if (path === '/api/wrapped') {

@@ -545,6 +545,11 @@ export function classifyNotification(
     return ev('economy.refinery', 'economy', 1, `Refinería lista en ${m[2]}${m[1] ? ` (${m[1]} órdenes)` : ''}`, { orders: Number(m[1] ?? 1), station: m[2] });
   }
 
+  // Blueprints
+  if ((m = /^Received Blueprint:\s*(.+)$/.exec(title))) {
+    return ev('blueprint.received', 'economy', 2, `Blueprint conseguida: ${m[1]}`, { name: m[1] });
+  }
+
   // Hangar
   if (/^Hangar Request Completed/.test(title)) return ev('ship.hangar_ready', 'travel', 1, 'Hangar asignado');
   if (/^Joined hangar queue/.test(title)) return ev('ship.hangar_queue', 'travel', 0, 'En cola para un hangar');

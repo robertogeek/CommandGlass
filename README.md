@@ -61,9 +61,14 @@ Para que el iPad no se apague mientras juegas: Ajustes → Pantalla y brillo →
 | **Contactos** | Con quién juegas, quién te elimina, notas y marcas | Registro del juego |
 | **Hangar** | Tu equipo personal, tus naves, ficha de cada nave y qué componentes montar | Registro + [api.star-citizen.wiki](https://api.star-citizen.wiki) (precios de UEX a través de la wiki) |
 | **Contratos** | Briefing de lo que tienes en curso, estadísticas por tipo y facción, historial | Registro + api.star-citizen.wiki |
-| **Comercio** | Cartera estimada, en qué gastas, últimas compras y recompensas | Registro (el saldo lo indicas tú una vez) |
+| **Combate** | Quién te destruye la nave y por qué, lo que más derribas, muertes, delitos (CrimeStat) e historial de combate | Registro del juego |
+| **Comercio** | Cartera estimada, en qué gastas, últimas compras, recompensas y órdenes de refinería terminadas | Registro (el saldo lo indicas tú una vez) |
 | **Mapa** | Esquema orbital por sistema con tus sitios, tu última ruta y los saltos entre sistemas | Registro del juego |
 | **Archivo** | Resumen de tu año y todas tus sesiones | Registro del juego |
+
+**Avisos en el tablet:** espacio sin ley, heridas, incapacitación, nave perdida u objetivo destruido, delitos, refinería lista, blueprints conseguidas, contratos fallidos, fin de sesión y cualquier jugador que hayas marcado como **hostil** en Contactos. El sonido se activa con la campana (abajo a la izquierda) en cada tablet.
+
+**LIVE y PTU:** si tienes las dos versiones instaladas, la ventana del PC deja elegir cuál vigilar. Cada una tiene su propio historial.
 
 Lo que el registro **no** incluye y por eso es estimado o falta: el saldo de aUEC, la reputación con cada facción (se estima con lo que da cada contrato según la wiki), tu posición exacta en el mapa y los componentes que hayas cambiado en tus naves.
 
