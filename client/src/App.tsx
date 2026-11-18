@@ -1,6 +1,7 @@
 import { Archive, Coins, FileCheck, FileText, Gamepad2, MapIcon, MapPin, Radar, Rocket, ScrollText, Server, ShieldAlert, ShieldCheck, Timer, UserRound, Users, type LucideIcon } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Emblem } from './components/Emblem.tsx';
+import logo from './assets/space-cowboys.png';
 import { duration } from './format.ts';
 import { useLive } from './live.tsx';
 import { Ahora } from './views/Ahora.tsx';
@@ -115,7 +116,7 @@ function TopBar({ title }: { title: string }) {
   return (
     <header className="topbar">
       <div className="brand">
-        <Emblem size={40} />
+        <img className="org-logo" src={logo} alt="Space Cowboys" width={60} height={51} />
         <span>SC Master</span>
       </div>
       <h1 className="title">{title}</h1>
@@ -149,7 +150,7 @@ function StatusBar() {
       />
       <Seg k="Nave" icon={Rocket} v={s ? (s.ship?.name ?? 'A pie') : '—'} className="opt" />
       <div className="status-emblem" aria-hidden>
-        <Emblem size={44} />
+        <img className="org-logo" src={logo} alt="" width={64} height={54} />
       </div>
       <Seg k="Contratos" icon={FileText} v={s ? `${s.missions.length} activos` : '—'} className="opt" />
       <Seg k={s?.endedAt ? 'Última sesión' : 'Sesión'} icon={Timer} v={session ?? '—'} />

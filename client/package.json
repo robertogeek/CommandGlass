@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "node scripts/make-icons.ts && vite build",
+    "build": "vite build",
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {

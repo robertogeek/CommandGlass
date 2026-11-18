@@ -194,7 +194,9 @@ button { font: inherit; color: inherit; }
   letter-spacing: 0.22em;
   text-transform: uppercase;
 }
-.brand svg { color: var(--accent); filter: drop-shadow(0 0 8px var(--accent-glow)); }
+/* logo de la organización (Space Cowboys): imagen propia del usuario */
+.org-logo { display: block; height: auto; -webkit-user-drag: none; }
+.brand .org-logo { width: 60px; filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.6)); }
 
 .topbar .title {
   position: relative;
@@ -416,7 +418,7 @@ button { font: inherit; color: inherit; }
   inset: 1px;
   background: radial-gradient(circle at 50% 50%, rgba(77, 176, 255, 0.16), transparent 60%), #070c12;
 }
-.status-emblem svg { filter: drop-shadow(0 0 10px var(--accent-glow)); }
+.status-emblem .org-logo { width: 64px; filter: drop-shadow(0 3px 10px rgba(0, 0, 0, 0.7)); }
 
 /* ------------------------------------------------------------ rejillas */
 
@@ -949,11 +951,12 @@ button { font: inherit; color: inherit; }
   .app { padding-top: calc(var(--inset-t) + 8px); padding-bottom: calc(var(--inset-b) + 8px); }
   .topbar { margin-bottom: 10px; padding-bottom: 8px; }
   .brand { gap: 2px; }
-  .brand svg { width: 32px; height: 32px; }
+  .brand .org-logo { width: 46px; }
+  .brand span { display: none; }
   .topbar .title { font-size: 26px; padding-bottom: 10px; }
   .statusbar { min-height: 56px; margin-top: 10px; }
   .status-emblem { width: 84px; height: 72px; margin-top: -18px; }
-  .status-emblem svg { width: 38px; height: 38px; }
+  .status-emblem .org-logo { width: 54px; }
   .rail-btn { min-height: 52px; gap: 6px; }
 }
 
