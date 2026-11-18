@@ -12,6 +12,7 @@ import type { WikiMissions } from '../game/wiki.ts';
 import { COMPONENT_LABEL, type ComponentType, type WikiCatalog } from '../game/catalog.ts';
 import { prettyItem } from '../parser/rules.ts';
 import { loadShips, nameIndex } from '../store/hangar.ts';
+import { JUMPS, MOON_OF, SYSTEMS, loadPlaces, placeInfo } from '../store/places.ts';
 import type { Store, StoredEvent } from '../store/db.ts';
 import type { LiveState } from '../state/reducer.ts';
 
@@ -176,6 +177,20 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         const mission = all.find((m) => m.id === decodeURIComponent(missionRoute[1]!));
         if (!mission) return json(res, 404, { error: 'No encuentro ese contrato' });
         return json(res, 200, { mission, briefing: briefingFor(mission, all), intel: wiki.lookup(mission.contract, mission.title), wiki: wiki.info });
+      }
+
+      if (path === '/api/map') {
+        const { places, route, routeSessionId } = loadPlaces(store);
+        const cur = tailer.state?.location ?? null;
+        return json(res, 200, {
+          places,
+          route,
+          routeSessionId,
+          current: cur ? { code: cur.code, name: cur.name, ...placeInfo(cur.code, cur.system, cur.body), since: cur.since } : null,
+          systems: SYSTEMS,
+          moons: MOON_OF,
+          jumps: JUMPS,
+        });
       }
 
       if (path === '/api/hangar') {

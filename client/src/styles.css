@@ -1121,6 +1121,40 @@ button { font: inherit; color: inherit; }
 .upgrade-stat { text-align: right; font: 600 15px/1 var(--display); font-variant-numeric: tabular-nums; color: var(--accent); }
 .upgrade-shop { grid-column: 1 / -1; font-size: 12px; }
 
+/* ------------------------------------------------------------ mapa */
+
+.map-layout { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--gap); align-items: start; }
+@media (max-width: 900px) { .map-layout { grid-template-columns: minmax(0, 1fr); } }
+.map-panel { padding: 10px; }
+.orbit-map { display: block; width: 100%; height: auto; max-height: 72vh; }
+.orbit-ring { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 5; }
+.orbit-label { fill: var(--muted); font: 600 13px var(--display); letter-spacing: 0.06em; }
+.star-label { fill: var(--amber); }
+.orbit-count { fill: var(--accent); font: 600 11px var(--display); }
+.planet { cursor: pointer; }
+.planet .hit { fill: transparent; }
+.planet .body { fill: var(--hull-2); stroke: var(--seam-hi); stroke-width: 1.5; }
+.planet.visited .body { fill: rgba(77, 176, 255, 0.25); stroke: var(--accent); }
+.planet.on .body { fill: rgba(77, 176, 255, 0.45); stroke-width: 2.5; }
+.planet:focus-visible .body { stroke: var(--frost); stroke-width: 3; }
+.moon { fill: var(--seam-hi); }
+.moon.visited { fill: var(--accent); }
+.here { fill: none; stroke: var(--green); stroke-width: 2; animation: here-pulse 1.6s ease-in-out infinite alternate; }
+@keyframes here-pulse { from { opacity: 1; } to { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .here { animation: none; } }
+.diamond { fill: var(--hull-2); stroke: var(--violet); stroke-width: 1.5; }
+.here-fill { fill: var(--green) !important; stroke: var(--green); }
+.here-row { color: var(--green); }
+.route { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 280px; overflow-y: auto; }
+.route li { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; gap: 8px; font-size: 14px; align-items: baseline; }
+.route li.jump { border-top: 1px dashed var(--violet); padding-top: 6px; }
+.route-time { font: 600 13px var(--display); color: var(--faint); font-variant-numeric: tabular-nums; }
+.jump-graph { width: 100%; height: auto; }
+.jump-line { stroke: var(--seam-hi); stroke-width: 2; stroke-dasharray: 4 4; }
+.jump-line.used { stroke: var(--violet); stroke-dasharray: none; }
+.sys-node { fill: var(--hull-2); stroke: var(--seam-hi); stroke-width: 2; }
+.sys-node.visited { fill: rgba(183, 168, 255, 0.3); stroke: var(--violet); }
+
 /* ------------------------------------------------------------ guía de instalación en el tablet */
 
 .install-guide {
