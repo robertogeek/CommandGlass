@@ -172,6 +172,14 @@ export class Store {
     return { name: row?.player ?? null, geid: row?.player_geid ?? null };
   }
 
+  /** Estados guardados de las últimas sesiones (la más reciente primero). */
+  recentStates(limit = 30): LiveState[] {
+    const rows = this.db
+      .prepare('SELECT state FROM sessions WHERE state IS NOT NULL ORDER BY started_at DESC LIMIT ?')
+      .all(limit) as { state: string }[];
+    return rows.map((r) => JSON.parse(r.state) as LiveState);
+  }
+
   listSessions(limit = 50): Omit<SessionRow, 'state'>[] {
     return this.db
       .prepare(

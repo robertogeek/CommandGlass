@@ -9,6 +9,9 @@ import type { KeySender } from '../game/keysender.ts';
 import { getContact, listContacts, setContactNote } from '../store/contacts.ts';
 import { briefingFor, factionStats, kindStats, loadMissions } from '../store/missions.ts';
 import type { WikiMissions } from '../game/wiki.ts';
+import { COMPONENT_LABEL, type ComponentType, type WikiCatalog } from '../game/catalog.ts';
+import { prettyItem } from '../parser/rules.ts';
+import { loadShips, nameIndex } from '../store/hangar.ts';
 import type { Store, StoredEvent } from '../store/db.ts';
 import type { LiveState } from '../state/reducer.ts';
 
@@ -34,12 +37,13 @@ export interface ServerDeps {
   bindings: BindingsService;
   keys: KeySender;
   wiki: WikiMissions;
+  catalog: WikiCatalog;
 }
 
 /** Acciones que no se envían sin una confirmación explícita desde la interfaz. */
 const DANGEROUS = new Set(['v_self_destruct', 'v_eject', 'force_respawn', 'v_emergency_exit']);
 
-export function startServer({ config, store, tailer, lanUrl, bindings, keys, wiki }: ServerDeps) {
+export function startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog }: ServerDeps) {
   // Conexiones en directo abiertas; "remote" = desde otro dispositivo (el iPad), no desde este PC.
   const clients = new Map<ServerResponse, { remote: boolean; since: string; agent: string }>();
 
@@ -172,6 +176,49 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         const mission = all.find((m) => m.id === decodeURIComponent(missionRoute[1]!));
         if (!mission) return json(res, 404, { error: 'No encuentro ese contrato' });
         return json(res, 200, { mission, briefing: briefingFor(mission, all), intel: wiki.lookup(mission.contract, mission.title), wiki: wiki.info });
+      }
+
+      if (path === '/api/hangar') {
+        const resolve = nameIndex(await catalog.vehicleNames());
+        const ships = loadShips(store, resolve);
+        // Lo más reciente que se sepa: la partida en curso o, si no, la última sesión que lo registró.
+        const states = [tailer.state, ...store.recentStates(30)].filter(Boolean) as LiveState[];
+        const fleet = states.find((s) => s.fleet)?.fleet ?? null;
+        const withGear = states.find((s) => s.loadout && Object.keys(s.loadout).length > 0);
+        const loadout = await Promise.all(
+          Object.entries(withGear?.loadout ?? {}).map(async ([port, v]) => ({
+            port,
+            cls: v.cls,
+            at: v.at,
+            name: (await catalog.itemName(v.cls)) ?? prettyItem(v.cls),
+          })),
+        );
+        return json(res, 200, { ships, fleet, loadout, loadoutAt: withGear?.lastEventAt ?? null });
+      }
+
+      const shipRoute = /^\/api\/hangar\/ship\/([^/]+)$/.exec(path);
+      if (shipRoute) {
+        const spec = await catalog.ship(decodeURIComponent(shipRoute[1]!));
+        if (!spec) return json(res, 404, { error: 'La wiki no tiene ficha de esta nave' });
+        // Alternativas para cada componente principal que lleva de serie, por tamaño.
+        const slots = new Map<string, { type: ComponentType; size: number; stock: string[] }>();
+        for (const s of spec.stock) {
+          if (!(s.type in COMPONENT_LABEL) || s.size === null) continue;
+          const key = `${s.type}-${s.size}`;
+          const slot = slots.get(key) ?? { type: s.type as ComponentType, size: s.size, stock: [] };
+          slot.stock.push(s.name);
+          slots.set(key, slot);
+        }
+        const upgrades = await Promise.all(
+          [...slots.values()].map(async (s) => ({
+            type: s.type,
+            label: COMPONENT_LABEL[s.type],
+            size: s.size,
+            stock: s.stock,
+            options: (await catalog.upgrades(s.type, s.size)).slice(0, 8),
+          })),
+        );
+        return json(res, 200, { spec, upgrades });
       }
 
       if (path === '/api/contacts') {

@@ -361,6 +361,59 @@ const carriage: Rule = (l, api) => {
   };
 };
 
+// ---------------------------------------------------------------- equipo personal y flota
+
+/** Puertos del cuerpo que interesan: armadura, mochila, armas a la espalda y en la cadera, medpens, granadas. */
+const GEAR_PORT = /^(Armor_(Helmet|Torso|Arms|Legs|Undersuit|Backpack)|Backpack|wep_[a-z_]*\d*|medPen_attach_\d+|grenade_attach_\d+)$/i;
+
+const gearEvent = (port: string, cls: string, api: RuleApi, ts: string): EventDraft | null => {
+  if (!GEAR_PORT.test(port) || !api.once(`gear:${port}:${cls}`, 5_000, ts)) return null;
+  return {
+    type: 'gear.equipped',
+    category: 'system',
+    importance: 0,
+    summary: `Equipo: ${prettyItem(cls)}`,
+    data: { port, cls },
+  };
+};
+
+/** "cds_armor_medium_helmet_01_01_20" → "Cds armor medium helmet" (el nombre bueno lo pone la wiki en la interfaz). */
+export function prettyItem(cls: string): string {
+  const s = cls.replace(/(_\d+)+$/, '').replace(/_/g, ' ').trim();
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+const attachmentReceived: Rule = (l, api) => {
+  const m = /Player\[([^\]]+)\] Attachment\[[^,]+, ([^,]+), \d+\] Status\[[^\]]*\] Port\[([^\]]+)\]/.exec(l.body);
+  if (!m || !api.isMe(m[1])) return null;
+  return gearEvent(m[3]!, m[2]!, api, l.ts);
+};
+
+const equipItem: Rule = (l, api) => {
+  const m = /Class\[([^\]]+)\].*?Port\[([^\]]+)\]/.exec(l.body);
+  if (!m) return null;
+  const port = m[2]!.split(':').pop()!;
+  return gearEvent(port, m[1]!, api, l.ts);
+};
+
+const storeItem: Rule = (l, api) => {
+  const m = /by '([^']+)' \[(\d+)\].*?Class\[([^\]]+)\]/.exec(l.body);
+  if (!m || !api.isMe(m[1], m[2])) return null;
+  return { type: 'gear.stored', category: 'system', importance: 0, summary: `Guardas ${prettyItem(m[3]!)}`, data: { cls: m[3] } };
+};
+
+const vehicleList: Rule = (l, api) => {
+  const m = /Retrieved (\d+) entitlements out of (\d+) vehic/.exec(l.body);
+  if (!m || !api.changed('fleet', `${m[1]}/${m[2]}`)) return null;
+  return {
+    type: 'ship.fleet',
+    category: 'travel',
+    importance: 0,
+    summary: `Tu hangar tiene ${m[2]} vehículos`,
+    data: { total: Number(m[2]), entitlements: Number(m[1]) },
+  };
+};
+
 const partyAccept: Rule = () => ({
   type: 'social.party_invite_accepted',
   category: 'social',
@@ -519,4 +572,8 @@ export const RULES: Record<string, Rule> = {
   'CEntityComponentShopUIProvider::SendShopBuyRequest': shopBuy,
   'Player entered carriage': carriage,
   'Accept invitation': partyAccept,
+  'AttachmentReceived': attachmentReceived,
+  'EquipItem': equipItem,
+  'StoreItem': storeItem,
+  'VehicleListQuery': vehicleList,
 };

@@ -5,6 +5,7 @@ import { backupsDir, DATA_DIR, dbPath, gameLogPath, loadConfig } from './config.
 import { BindingsService } from './game/bindings.ts';
 import { KeySender } from './game/keysender.ts';
 import { WikiMissions } from './game/wiki.ts';
+import { WikiCatalog } from './game/catalog.ts';
 import { importBackups } from './ingest/importer.ts';
 import { LiveTailer } from './ingest/tailer.ts';
 import { Store } from './store/db.ts';
@@ -37,7 +38,8 @@ const lanUrl = `http://${lanIp}:${config.port}`;
 // Datos de misiones de la Star Citizen Wiki (facción, reputación, recompensa): se descargan en segundo plano.
 const wiki = new WikiMissions(DATA_DIR);
 wiki.list();
-const { server, pairUrl } = startServer({ config, store, tailer, lanUrl, bindings, keys, wiki });
+const catalog = new WikiCatalog(DATA_DIR);
+const { server, pairUrl } = startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog });
 
 // Dentro de la app de escritorio el servidor corre como proceso hijo de Electron: se le avisa al arrancar o al fallar.
 const parent = (process as unknown as { parentPort?: { postMessage(m: unknown): void } }).parentPort;

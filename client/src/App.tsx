@@ -9,6 +9,7 @@ import { Archivo } from './views/Archivo.tsx';
 import { Bitacora } from './views/Bitacora.tsx';
 import { Contactos } from './views/Contactos.tsx';
 import { Contratos } from './views/Contratos.tsx';
+import { Hangar } from './views/Hangar.tsx';
 import { Mandos } from './views/Mandos.tsx';
 
 interface Section {
@@ -25,7 +26,7 @@ const SECTIONS: Section[] = [
   { id: 'mandos', label: 'Mandos', title: 'Mandos', icon: Gamepad2, view: () => <Mandos /> },
   { id: 'bitacora', label: 'Bitácora', title: 'Bitácora', icon: ScrollText, view: () => <Bitacora /> },
   { id: 'contactos', label: 'Contactos', title: 'Contactos', icon: Users, view: () => <Contactos /> },
-  { id: 'hangar', label: 'Hangar', title: 'Hangar', icon: Rocket, soon: 'Tu flota con fichas técnicas de star-citizen.wiki y tus estadísticas con cada nave.' },
+  { id: 'hangar', label: 'Hangar', title: 'Hangar', icon: Rocket, view: () => <Hangar /> },
   { id: 'contratos', label: 'Contratos', title: 'Contratos', icon: FileCheck, view: () => <Contratos /> },
   { id: 'comercio', label: 'Comercio', title: 'Comercio', icon: Coins, soon: 'Precios de compra y venta de donde estás (UEX) y las mejores rutas para tu nave.' },
   { id: 'mapa', label: 'Mapa', title: 'Mapa', icon: MapIcon, soon: 'Tus rutas entre Stanton, Pyro y Nyx dibujadas a partir de tus saltos.' },

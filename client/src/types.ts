@@ -115,6 +115,55 @@ export interface Briefing {
   record: { total: number; completed: number; failed: number; abandoned: number };
 }
 
+export interface ShipUse {
+  className: string | null;
+  name: string;
+  own: boolean;
+  boarded: number;
+  qtJumps: number;
+  lost: number;
+  sessions: number;
+  firstUsed: string;
+  lastUsed: string;
+}
+
+export interface HangarResponse {
+  ships: ShipUse[];
+  fleet: { total: number; entitlements: number; at: string } | null;
+  loadout: { port: string; cls: string; at: string; name: string }[];
+  loadoutAt: string | null;
+}
+
+export interface ShipSpec {
+  className: string;
+  name: string;
+  manufacturer: string | null;
+  role: string | null;
+  size: number | null;
+  crew: { min: number | null; max: number | null };
+  cargo: number | null;
+  medicalTier: number | null;
+  speed: { scm: number | null; max: number | null };
+  quantum: { speed: number | null; range: number | null; fuel: number | null; spool: number | null };
+  hull: number | null;
+  shield: { hp: number | null; faces: string | null };
+  weapons: { turretDps: number | null; missiles: number | null; missileDamage: number | null };
+  insurance: { claim: number | null; expedite: number | null; expediteCost: number | null };
+  image: string | null;
+  description: string | null;
+  webUrl: string | null;
+  stock: { slot: string; type: string; size: number | null; name: string; className: string }[];
+  version: string | null;
+}
+
+export interface UpgradeSlot {
+  type: string;
+  label: string;
+  size: number;
+  stock: string[];
+  options: { name: string; className: string; manufacturer: string | null; grade: string | null; klass: string | null; stat: number | null; statLabel: string; price: number | null; shop: string | null }[];
+}
+
 export type Mark = 'ally' | 'neutral' | 'hostile';
 
 export interface Contact {

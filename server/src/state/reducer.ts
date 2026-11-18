@@ -41,6 +41,13 @@ export interface LiveState {
   stats: SessionStats;
   lastDeathAt: string | null;
   missionInfo: Record<string, { generator: string | null; contract: string | null }>;
+  /** Equipo personal visto en esta sesión: puerto → clase del objeto. */
+  loadout: Record<string, { cls: string; at: string }>;
+  /** Naves en tu hangar según el juego (ASOP). */
+  fleet: { total: number; entitlements: number; at: string } | null;
+  /** Heridas activas: se borran con la cama médica o al morir. */
+  injuries: { part: string; severity: string; tier: number; at: string }[];
+  downedAt: string | null;
 }
 
 export function emptyState(): LiveState {
@@ -61,6 +68,10 @@ export function emptyState(): LiveState {
     missions: [],
     lastDeathAt: null,
     missionInfo: {},
+    loadout: {},
+    fleet: null,
+    injuries: [],
+    downedAt: null,
     stats: {
       rewardsAuec: 0,
       spentAuec: 0,
@@ -201,6 +212,31 @@ export function applyEvent(s: LiveState, e: GameEvent): LiveState {
       if (!recentDeath(s, e.ts)) s.stats.deaths++;
       s.lastDeathAt = e.ts;
       s.ship = null;
+      s.injuries = [];
+      s.downedAt = null;
+      break;
+    case 'health.injury': {
+      const part = String(d.part ?? '');
+      s.injuries = [...(s.injuries ?? []).filter((i) => i.part !== part), { part, severity: String(d.severity ?? ''), tier: Number(d.tier) || 0, at: e.ts }];
+      break;
+    }
+    case 'health.downed':
+      s.downedAt = e.ts;
+      break;
+    case 'health.medbed':
+      s.injuries = [];
+      s.downedAt = null;
+      break;
+    case 'gear.equipped':
+      s.loadout ??= {};
+      s.loadout[String(d.port)] = { cls: String(d.cls), at: e.ts };
+      break;
+    case 'gear.stored':
+      s.loadout ??= {};
+      for (const [port, v] of Object.entries(s.loadout)) if (v.cls === d.cls) delete s.loadout[port];
+      break;
+    case 'ship.fleet':
+      s.fleet = { total: Number(d.total) || 0, entitlements: Number(d.entitlements) || 0, at: e.ts };
       break;
   }
   return s;
