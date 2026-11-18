@@ -1,4 +1,4 @@
-// Emblema propio de SC Master: hexágono con anillo y núcleo romboidal (SVG hecho a mano,
+// Emblema propio de CommandGlass: hexágono con anillo y núcleo romboidal (SVG hecho a mano,
 // sin logotipos ni recursos del juego).
 export function Emblem({ size = 32, spin = false }: { size?: number; spin?: boolean }) {
   return (

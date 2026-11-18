@@ -1,4 +1,4 @@
-# SC Master · sistema visual «mobiGlas»
+# CommandGlass · sistema visual «mobiGlas»
 
 Nota de diseño del cliente: qué se replica, con qué piezas y cómo se adapta a cada tablet, para
 que cualquier vista nueva (Hangar, Comercio, Mapa…) encaje sin inventar estilos.

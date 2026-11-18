@@ -223,7 +223,7 @@ async function sendAction(id: string, confirm: boolean): Promise<SendResult> {
     });
     return (await res.json()) as SendResult;
   } catch {
-    return { ok: false, reason: 'error', message: 'Sin conexión con el PC. Comprueba que SC Master sigue abierto.' };
+    return { ok: false, reason: 'error', message: 'Sin conexión con el PC. Comprueba que CommandGlass sigue abierto.' };
   }
 }
 
