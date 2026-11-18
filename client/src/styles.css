@@ -983,6 +983,111 @@ button { font: inherit; color: inherit; }
   .back { display: inline-flex; }
 }
 
+/* ------------------------------------------------------------ contratos */
+
+.kind-row {
+  display: grid;
+  grid-template-columns: minmax(110px, 150px) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: var(--tap);
+  padding: 4px 6px;
+  border: 0;
+  border-radius: var(--r-ctl);
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.kind-row:hover, .kind-row.on { background: var(--cell-hi); }
+.kind-row.on .kind-name { color: var(--accent); }
+.kind-name { font-weight: 600; font-size: 14px; }
+.kind-bar { display: flex; height: 8px; border-radius: 4px; overflow: hidden; background: var(--cell); }
+.kind-bar .ok { background: var(--green); }
+.kind-bar .bad { background: var(--red); }
+.kind-bar .ab { background: var(--amber); }
+.kind-bar .rest { background: var(--faint); opacity: 0.5; }
+.kind-num { font: 600 14px/1 var(--display); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.kind-note { font-size: 12px; margin: 10px 0 0; }
+
+.mission-list { padding: 4px 8px; }
+.mission-row { border-bottom: 1px solid var(--line); }
+.mission-row:last-of-type { border-bottom: 0; }
+.mission-head {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 8px 4px;
+  border: 0;
+  background: none;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.mission-title { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mission-when { font-size: 13px; white-space: nowrap; }
+.mission-body { padding: 0 8px 12px 32px; display: grid; gap: 8px; font-size: 14px; }
+@media (max-width: 700px) {
+  .mission-head { grid-template-columns: 18px minmax(0, 1fr) auto; }
+  .mission-when { grid-column: 2 / -1; }
+}
+
+.brief-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.brief-steps li { display: grid; grid-template-columns: 18px minmax(0, 1fr); gap: 8px; align-items: start; font-size: 15px; color: var(--muted); }
+.brief-steps li svg { margin-top: 2px; }
+.brief-steps li.done { color: var(--text); }
+.brief-steps li.done svg { color: var(--green); }
+.brief-steps li.active { color: var(--frost); font-weight: 600; }
+.brief-steps li.active svg { color: var(--accent); }
+.brief-steps li.failed svg { color: var(--red); }
+.brief-steps li.withdrawn { text-decoration: line-through; opacity: 0.6; }
+
+.brief-now {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--accent-edge);
+  border-radius: var(--r-ctl);
+  background: var(--accent-dim);
+  color: var(--accent);
+}
+.brief-now .k { font: 600 11px/1 var(--display); letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+.brief-now .v { font: 700 19px/1.2 var(--display); color: var(--frost); margin-top: 3px; }
+.brief-grid { margin-top: 12px; }
+.brief-h {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 12px 0 8px;
+  font: 600 12px/1 var(--display);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.brief-list { margin: 0; padding-left: 18px; display: grid; gap: 6px; font-size: 14px; }
+
+.intel { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--seam-hi); border-radius: var(--r-ctl); background: var(--cell); }
+.intel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px 16px; }
+.intel-grid > div { display: grid; gap: 2px; }
+.intel-grid .k { font: 600 11px/1 var(--display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+.intel-grid .v { font-size: 15px; color: var(--frost); }
+.intel-rep, .intel-flags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.intel-flags:empty { display: none; }
+.intel-credit { font-size: 12px; margin: 10px 0 0; }
+.intel-credit a, .kind-note a { color: var(--accent); }
+
+.faction-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+.faction { padding: 10px 12px; border: 1px solid var(--seam); border-radius: var(--r-ctl); background: var(--cell); }
+.faction-name { font-weight: 600; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.faction-rep { font: 700 24px/1.1 var(--display); color: var(--green); font-variant-numeric: tabular-nums; margin-top: 4px; }
+.faction-sub { font-size: 12px; margin-top: 2px; }
+
 /* ------------------------------------------------------------ guía de instalación en el tablet */
 
 .install-guide {

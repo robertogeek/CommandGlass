@@ -44,6 +44,77 @@ export interface ControlsResponse {
 
 export type SendResult = { ok: true } | { ok: false; reason: string; message: string; foreground?: string };
 
+export type MissionKind = 'caza' | 'mercenario' | 'fps' | 'transporte' | 'recuperacion' | 'recoleccion' | 'infiltracion' | 'evento' | 'otros';
+export type Outcome = 'completed' | 'failed' | 'abandoned' | 'open';
+
+export interface Mission {
+  id: string;
+  title: string | null;
+  contract: string | null;
+  generator: string | null;
+  kind: MissionKind;
+  sessionId: number;
+  acceptedAt: string | null;
+  endedAt: string | null;
+  outcome: Outcome;
+  objectives: { text: string; at: string; state: 'active' | 'done' | 'failed' | 'withdrawn' }[];
+}
+
+export interface KindStats {
+  kind: MissionKind;
+  label: string;
+  total: number;
+  completed: number;
+  failed: number;
+  abandoned: number;
+  medianMinutes: number | null;
+}
+
+export interface MissionIntel {
+  debugName: string;
+  title: string | null;
+  giver: string | null;
+  faction: string | null;
+  rankRequired: string | null;
+  reputation: { faction: string; amount: number; scope: string | null }[];
+  rewardMin: number | null;
+  rewardMax: number | null;
+  currency: string | null;
+  systems: string[];
+  illegal: boolean;
+  shareable: boolean;
+  combat: boolean;
+  enemies: { min: number | null; max: number | null };
+  minutes: number | null;
+  webUrl: string | null;
+  version: string | null;
+}
+
+export interface WikiInfo {
+  fetchedAt: string | null;
+  gameVersion: string | null;
+  count: number;
+  error: string | null;
+}
+
+export interface MissionsResponse {
+  missions: (Mission & { faction: string | null })[];
+  kinds: KindStats[];
+  factions: { faction: string; completed: number; total: number; reputation: number }[];
+  wiki: WikiInfo;
+  totals: { total: number; completed: number; failed: number; abandoned: number; successRate: number | null };
+}
+
+export interface Briefing {
+  kind: MissionKind;
+  label: string;
+  outline: string[];
+  gear: string[];
+  tips: string[];
+  previous: { at: string; title: string | null; steps: string[] } | null;
+  record: { total: number; completed: number; failed: number; abandoned: number };
+}
+
 export type Mark = 'ally' | 'neutral' | 'hostile';
 
 export interface Contact {

@@ -7,6 +7,8 @@ import type { LiveTailer } from '../ingest/tailer.ts';
 import type { BindingsService } from '../game/bindings.ts';
 import type { KeySender } from '../game/keysender.ts';
 import { getContact, listContacts, setContactNote } from '../store/contacts.ts';
+import { briefingFor, factionStats, kindStats, loadMissions } from '../store/missions.ts';
+import type { WikiMissions } from '../game/wiki.ts';
 import type { Store, StoredEvent } from '../store/db.ts';
 import type { LiveState } from '../state/reducer.ts';
 
@@ -31,12 +33,13 @@ export interface ServerDeps {
   lanUrl: string;
   bindings: BindingsService;
   keys: KeySender;
+  wiki: WikiMissions;
 }
 
 /** Acciones que no se envían sin una confirmación explícita desde la interfaz. */
 const DANGEROUS = new Set(['v_self_destruct', 'v_eject', 'force_respawn', 'v_emergency_exit']);
 
-export function startServer({ config, store, tailer, lanUrl, bindings, keys }: ServerDeps) {
+export function startServer({ config, store, tailer, lanUrl, bindings, keys, wiki }: ServerDeps) {
   // Conexiones en directo abiertas; "remote" = desde otro dispositivo (el iPad), no desde este PC.
   const clients = new Map<ServerResponse, { remote: boolean; since: string; agent: string }>();
 
@@ -143,6 +146,32 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys }: S
             mention: p.get('mention') ?? undefined,
           }),
         );
+      }
+
+      if (path === '/api/missions') {
+        const missions = loadMissions(store).map((m) => ({ ...m, faction: wiki.lookup(m.contract, m.title)?.faction ?? null }));
+        const done = missions.filter((m) => m.outcome !== 'open');
+        return json(res, 200, {
+          missions: missions.slice(0, Number(url.searchParams.get('limit') ?? 400)),
+          kinds: kindStats(missions),
+          factions: factionStats(missions, (m) => wiki.lookup(m.contract, m.title)),
+          wiki: wiki.info,
+          totals: {
+            total: missions.length,
+            completed: missions.filter((m) => m.outcome === 'completed').length,
+            failed: missions.filter((m) => m.outcome === 'failed').length,
+            abandoned: missions.filter((m) => m.outcome === 'abandoned').length,
+            successRate: done.length ? Math.round((100 * done.filter((m) => m.outcome === 'completed').length) / done.length) : null,
+          },
+        });
+      }
+
+      const missionRoute = /^\/api\/missions\/([^/]+)$/.exec(path);
+      if (missionRoute) {
+        const all = loadMissions(store);
+        const mission = all.find((m) => m.id === decodeURIComponent(missionRoute[1]!));
+        if (!mission) return json(res, 404, { error: 'No encuentro ese contrato' });
+        return json(res, 200, { mission, briefing: briefingFor(mission, all), intel: wiki.lookup(mission.contract, mission.title), wiki: wiki.info });
       }
 
       if (path === '/api/contacts') {
