@@ -1,7 +1,9 @@
 import { networkInterfaces } from 'node:os';
 import QRCode from 'qrcode';
 import { startServer } from './api/server.ts';
-import { backupsDir, dbPath, gameLogPath, loadConfig } from './config.ts';
+import { backupsDir, DATA_DIR, dbPath, gameLogPath, loadConfig } from './config.ts';
+import { BindingsService } from './game/bindings.ts';
+import { KeySender } from './game/keysender.ts';
 import { importBackups } from './ingest/importer.ts';
 import { LiveTailer } from './ingest/tailer.ts';
 import { Store } from './store/db.ts';
@@ -20,9 +22,18 @@ const tailer = new LiveTailer(store, gameLogPath(config));
 tailer.on('session', () => setTimeout(() => importBackups(store, backupsDir(config)), 5_000));
 tailer.start();
 
+const bindings = new BindingsService(config.gameDir, DATA_DIR);
+const keys = new KeySender(DATA_DIR);
+try {
+  const c = bindings.get();
+  console.log(`Controles: ${c.maps.reduce((n, m) => n + m.actions.filter((a) => a.keys).length, 0)} acciones con tecla${c.userProfile ? ' (con tus cambios)' : ''}`);
+} catch (err) {
+  console.warn(`Controles: no disponibles (${(err as Error).message})`);
+}
+
 const lanIp = pickLanIp();
 const lanUrl = `http://${lanIp}:${config.port}`;
-const { pairUrl } = startServer({ config, store, tailer, lanUrl });
+const { pairUrl } = startServer({ config, store, tailer, lanUrl, bindings, keys });
 
 console.log(`\nEn este PC:   http://localhost:${config.port}`);
 console.log(`Emparejar:    http://localhost:${config.port}/pair  (o escanea este QR con el iPad)\n`);
@@ -48,6 +59,7 @@ function pickLanIp(): string {
 
 const shutdown = () => {
   tailer.stop();
+  keys.stop();
   store.close();
   process.exit(0);
 };

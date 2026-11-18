@@ -15,6 +15,35 @@ export interface GameEvent {
   mentions?: { name: string; geid?: string; role: string }[];
 }
 
+export interface BoundAction {
+  id: string;
+  map: string;
+  name: string;
+  label: string;
+  description: string | null;
+  keys: string[] | null;
+  keyLabels: string[];
+  sendable: boolean;
+  mode: string;
+  plan: { holdMs: number; taps: number; momentary: boolean };
+  custom: boolean;
+}
+
+export interface BindingMap {
+  name: string;
+  label: string;
+  category: string;
+  actions: BoundAction[];
+}
+
+export interface ControlsResponse {
+  available: boolean;
+  error?: string;
+  catalog: { maps: BindingMap[]; extractedAt: string; userProfile: string | null; userProfileChangedAt: string | null } | null;
+}
+
+export type SendResult = { ok: true } | { ok: false; reason: string; message: string; foreground?: string };
+
 export type Mark = 'ally' | 'neutral' | 'hostile';
 
 export interface Contact {
