@@ -6,6 +6,7 @@ import { BindingsService } from './game/bindings.ts';
 import { KeySender } from './game/keysender.ts';
 import { WikiMissions } from './game/wiki.ts';
 import { WikiCatalog } from './game/catalog.ts';
+import { CommunityContracts } from './game/starstrings.ts';
 import { loadGameNames } from './game/gamenames.ts';
 import { setGameNames } from './parser/names.ts';
 import { importBackups } from './ingest/importer.ts';
@@ -49,7 +50,10 @@ const lanUrl = `http://${lanIp}:${config.port}`;
 const wiki = new WikiMissions(DATA_DIR);
 wiki.list();
 const catalog = new WikiCatalog(DATA_DIR);
-const { server, pairUrl } = startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog });
+// Datos de contratos extraídos del juego por la comunidad (StarStrings): reputación, naves, blueprints.
+const community = new CommunityContracts(DATA_DIR, config.gameDir);
+void community.refresh();
+const { server, pairUrl } = startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community });
 
 // Dentro de la app de escritorio el servidor corre como proceso hijo de Electron: se le avisa al arrancar o al fallar.
 const parent = (process as unknown as { parentPort?: { postMessage(m: unknown): void } }).parentPort;

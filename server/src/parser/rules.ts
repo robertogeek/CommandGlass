@@ -429,7 +429,9 @@ export function classifyNotification(
   missionId: string | null,
   api: RuleApi,
 ): EventDraft {
-  const lines = text.split('\n').map((s) => s.trim()).filter(Boolean);
+  // Packs de la comunidad (StarStrings, traducciones) añaden marcas como "<EM4>[150 Rep] [BP]*</EM4>" a los títulos.
+  const plain = text.replace(/<EM\d>\s*(\[[^<\]]*\]\s*\**\s*)+<\/EM\d>/g, '').replace(/<\/?EM\d>/g, '');
+  const lines = plain.split('\n').map((s) => s.trim()).filter(Boolean);
   const title = (lines[0] ?? '').replace(/:\s*$/, '').trim();
   const detail = lines.slice(1).join(' ').replace(/:\s*$/, '').trim();
   const mission = missionId && !/^0{8}-/.test(missionId) ? missionId : null;

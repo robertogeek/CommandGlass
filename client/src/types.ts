@@ -211,7 +211,22 @@ export interface ActiveMission {
     rewardMin: number | null;
     rewardMax: number | null;
     illegal: boolean;
+    cooldown?: string | null;
+    blueprints?: boolean;
+    waves?: number;
   } | null;
+}
+
+/** Datos de StarStrings (comunidad) para un contrato. */
+export interface CommunityContract {
+  debugNames: string[];
+  title: string;
+  reputation: string | null;
+  reputationValue: number | null;
+  cooldown: string | null;
+  hostiles: string[];
+  blueprints: { rank: string | null; items: string[] }[];
+  hasBlueprints: boolean;
 }
 
 export interface LiveState {

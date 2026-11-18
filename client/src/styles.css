@@ -1165,6 +1165,8 @@ button { font: inherit; color: inherit; }
 .wrap-rank { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 6px; border-radius: 50%; background: var(--accent-dim); color: var(--accent); font: 700 12px/1 var(--display); }
 
 .gains { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+.intel.community { border-color: rgba(183, 168, 255, 0.35); }
+.intel .v.rep { color: var(--green); font-weight: 700; }
 
 /* Aviso emergente (contrato aceptado) */
 .toast {

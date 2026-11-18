@@ -4,7 +4,7 @@ import { ago, day, duration, hhmm, n } from '../format.ts';
 import { getJson, useLive } from '../live.tsx';
 import { useLang } from '../lang.tsx';
 import { MISSION_KIND } from '../terms.ts';
-import type { Briefing, Mission, MissionIntel, MissionKind, MissionsResponse, Outcome, WikiInfo } from '../types.ts';
+import type { Briefing, CommunityContract, Mission, MissionIntel, MissionKind, MissionsResponse, Outcome, WikiInfo } from '../types.ts';
 
 /**
  * Contratos: briefing de lo que tienes en curso, cómo te va por tipo y todo tu historial.
@@ -208,6 +208,37 @@ interface MissionDetail {
   briefing: Briefing;
   intel: MissionIntel | null;
   wiki: WikiInfo;
+  community: CommunityContract | null;
+  communityInfo: { source: string; channel: string; fetchedAt: string | null; count: number };
+}
+
+/** Datos extraídos del juego por StarStrings: reputación, espera, oleadas y blueprints. */
+function CommunityBox({ c, info }: { c: CommunityContract; info: MissionDetail['communityInfo'] }) {
+  return (
+    <div className="intel community">
+      <div className="intel-grid">
+        {c.reputation && <div><span className="k">Reputación</span><span className="v rep">+{c.reputation}</span></div>}
+        {c.cooldown && <div><span className="k">Cooldown</span><span className="v">{c.cooldown}</span></div>}
+        {c.hostiles.length > 0 && <div><span className="k">Oleadas</span><span className="v">{c.hostiles.length}</span></div>}
+        {c.blueprints.length > 0 && <div><span className="k">Blueprints</span><span className="v">{c.blueprints.reduce((a, b) => a + b.items.length, 0)} posibles</span></div>}
+      </div>
+      {c.hostiles.length > 0 && (
+        <>
+          <h3 className="brief-h">Naves que esperar</h3>
+          <ul className="brief-list">{c.hostiles.map((h) => <li key={h}>{h}</li>)}</ul>
+        </>
+      )}
+      {c.blueprints.map((b, i) => (
+        <div key={i}>
+          <h3 className="brief-h">Blueprints posibles{b.rank ? ` · ${b.rank}` : ''}</h3>
+          <div className="intel-rep">{b.items.map((it) => <span key={it} className="badge violet">{it}</span>)}</div>
+        </div>
+      ))}
+      <p className="faint intel-credit">
+        Datos de <a href="https://github.com/MrKraken/StarStrings" target="_blank" rel="noreferrer">StarStrings</a> (MrKraken), extraídos de los ficheros del juego · {info.channel}
+      </p>
+    </div>
+  );
 }
 
 function IntelBox({ intel, wiki }: { intel: MissionIntel; wiki: WikiInfo }) {
@@ -264,6 +295,7 @@ function BriefingCard({ id }: { id: string }) {
         {b.record.total > 0 && ` · lo has hecho ${b.record.total} ${b.record.total === 1 ? 'vez' : 'veces'} (${b.record.completed} completado${b.record.completed === 1 ? '' : 's'})`}
       </div>
 
+      {d.community && <CommunityBox c={d.community} info={d.communityInfo} />}
       {intel && <IntelBox intel={intel} wiki={d.wiki} />}
 
       {current && (

@@ -8,13 +8,16 @@ import type { ActiveMission } from '../types.ts';
 export function ContractGains({ intel }: { intel: ActiveMission['intel'] }) {
   if (!intel) return null;
   const reward = intel.rewardMin ? `${n(intel.rewardMin)}${intel.rewardMax && intel.rewardMax > intel.rewardMin ? `–${n(intel.rewardMax)}` : ''} aUEC` : null;
-  if (!intel.reputation.length && !reward && !intel.illegal) return null;
+  if (!intel.reputation.length && !reward && !intel.illegal && !intel.blueprints && !intel.cooldown) return null;
   return (
     <div className="gains">
       {intel.reputation.map((r) => (
         <span key={`${r.faction}-${r.scope}`} className="badge green">+{n(r.amount)} rep · {r.faction}</span>
       ))}
       {reward && <span className="badge">{reward}</span>}
+      {intel.blueprints && <span className="badge violet">Puede dar blueprints</span>}
+      {intel.waves ? <span className="badge amber">{intel.waves} {intel.waves === 1 ? 'oleada' : 'oleadas'}</span> : null}
+      {intel.cooldown && <span className="badge muted">Cooldown {intel.cooldown}</span>}
       {intel.illegal && <span className="badge red">Ilegal</span>}
     </div>
   );

@@ -9,6 +9,7 @@ import type { KeySender } from '../game/keysender.ts';
 import { getContact, listContacts, setContactNote } from '../store/contacts.ts';
 import { briefingFor, factionStats, kindStats, loadMissions } from '../store/missions.ts';
 import type { WikiMissions } from '../game/wiki.ts';
+import type { CommunityContracts } from '../game/starstrings.ts';
 import { COMPONENT_LABEL, type ComponentType, type WikiCatalog } from '../game/catalog.ts';
 import { itemName } from '../parser/names.ts';
 import { loadShips, nameIndex } from '../store/hangar.ts';
@@ -41,12 +42,13 @@ export interface ServerDeps {
   keys: KeySender;
   wiki: WikiMissions;
   catalog: WikiCatalog;
+  community: CommunityContracts;
 }
 
 /** Acciones que no se envían sin una confirmación explícita desde la interfaz. */
 const DANGEROUS = new Set(['v_self_destruct', 'v_eject', 'force_respawn', 'v_emergency_exit']);
 
-export function startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog }: ServerDeps) {
+export function startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community }: ServerDeps) {
   // Conexiones en directo abiertas; "remote" = desde otro dispositivo (el iPad), no desde este PC.
   const clients = new Map<ServerResponse, { remote: boolean; since: string; agent: string }>();
 
@@ -69,10 +71,26 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
     if (!state) return { state, status: tailer.status() };
     const missions = state.missions.map((m) => {
       const i = wiki.lookup(m.contract, m.title);
+      const c = community.lookup(m.contract, m.title);
+      // Reputación: la de StarStrings (extraída del juego en este build) y, si no, la de la wiki.
+      const reputation = c?.reputationValue
+        ? [{ faction: i?.faction ?? i?.giver ?? 'reputación', amount: c.reputationValue, scope: null }]
+        : (i?.reputation ?? []);
       return {
         ...m,
-        intel: i
-          ? { faction: i.faction, giver: i.giver, rankRequired: i.rankRequired, reputation: i.reputation, rewardMin: i.rewardMin, rewardMax: i.rewardMax, illegal: i.illegal }
+        intel: i || c
+          ? {
+              faction: i?.faction ?? null,
+              giver: i?.giver ?? null,
+              rankRequired: i?.rankRequired ?? null,
+              reputation,
+              rewardMin: i?.rewardMin ?? null,
+              rewardMax: i?.rewardMax ?? null,
+              illegal: i?.illegal ?? false,
+              cooldown: c?.cooldown ?? null,
+              blueprints: c?.hasBlueprints ?? false,
+              waves: c?.hostiles.length ?? 0,
+            }
           : null,
       };
     });
@@ -192,7 +210,14 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         const all = loadMissions(store);
         const mission = all.find((m) => m.id === decodeURIComponent(missionRoute[1]!));
         if (!mission) return json(res, 404, { error: 'No encuentro ese contrato' });
-        return json(res, 200, { mission, briefing: briefingFor(mission, all), intel: wiki.lookup(mission.contract, mission.title), wiki: wiki.info });
+        return json(res, 200, {
+          mission,
+          briefing: briefingFor(mission, all),
+          intel: wiki.lookup(mission.contract, mission.title),
+          wiki: wiki.info,
+          community: community.lookup(mission.contract, mission.title),
+          communityInfo: community.info,
+        });
       }
 
       if (path === '/api/wrapped') {

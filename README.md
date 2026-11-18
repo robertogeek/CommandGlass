@@ -69,6 +69,10 @@ Lo que el registro **no** incluye y por eso es estimado o falta: el saldo de aUE
 
 Los datos de la wiki se descargan en segundo plano y se guardan en `data/game/` (misiones: renovación semanal; fichas de naves y componentes: 7 días). La wiki pide que se la cite: la interfaz lo hace junto a esos datos.
 
+**Datos de contratos de la comunidad:** la reputación, el cooldown, las naves que esperar y las blueprints posibles de cada contrato salen de [StarStrings](https://github.com/MrKraken/StarStrings) (MrKraken), que los extrae de los ficheros del juego en cada build y publica `src/For_Tool_Creators/contracts.ini` para otras herramientas (rama `master` para LIVE y `sc-ptu` para PTU). Se casa con el registro por el *debug name* del contrato. Se descarga una vez al día a `data/game/community/`.
+
+**Nombres:** los sitios, naves, objetos y acciones usan su nombre oficial, sacado de la traducción del propio juego (`global.ini` de `Data.p4k`). Los nombres propios nunca se traducen. El selector EN/ES de la barra superior elige el idioma de los términos del juego (EN por defecto).
+
 ## Mandos (botonera)
 
 La sección **Mandos** convierte el iPad en una botonera: cada botón pulsa en el PC la tecla de una acción del juego (tren de aterrizaje, pedir aterrizaje, faros, señuelos, linterna, casco…). También incluye una **chuleta** con todos tus controles, con buscador.
