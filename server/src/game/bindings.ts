@@ -12,7 +12,7 @@ import { extractFromP4k } from './p4k.ts';
  * cuando cambia Data.p4k (cada parche), comparando tamaño y fecha.
  */
 
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 const PROFILE = 'Data/Libs/Config/defaultProfile.xml';
 const LANG_ES = 'Data/Localization/spanish_(spain)/global.ini';
 const LANG_EN = 'Data/Localization/english/global.ini';
@@ -229,7 +229,8 @@ function pickLabels(buf: Buffer | undefined, used: Set<string>): Record<string, 
     const eq = line.indexOf('=');
     if (eq <= 0) continue;
     const key = line.slice(0, eq).replace(/,P$/, '');
-    if (used.has(key)) out[key] = line.slice(eq + 1).trim();
+    // Algunos textos traen saltos de línea escritos como "\n" para el menú del juego.
+    if (used.has(key)) out[key] = line.slice(eq + 1).replace(/\\n/g, ' ').replace(/\s+/g, ' ').trim();
   }
   return out;
 }

@@ -90,7 +90,7 @@ const PANELS: Panel[] = [
     id: 'pie', title: 'A pie', icon: User, context: 'foot',
     buttons: [
       { id: 'player.toggle_flashlight', label: 'Linterna' },
-      { id: 'player.toggleEquipHelmet', label: 'Casco' },
+      { id: 'player.toggleAttachHelmet', label: 'Casco' },
       { id: 'player.visor_wipe', label: 'Limpiar visor' },
       { id: 'player.holster', label: 'Enfundar' },
       { id: 'player.weapon_change_firemode', label: 'Modo de disparo' },
