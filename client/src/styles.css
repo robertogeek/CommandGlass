@@ -1164,6 +1164,43 @@ button { font: inherit; color: inherit; }
 .wrap-lists { margin-top: 12px; }
 .wrap-rank { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 6px; border-radius: 50%; background: var(--accent-dim); color: var(--accent); font: 700 12px/1 var(--display); }
 
+.gains { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 2px; }
+
+/* Aviso emergente (contrato aceptado) */
+.toast {
+  position: fixed;
+  right: calc(env(safe-area-inset-right) + 18px);
+  bottom: calc(env(safe-area-inset-bottom) + 96px);
+  z-index: 40;
+  width: min(380px, calc(100vw - 36px));
+  padding: 14px 16px;
+  border: 1px solid var(--accent-edge);
+  border-radius: var(--r-panel);
+  background: linear-gradient(180deg, var(--hull-2), var(--hull));
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55), 0 0 24px var(--accent-glow);
+  animation: toast-in var(--t-enter) var(--ease-out);
+}
+@keyframes toast-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .toast { animation: none; } }
+.toast-head { display: flex; align-items: center; gap: 8px; font: 600 12px/1 var(--display); letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); }
+.toast-close { margin-left: auto; width: 36px; height: 36px; display: grid; place-items: center; border: 0; background: none; color: var(--muted); cursor: pointer; }
+.toast-title { font: 700 19px/1.2 var(--display); color: var(--frost); margin-top: 2px; }
+.toast-sub { font-size: 13px; margin-top: 4px; }
+.toast-link { margin-top: 10px; text-decoration: none; }
+
+.lang-switch { display: inline-flex; border: 1px solid var(--seam-hi); border-radius: var(--r-ctl); overflow: hidden; }
+.lang-switch button {
+  min-width: 40px;
+  min-height: 34px;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font: 600 13px/1 var(--display);
+  letter-spacing: 0.1em;
+  cursor: pointer;
+}
+.lang-switch button.on { background: var(--accent-dim); color: var(--accent); }
+
 /* ------------------------------------------------------------ comercio */
 
 .wallet-big small { font-size: 16px; color: var(--muted); letter-spacing: 0.08em; }

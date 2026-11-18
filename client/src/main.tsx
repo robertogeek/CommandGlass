@@ -10,13 +10,18 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { App } from './App.tsx';
 import { InstallGuide } from './components/InstallGuide.tsx';
+import { ContractToast } from './components/ContractGains.tsx';
+import { LangProvider } from './lang.tsx';
 import { LiveProvider } from './live.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <LiveProvider>
+      <LangProvider>
       <App />
+      <ContractToast />
       <InstallGuide />
+      </LangProvider>
     </LiveProvider>
   </StrictMode>,
 );

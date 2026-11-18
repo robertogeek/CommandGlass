@@ -12,7 +12,7 @@ import { extractFromP4k } from './p4k.ts';
  * cuando cambia Data.p4k (cada parche), comparando tamaño y fecha.
  */
 
-const CACHE_VERSION = 2;
+const CACHE_VERSION = 3;
 const PROFILE = 'Data/Libs/Config/defaultProfile.xml';
 const LANG_ES = 'Data/Localization/spanish_(spain)/global.ini';
 const LANG_EN = 'Data/Localization/english/global.ini';
@@ -87,14 +87,18 @@ interface Cache {
   extractedAt: string;
   maps: DefaultMap[];
   modes: Record<string, ModeInfo>;
-  labels: Record<string, string>;
+  labelsEn: Record<string, string>;
+  labelsEs: Record<string, string>;
 }
+
+/** Idioma de los nombres del juego: el que usas en Star Citizen. */
+export type GameLang = 'en' | 'es';
 
 export class BindingsService {
   private gameDir: string;
   private cacheDir: string;
   private cache: Cache | null = null;
-  private catalog: Catalog | null = null;
+  private catalogs = new Map<GameLang, Catalog>();
   private userMtime = -1;
 
   constructor(gameDir: string, dataDir: string) {
@@ -111,22 +115,29 @@ export class BindingsService {
   }
 
   /** Catálogo actual. Reextrae si el juego se ha actualizado y relee tu perfil si lo has cambiado. */
-  get(): Catalog {
+  get(lang: GameLang = 'en'): Catalog {
     const defaults = this.loadDefaults();
     const userStat = existsSync(this.userProfilePath) ? statSync(this.userProfilePath) : null;
     const userMtime = userStat?.mtimeMs ?? 0;
-    if (!this.catalog || defaults !== this.cache || userMtime !== this.userMtime) {
+    if (defaults !== this.cache || userMtime !== this.userMtime) {
       this.cache = defaults;
       this.userMtime = userMtime;
-      const overrides = userStat ? readUserOverrides(readFileSync(this.userProfilePath, 'utf8')) : new Map<string, UserOverride>();
-      this.catalog = buildCatalog(defaults, overrides, userStat ? this.userProfilePath : null, userStat ? new Date(userMtime).toISOString() : null);
+      this.catalogs.clear();
     }
-    return this.catalog;
+    let catalog = this.catalogs.get(lang);
+    if (!catalog) {
+      const overrides = userStat ? readUserOverrides(readFileSync(this.userProfilePath, 'utf8')) : new Map<string, UserOverride>();
+      // En español, lo que la traducción oficial no cubre sale en inglés, como en el propio juego.
+      const labels = lang === 'es' ? { ...defaults.labelsEn, ...defaults.labelsEs } : defaults.labelsEn;
+      catalog = buildCatalog(defaults, labels, overrides, userStat ? this.userProfilePath : null, userStat ? new Date(userMtime).toISOString() : null);
+      this.catalogs.set(lang, catalog);
+    }
+    return catalog;
   }
 
-  /** Busca una acción concreta por "mapa.acción". */
+  /** Busca una acción concreta por "mapa.acción" (las teclas no dependen del idioma). */
   find(id: string): BoundAction | null {
-    for (const m of this.get().maps) for (const a of m.actions) if (a.id === id) return a;
+    for (const m of this.get('en').maps) for (const a of m.actions) if (a.id === id) return a;
     return null;
   }
 
@@ -161,10 +172,6 @@ export class BindingsService {
       used.add(m.categoryKey);
       for (const a of m.actions) used.add(a.labelKey), used.add(a.descKey);
     }
-    const labels = {
-      ...pickLabels(files.get(LANG_EN), used),
-      ...pickLabels(files.get(LANG_ES), used),
-    };
     const cache: Cache = {
       version: CACHE_VERSION,
       p4kSize: st.size,
@@ -172,7 +179,8 @@ export class BindingsService {
       extractedAt: new Date().toISOString(),
       maps,
       modes,
-      labels,
+      labelsEn: pickLabels(files.get(LANG_EN), used),
+      labelsEs: pickLabels(files.get(LANG_ES), used),
     };
     writeFileSync(metaFile, JSON.stringify(cache));
     console.log(`[controles] ${maps.reduce((n, m) => n + m.actions.length, 0)} acciones extraídas de Data.p4k en ${Date.now() - t0} ms`);
@@ -278,11 +286,12 @@ export function planFor(mode: string, info: ModeInfo | undefined, multiTap?: num
 
 function buildCatalog(
   c: Cache,
+  labels: Record<string, string>,
   overrides: Map<string, UserOverride>,
   userProfile: string | null,
   userProfileChangedAt: string | null,
 ): Catalog {
-  const label = (key: string, fallback: string) => (key && c.labels[key]) || fallback;
+  const label = (key: string, fallback: string) => (key && labels[key]) || fallback;
   const maps: BindingMap[] = c.maps.map((m) => ({
     name: m.name,
     label: label(m.labelKey, m.name),
@@ -298,7 +307,7 @@ function buildCatalog(
         map: m.name,
         name: a.name,
         label: label(a.labelKey, a.name),
-        description: (a.descKey && c.labels[a.descKey]) || null,
+        description: (a.descKey && labels[a.descKey]) || null,
         keys: combo?.keys ?? null,
         keyLabels: combo?.keys.map(keyLabel) ?? [],
         sendable: Boolean(combo?.sendable),

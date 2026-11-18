@@ -18,7 +18,8 @@ export const MOON_OF: Record<string, string> = {
 /** Planetas por sistema, en orden desde la estrella. */
 export const SYSTEMS: Record<string, string[]> = {
   Stanton: ['Hurston', 'Crusader', 'ArcCorp', 'microTech'],
-  Pyro: ['Pyro I', 'Pyro II', 'Pyro III', 'Pyro IV', 'Pyro V', 'Pyro VI'],
+  // Nombres oficiales del juego (global.ini): Pyro2 = Monox, Pyro3 = Bloom, Pyro6 = Terminus.
+  Pyro: ['Pyro I', 'Monox', 'Bloom', 'Pyro IV', 'Pyro V', 'Terminus'],
   Nyx: ['Nyx I', 'Nyx II', 'Delamar', 'Nyx III'],
 };
 

@@ -1,5 +1,6 @@
 import { Activity, Crosshair, FileText, HeartPulse, MapPin, Rocket, ShieldAlert, ShieldCheck, Target } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
+import { ContractGains } from '../components/ContractGains.tsx';
 import { EventRow } from '../components/EventRow.tsx';
 import { duration, hhmm, n } from '../format.ts';
 import { getJson, mergeEvents, useLive } from '../live.tsx';
@@ -133,6 +134,7 @@ function MissionsCard({ s }: { s: LiveState }) {
       {s.missions.map((m) => (
         <div className="mission" key={m.id}>
           <div className="t">{m.title}</div>
+          <ContractGains intel={m.intel} />
           {m.objective ? (
             <div className="o"><Target size={14} aria-hidden /> {m.objective}</div>
           ) : (

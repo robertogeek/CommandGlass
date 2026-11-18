@@ -3,6 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Emblem } from './components/Emblem.tsx';
 import logo from './assets/space-cowboys.png';
 import { duration } from './format.ts';
+import { LangSwitch } from './lang.tsx';
 import { useLive } from './live.tsx';
 import { Ahora } from './views/Ahora.tsx';
 import { Archivo } from './views/Archivo.tsx';
@@ -125,6 +126,7 @@ function TopBar({ title }: { title: string }) {
       </div>
       <h1 className="title">{title}</h1>
       <div className="topbar-status">
+        <LangSwitch />
         <span className="pill"><span className={`dot ${dot}`} /> {text}</span>
         {state?.player.name && <span className="pill"><UserRound size={16} strokeWidth={1.6} aria-hidden /> {state.player.name}</span>}
         <span className="pill clock">

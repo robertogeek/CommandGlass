@@ -6,6 +6,8 @@ import { BindingsService } from './game/bindings.ts';
 import { KeySender } from './game/keysender.ts';
 import { WikiMissions } from './game/wiki.ts';
 import { WikiCatalog } from './game/catalog.ts';
+import { loadGameNames } from './game/gamenames.ts';
+import { setGameNames } from './parser/names.ts';
 import { importBackups } from './ingest/importer.ts';
 import { LiveTailer } from './ingest/tailer.ts';
 import { Store } from './store/db.ts';
@@ -15,6 +17,14 @@ const store = new Store(dbPath());
 
 console.log('CommandGlass · mobiGlas para Star Citizen\n');
 console.log(`Carpeta del juego: ${config.gameDir}`);
+
+// Nombres oficiales de los sitios (Baijini Point, Everus Harbor…) antes de procesar el historial.
+try {
+  const names = loadGameNames(config.gameDir, DATA_DIR);
+  setGameNames(names.en);
+} catch (err) {
+  console.warn(`Nombres del juego: no disponibles (${(err as Error).message})`);
+}
 
 const imp = importBackups(store, backupsDir(config));
 console.log(`Historial: ${imp.files} logs archivados (${imp.imported} nuevos, ${imp.events} eventos añadidos)`);

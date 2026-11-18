@@ -202,6 +202,16 @@ export interface ActiveMission {
   objectivesDone: number;
   generator: string | null;
   contract: string | null;
+  /** Lo que da el contrato según la wiki (si se conoce). */
+  intel?: {
+    faction: string | null;
+    giver: string | null;
+    rankRequired: string | null;
+    reputation: { faction: string; amount: number; scope: string | null }[];
+    rewardMin: number | null;
+    rewardMax: number | null;
+    illegal: boolean;
+  } | null;
 }
 
 export interface LiveState {

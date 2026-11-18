@@ -11,7 +11,7 @@ export const CLIENT_DIST = process.env.CG_CLIENT_DIST ?? join(ROOT_DIR, 'client'
 export const APP_VERSION = process.env.CG_VERSION ?? 'desarrollo';
 
 /** Súbelo cuando cambien las reglas: el historial se vuelve a procesar entero. */
-export const PARSER_VERSION = 6;
+export const PARSER_VERSION = 7;
 
 export interface AppConfig {
   /** Carpeta LIVE (o PTU) de Star Citizen, donde están Game.log y logbackups/. */

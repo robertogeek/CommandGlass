@@ -121,22 +121,79 @@ const RR_BODIES: Record<string, string> = {
   P5: 'Pyro V',
 };
 
-/** "Nyx_Levski" -> {name:"Levski", system:"Nyx"}; "RR_ARC_L1" -> {name:"Estación ARC-L1", system:"Stanton"} */
+// ---------------------------------------------------------------- nombres reales del juego
+
+/**
+ * Nombres oficiales de los sitios, sacados de la traducción del propio juego (global.ini dentro de Data.p4k).
+ * Son nombres propios ("Baijini Point", "Everus Harbor"): iguales en inglés y en español.
+ * Los carga el servidor al arrancar; si no están (sin juego instalado), se usan los nombres de respaldo.
+ */
+let GAME_NAMES: Map<string, string> | null = null;
+
+export function setGameNames(names: Map<string, string> | null): void {
+  GAME_NAMES = names;
+}
+
+const RR_STANTON: Record<string, string> = { HUR: 'Stanton1', CRU: 'Stanton2', ARC: 'Stanton3', MIC: 'Stanton4' };
+
+/** Claves de global.ini que pueden corresponder a un código de ubicación del registro. */
+export function nameKeys(code: string): string[] {
+  const keys = [code];
+  const rr = /^RR_([A-Z0-9]+)_([A-Z0-9]+)$/i.exec(code);
+  if (rr) {
+    const [, body, point] = rr as unknown as [string, string, string];
+    const sys = RR_STANTON[body.toUpperCase()] ?? (/^P(\d)$/i.test(body) ? `Pyro${body.slice(1)}` : null);
+    if (point.toUpperCase() === 'LEO') keys.push(`RR_${body}`);
+    if (sys && point.toUpperCase() === 'LEO') keys.push(`${sys}_Transfer`, `${sys}_Transfer_Seraphim`, `${sys}_Station`);
+    if (sys && /^L\d$/i.test(point)) keys.push(`${sys}_${point.toUpperCase()}`);
+  }
+  const jp = /^RR_JP_([A-Z][a-z]+)([A-Z][a-z]+)$/.exec(code);
+  if (jp) keys.push(`${jp[1]}_${jp[2]}_JPStation`);
+  if (/Delve_Facility/i.test(code)) keys.push(code.replace(/Delve_Facility/i, 'Delving_Facility'));
+  const olp = /^Outpost_OLP_(\w+?\d+[a-z]?)_(\w+)$/.exec(code);
+  if (olp) keys.push(`${olp[1]}_${olp[2]}`);
+  return keys;
+}
+
+export function gameName(code: string): string | null {
+  if (!GAME_NAMES) return null;
+  for (const k of nameKeys(code)) {
+    const v = GAME_NAMES.get(k.toLowerCase());
+    if (v) return v;
+  }
+  return null;
+}
+
+/** "Nyx_Levski" -> {name:"Levski", system:"Nyx"}; "RR_ARC_LEO" -> {name:"Baijini Point", system:"Stanton"} */
 export function locationInfo(code: string): { name: string; system: string | null; body: string | null } {
+  const base = fallbackLocationInfo(code);
+  const real = gameName(code);
+  // El planeta o luna también con su nombre oficial (Pyro3 → Bloom).
+  const bodyKey = BODY_KEY[base.body ?? ''] ?? null;
+  const body = (bodyKey && GAME_NAMES?.get(bodyKey.toLowerCase())?.trim()) || base.body;
+  return { ...base, name: real ?? base.name, body };
+}
+
+/** Nombre de respaldo de un cuerpo → su clave en global.ini. */
+const BODY_KEY: Record<string, string> = {
+  'Pyro I': 'Pyro1', 'Pyro II': 'Pyro2', 'Pyro III': 'Pyro3', 'Pyro IV': 'Pyro4', 'Pyro V': 'Pyro5', 'Pyro VI': 'Pyro6',
+};
+
+function fallbackLocationInfo(code: string): { name: string; system: string | null; body: string | null } {
   const parts = code.split('_');
   const head = parts[0] ?? '';
 
   if (head === 'RR') {
     const body = parts[1] ?? '';
     const point = parts[2] ?? '';
+    // Respaldo sin traducir: en el juego la estación de A hacia B se llama "B Gateway".
     if (body === 'JP') {
-      const route = point.replace(/([a-z])([A-Z])/g, '$1 → $2');
-      return { name: `Estación del salto ${route}`, system: null, body: null };
+      const [from, to] = point.split(/(?<=[a-z])(?=[A-Z])/);
+      return { name: to ? `${to} Gateway` : point, system: from ?? null, body: null };
     }
     const bodyName = RR_BODIES[body] ?? body;
     const system = body.startsWith('P') ? 'Pyro' : 'Stanton';
-    const label = point === 'LEO' ? `estación orbital de ${bodyName}` : `estación ${body}-${point}`;
-    return { name: label.charAt(0).toUpperCase() + label.slice(1), system, body: bodyName };
+    return { name: `${body} ${point}`, system, body: bodyName };
   }
 
   const sysMatch = /^(Stanton|Pyro|Nyx|Castra|Magnus)(\d*[a-z]?)$/.exec(head);
@@ -150,21 +207,25 @@ export function locationInfo(code: string): { name: string; system: string | nul
   }
 
   if (/AsteroidClusterBase_Nyx/.test(code)) {
-    return { name: 'Keeger (base en asteroides)', system: 'Nyx', body: null };
+    return { name: 'Moraine Base', system: 'Nyx', body: null };
   }
   if (/^PrisonMine_/.test(code)) {
-    return { name: 'Klescher (prisión)', system: 'Stanton', body: 'Aberdeen' };
+    return { name: 'Klescher Rehabilitation Facility', system: 'Stanton', body: 'Aberdeen' };
   }
   if (/^Outpost_OLP_(Stanton\d+[a-z]?)_(\w+)/.test(code)) {
     const m = /^Outpost_OLP_(Stanton\d+[a-z]?)_(\w+)/.exec(code)!;
-    return { name: `Puesto ${humanizeWords(m[2]!)}`, system: 'Stanton', body: SYSTEMS[m[1]!] ?? null };
+    return { name: humanizeWords(m[2]!), system: 'Stanton', body: SYSTEMS[m[1]!] ?? null };
   }
   return { name: humanizeWords(code.replace(/_/g, ' ')), system: null, body: null };
 }
 
 function humanizeWords(s: string): string {
   return s
-    .replace(/ASD Delve Facility (\d+)/i, 'Instalación ASD $1')
+    .replace(/ASD Delve Facility (\d+)/i, 'ASD Facility $1')
+    // Formato con el que el juego nombra estas instalaciones (no vienen en global.ini).
+    .replace(/Hurdyn ?Mining HDMS ?([A-Za-z]+)/i, 'HDMS-$1')
+    .replace(/Arc ?Corp Area ?(\d+)/i, 'ArcCorp Mining Area $1')
+    .replace(/Shubin SAL ?(\d+)/i, 'Shubin Mining Facility SAL-$1')
     .replace(/([a-z])([A-Z])/g, '$1 $2')
     .replace(/\s+/g, ' ')
     .trim();

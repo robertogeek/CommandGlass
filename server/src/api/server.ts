@@ -4,7 +4,7 @@ import { extname, join, normalize } from 'node:path';
 import QRCode from 'qrcode';
 import { APP_VERSION, CLIENT_DIST, DATA_DIR, type AppConfig } from '../config.ts';
 import type { LiveTailer } from '../ingest/tailer.ts';
-import type { BindingsService } from '../game/bindings.ts';
+import type { BindingsService, GameLang } from '../game/bindings.ts';
 import type { KeySender } from '../game/keysender.ts';
 import { getContact, listContacts, setContactNote } from '../store/contacts.ts';
 import { briefingFor, factionStats, kindStats, loadMissions } from '../store/missions.ts';
@@ -64,11 +64,25 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
   // Mantiene viva la conexión y refresca el indicador "en directo".
   setInterval(() => broadcast('status', tailer.status()), 15_000);
 
+  /** Estado para la interfaz: a cada contrato activo se le añade lo que da (reputación, recompensa) según la wiki. */
   function snapshot(state: LiveState | null) {
-    return { state, status: tailer.status() };
+    if (!state) return { state, status: tailer.status() };
+    const missions = state.missions.map((m) => {
+      const i = wiki.lookup(m.contract, m.title);
+      return {
+        ...m,
+        intel: i
+          ? { faction: i.faction, giver: i.giver, rankRequired: i.rankRequired, reputation: i.reputation, rewardMin: i.rewardMin, rewardMax: i.rewardMax, illegal: i.illegal }
+          : null,
+      };
+    });
+    return { state: { ...state, missions }, status: tailer.status() };
   }
 
   const pairUrl = `${lanUrl}/?k=${config.pairKey}`;
+
+  /** Idioma de los nombres del juego (el que usas en Star Citizen). Por defecto, inglés. */
+  const gameLang = (): GameLang => (getSetting<GameLang>(store, 'lang') === 'es' ? 'es' : 'en');
 
   const server = createServer(async (req, res) => {
     try {
@@ -285,9 +299,19 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         return json(res, 200, listContacts(store, tailer.status().sessionId));
       }
 
+      if (path === '/api/settings') {
+        if (req.method === 'POST') {
+          if (!req.headers['content-type']?.startsWith('application/json')) return json(res, 415, { error: 'Se esperaba JSON' });
+          const body = (await readJson(req)) as { lang?: unknown } | null;
+          if (body?.lang !== 'en' && body?.lang !== 'es') return json(res, 400, { error: 'Idioma no válido' });
+          setSetting(store, 'lang', body.lang);
+        }
+        return json(res, 200, { lang: gameLang() });
+      }
+
       if (path === '/api/controls') {
         try {
-          return json(res, 200, { available: keys.available, catalog: bindings.get() });
+          return json(res, 200, { available: keys.available, lang: gameLang(), catalog: bindings.get(gameLang()) });
         } catch (err) {
           return json(res, 200, { available: false, error: (err as Error).message, catalog: null });
         }

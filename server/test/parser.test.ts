@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { backupKeyFromFilename, backupKeyFromHeader, splitLine } from '../src/parser/line.ts';
-import { locationInfo, shipName } from '../src/parser/names.ts';
+import { locationInfo, setGameNames, shipName } from '../src/parser/names.ts';
 import { LogParser } from '../src/parser/parser.ts';
 import { applyEvent, emptyState } from '../src/state/reducer.ts';
 
@@ -104,5 +104,32 @@ test('jurisdicción sin ley y ubicación', () => {
 test('nombres legibles', () => {
   assert.equal(shipName('AEGS_Vanguard_Hoplite_PU_AI_CRIM_935549459576'), 'Aegis Vanguard Hoplite (IA criminal)');
   assert.equal(locationInfo('Stanton2_Orison').name, 'Orison');
-  assert.equal(locationInfo('RR_ARC_LEO').name, 'Estación orbital de ArcCorp');
+  // Sin la traducción del juego cargada: respaldo sin traducir.
+  assert.equal(locationInfo('RR_JP_NyxPyro').name, 'Pyro Gateway');
+});
+
+test('nombres oficiales del juego para los sitios (sin traducir)', () => {
+  setGameNames(
+    new Map([
+      ['stanton3_transfer', 'Baijini Point'],
+      ['stanton2_transfer_seraphim', 'Seraphim Station'],
+      ['stanton1_l2', 'HUR L2'],
+      ['nyx_pyro_jpstation', 'Pyro Gateway'],
+      ['stanton3a_asd_delving_facility_009', 'Onyx Facility S3A9'],
+      ['rr_p3', 'Orbituary'],
+      ['pyro3', 'Bloom'],
+    ]),
+  );
+  try {
+    assert.equal(locationInfo('RR_ARC_LEO').name, 'Baijini Point');
+    assert.equal(locationInfo('RR_CRU_LEO').name, 'Seraphim Station');
+    assert.equal(locationInfo('RR_HUR_L2').name, 'HUR L2');
+    assert.equal(locationInfo('RR_JP_NyxPyro').name, 'Pyro Gateway');
+    assert.equal(locationInfo('Stanton3a_ASD_Delve_Facility_009').name, 'Onyx Facility S3A9');
+    assert.equal(locationInfo('RR_ARC_LEO').body, 'ArcCorp');
+    assert.deepEqual(locationInfo('RR_P3_LEO'), { name: 'Orbituary', system: 'Pyro', body: 'Bloom' });
+    assert.equal(locationInfo('Stanton1b_HurdynMining_HDMSNorgaard').name, 'HDMS-Norgaard');
+  } finally {
+    setGameNames(null);
+  }
 });
