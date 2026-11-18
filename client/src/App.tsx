@@ -1,5 +1,6 @@
 import { Archive, Coins, FileCheck, MapIcon, Radar, Rocket, ScrollText, Users, type LucideIcon } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
+import { Emblem } from './components/Emblem.tsx';
 import { duration } from './format.ts';
 import { useLive } from './live.tsx';
 import { Ahora } from './views/Ahora.tsx';
@@ -46,7 +47,7 @@ export function App() {
   return (
     <div className="app">
       <nav className="rail" aria-label="Secciones">
-        <div className="rail-logo">SC<br />MASTER</div>
+        <div className="rail-logo"><Emblem size={30} /><span>SC<br />MASTER</span></div>
         {SECTIONS.map((s) => {
           const Icon = s.icon;
           return (
@@ -70,10 +71,13 @@ export function App() {
           ) : (
             <div className="soon-view">
               <div>
-                <section.icon size={48} strokeWidth={1.4} className="accent" aria-hidden />
+                <div className="soon-emblem">
+                  <Emblem size={128} spin />
+                  <section.icon size={40} strokeWidth={1.4} aria-hidden />
+                </div>
                 <h2>{section.title}</h2>
                 <p>{section.soon}</p>
-                <p className="faint" style={{ marginTop: 12 }}>Próximamente</p>
+                <span className="soon-tag">Próximamente</span>
               </div>
             </div>
           )}
