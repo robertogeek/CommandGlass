@@ -42,6 +42,17 @@ export async function getJson<T>(url: string): Promise<T> {
   return (await res.json()) as T;
 }
 
+export async function postJson<T>(url: string, body: unknown): Promise<T> {
+  const res = await fetch(url, {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  return (await res.json()) as T;
+}
+
 /** Une eventos sin duplicados, del más reciente al más antiguo. */
 export function mergeEvents(a: GameEvent[], b: GameEvent[]): GameEvent[] {
   const seen = new Set<number>();

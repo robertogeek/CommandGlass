@@ -4,6 +4,7 @@ import { extname, join, normalize } from 'node:path';
 import QRCode from 'qrcode';
 import { CLIENT_DIST, type AppConfig } from '../config.ts';
 import type { LiveTailer } from '../ingest/tailer.ts';
+import { getContact, listContacts, setContactNote } from '../store/contacts.ts';
 import type { Store, StoredEvent } from '../store/db.ts';
 import type { LiveState } from '../state/reducer.ts';
 
@@ -95,8 +96,30 @@ export function startServer({ config, store, tailer, lanUrl }: ServerDeps) {
             minImportance: p.get('min') ? Number(p.get('min')) : undefined,
             categories: p.get('cat')?.split(',').filter(Boolean),
             search: p.get('q') ?? undefined,
+            mention: p.get('mention') ?? undefined,
           }),
         );
+      }
+
+      if (path === '/api/contacts') {
+        return json(res, 200, listContacts(store, tailer.status().sessionId));
+      }
+
+      const contactRoute = /^\/api\/contacts\/([^/]+)(\/note)?$/.exec(path);
+      if (contactRoute) {
+        const name = decodeURIComponent(contactRoute[1]!);
+        if (contactRoute[2]) {
+          if (req.method !== 'POST') return json(res, 405, { error: 'Usa POST' });
+          // Exigir JSON obliga al navegador a hacer preflight CORS: una web ajena no puede escribir aquí.
+          if (!req.headers['content-type']?.startsWith('application/json')) {
+            return json(res, 415, { error: 'Se esperaba JSON' });
+          }
+          const body = (await readJson(req)) as { mark?: unknown; note?: unknown } | null;
+          if (!body) return json(res, 400, { error: 'JSON no válido' });
+          return json(res, 200, setContactNote(store, name, body.mark, body.note));
+        }
+        const contact = getContact(store, name, tailer.status().sessionId);
+        return contact ? json(res, 200, contact) : json(res, 404, { error: 'No hay registros de este jugador' });
       }
 
       if (path === '/api/stream') {
@@ -153,6 +176,28 @@ function send(res: ServerResponse, status: number, type: string, body: string | 
 
 function json(res: ServerResponse, status: number, data: unknown) {
   send(res, status, MIME['.json']!, JSON.stringify(data), { 'Cache-Control': 'no-store' });
+}
+
+function readJson(req: IncomingMessage, limit = 16_384): Promise<unknown> {
+  return new Promise((resolve) => {
+    let size = 0;
+    const chunks: Buffer[] = [];
+    req.on('data', (c: Buffer) => {
+      size += c.length;
+      if (size > limit) {
+        resolve(null);
+        req.destroy();
+      } else chunks.push(c);
+    });
+    req.on('end', () => {
+      try {
+        resolve(JSON.parse(Buffer.concat(chunks).toString('utf8')));
+      } catch {
+        resolve(null);
+      }
+    });
+    req.on('error', () => resolve(null));
+  });
 }
 
 function html(res: ServerResponse, status: number, body: string) {

@@ -329,4 +329,140 @@ button { font: inherit; color: inherit; }
   font-size: 14px;
   align-items: center;
 }
+/* ------------------------------------------------------------ contactos */
+
+/* Dos columnas con scroll propio; en pantallas estrechas, una cosa cada vez. */
+.view:has(> .contacts) { padding-bottom: 0; overflow: hidden; }
+.contacts {
+  display: grid;
+  grid-template-columns: minmax(300px, 400px) minmax(0, 1fr);
+  gap: 16px;
+  height: 100%;
+}
+.contacts-list, .contacts-detail {
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 28px;
+}
+.contacts-list .toolbar .search { min-width: 0; }
+.contacts-list .toolbar .select { flex: none; }
+.chip-n { color: var(--faint); font-variant-numeric: tabular-nums; }
+.chip.on .chip-n { color: var(--accent); opacity: 0.75; }
+
+.contact-rows { padding: 4px 6px; }
+.contact-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 10px 10px 10px 12px;
+  border: 0;
+  border-left: 3px solid transparent;
+  border-bottom: 1px solid #142c33;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+.contact-row:last-of-type { border-bottom: 0; }
+.contact-row:active { background: #0f2a31; }
+.contact-row.on { background: var(--accent-dim); border-radius: 8px; }
+.contact-row.mark-ally { border-left-color: var(--green); }
+.contact-row.mark-hostile { border-left-color: var(--red); }
+.contact-name { display: flex; align-items: center; gap: 8px; min-width: 0; font-weight: 600; }
+.contact-name .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.contact-row.on .nm { color: var(--accent); }
+.contact-meta { font-size: 13px; color: var(--faint); white-space: nowrap; align-self: center; }
+.contact-tags { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; }
+
+.badge.violet { background: #1f1a3a; color: var(--violet); }
+.badge.muted { background: #12262c; color: var(--muted); }
+
+.contacts-placeholder {
+  height: 100%;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--muted);
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+.panel.hostile { border-color: #6b2a2e; }
+.panel.hostile::before, .panel.hostile::after { border-color: var(--red); }
+
+.back {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  margin: -6px 0 6px -6px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: 600 16px/1 var(--display);
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+
+.kv {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid #142c33;
+  font-size: 14px;
+}
+.kv:first-of-type { border-top: 0; padding-top: 0; }
+.kv > :last-child { text-align: right; white-space: nowrap; }
+
+.day-head.in-panel { position: static; background: none; padding-left: 0; }
+
+.note-editor { margin-top: 14px; display: grid; gap: 8px; }
+.segmented { display: flex; gap: 6px; flex-wrap: wrap; }
+.seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+  font: 600 14px/1 var(--display);
+  letter-spacing: 0.05em;
+  cursor: pointer;
+}
+.seg.on { background: var(--accent-dim); border-color: var(--line-strong); color: var(--accent); }
+.seg.on.ally { background: #16301a; border-color: #2c5a33; color: var(--green); }
+.seg.on.hostile { background: var(--red-bg); border-color: #6b2a2e; color: var(--red); }
+.note-label { font-size: 12px; color: var(--faint); }
+.note {
+  width: 100%;
+  resize: vertical;
+  min-height: 56px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #081519;
+  color: var(--text);
+  font: 15px/1.4 var(--body);
+  user-select: text;
+  -webkit-user-select: text;
+}
+.note:focus { outline: 2px solid var(--line-strong); }
+.note-status { min-height: 18px; font-size: 13px; color: var(--faint); }
+
+@media (max-width: 900px) {
+  .contacts { grid-template-columns: minmax(0, 1fr); }
+  .contacts.has-selection .contacts-list { display: none; }
+  .contacts:not(.has-selection) .contacts-detail { display: none; }
+  .back { display: inline-flex; }
+}
+
 .sessions .row.head { color: var(--faint); font: 600 12px/1 var(--display); letter-spacing: 0.1em; text-transform: uppercase; }

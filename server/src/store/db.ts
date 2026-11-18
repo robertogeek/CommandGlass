@@ -69,6 +69,13 @@ CREATE TABLE IF NOT EXISTS mentions (
 );
 CREATE INDEX IF NOT EXISTS mentions_name ON mentions(name);
 CREATE INDEX IF NOT EXISTS mentions_event ON mentions(event_id);
+-- Notas tuyas sobre otros jugadores: no dependen de las sesiones, así que sobreviven a un reprocesado.
+CREATE TABLE IF NOT EXISTS contact_notes (
+  name TEXT PRIMARY KEY COLLATE NOCASE,
+  mark TEXT,
+  note TEXT,
+  updated_at TEXT NOT NULL
+);
 `;
 
 export interface EventQuery {
@@ -78,6 +85,8 @@ export interface EventQuery {
   minImportance?: number;
   categories?: string[];
   search?: string;
+  /** Solo eventos en los que aparece este jugador. */
+  mention?: string;
 }
 
 export class Store {
@@ -194,6 +203,10 @@ export class Store {
     if (q.search) {
       where.push('summary LIKE ?');
       args.push(`%${q.search}%`);
+    }
+    if (q.mention) {
+      where.push('id IN (SELECT event_id FROM mentions WHERE name = ? COLLATE NOCASE)');
+      args.push(q.mention);
     }
     const sql = `SELECT * FROM events ${where.length ? `WHERE ${where.join(' AND ')}` : ''}
                  ORDER BY id DESC LIMIT ?`;

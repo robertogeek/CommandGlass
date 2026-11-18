@@ -8,7 +8,7 @@ export const DATA_DIR = join(ROOT_DIR, 'data');
 export const CLIENT_DIST = join(ROOT_DIR, 'client', 'dist');
 
 /** Súbelo cuando cambien las reglas: el historial se vuelve a procesar entero. */
-export const PARSER_VERSION = 3;
+export const PARSER_VERSION = 4;
 
 export interface AppConfig {
   /** Carpeta LIVE (o PTU) de Star Citizen, donde están Game.log y logbackups/. */

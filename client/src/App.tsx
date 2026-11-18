@@ -5,6 +5,7 @@ import { useLive } from './live.tsx';
 import { Ahora } from './views/Ahora.tsx';
 import { Archivo } from './views/Archivo.tsx';
 import { Bitacora } from './views/Bitacora.tsx';
+import { Contactos } from './views/Contactos.tsx';
 
 interface Section {
   id: string;
@@ -18,7 +19,7 @@ interface Section {
 const SECTIONS: Section[] = [
   { id: 'ahora', label: 'Ahora', title: 'Ahora', icon: Radar, view: () => <Ahora /> },
   { id: 'bitacora', label: 'Bitácora', title: 'Bitácora', icon: ScrollText, view: () => <Bitacora /> },
-  { id: 'contactos', label: 'Contactos', title: 'Contactos', icon: Users, soon: 'Los jugadores con los que te cruzas: quién te ha destruido naves, a quién se las destruiste tú y con quién vuelas en grupo.' },
+  { id: 'contactos', label: 'Contactos', title: 'Contactos', icon: Users, view: () => <Contactos /> },
   { id: 'hangar', label: 'Hangar', title: 'Hangar', icon: Rocket, soon: 'Tu flota con fichas técnicas de star-citizen.wiki y tus estadísticas con cada nave.' },
   { id: 'contratos', label: 'Contratos', title: 'Contratos', icon: FileCheck, soon: 'Historial de contratos, tasa de éxito por tipo y cuánto tardas en cada uno.' },
   { id: 'comercio', label: 'Comercio', title: 'Comercio', icon: Coins, soon: 'Precios de compra y venta de donde estás (UEX) y las mejores rutas para tu nave.' },
@@ -27,7 +28,8 @@ const SECTIONS: Section[] = [
 ];
 
 function useHashSection(): [string, (id: string) => void] {
-  const read = () => window.location.hash.replace('#', '') || 'ahora';
+  // "#contactos/Nombre": la sección es el primer tramo; el resto lo lee la propia vista.
+  const read = () => window.location.hash.replace('#', '').split('/')[0] || 'ahora';
   const [id, setId] = useState(read);
   useEffect(() => {
     const on = () => setId(read());

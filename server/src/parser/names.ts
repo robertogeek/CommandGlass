@@ -42,8 +42,11 @@ export function stripEntityId(name: string): string {
 }
 
 /** ¿Tiene pinta de entidad del juego (y no de jugador)? */
+/** Cosas del escenario que el log trata como "asesino": peligros, límites del mapa, objetos. */
+const ENVIRONMENT_RE = /^(Hazard[_-]|PlanetKillVolume|StreamingSOC_)/;
+
 export function isEntityName(name: string): boolean {
-  return /_\d{6,}$/.test(name) || /^PU_/.test(name) || name === 'unknown' || name === '';
+  return /_\d{6,}$/.test(name) || /^PU_/.test(name) || ENVIRONMENT_RE.test(name) || name === 'unknown' || name === '';
 }
 
 /** "RSI_Constellation_Mk5_Centaurus" -> "RSI Constellation Mk5 Centaurus" */
@@ -75,6 +78,9 @@ export function actorName(name: string): string {
       .replace(/[-_]+/g, ' ');
     return `NPC (${n})`;
   }
+  if (/^Hazard[_-]/.test(name)) return 'un peligro del entorno';
+  if (/^PlanetKillVolume/.test(name)) return 'el límite del planeta';
+  if (/^StreamingSOC_/.test(name)) return 'un objeto del escenario';
   if (isEntityName(name)) return shipName(name);
   return name;
 }

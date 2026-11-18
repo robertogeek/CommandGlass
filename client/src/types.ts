@@ -11,6 +11,38 @@ export interface GameEvent {
   importance: 0 | 1 | 2;
   summary: string;
   data: Record<string, unknown>;
+  /** Solo en eventos recibidos en directo. */
+  mentions?: { name: string; geid?: string; role: string }[];
+}
+
+export type Mark = 'ally' | 'neutral' | 'hostile';
+
+export interface Contact {
+  name: string;
+  geid: string | null;
+  events: number;
+  sessions: number;
+  firstSeen: string;
+  lastSeen: string;
+  counts: {
+    party: number;
+    groupSessions: number;
+    crew: number;
+    friend: number;
+    nemesis: number;
+    victim: number;
+    combat: number;
+    nearby: number;
+  };
+  inSession: number;
+  presence: { inParty: boolean; online: boolean; aboard: boolean } | null;
+  mark: Mark | null;
+  note: string | null;
+}
+
+export interface ContactDetail extends Contact {
+  ships: { ship: string; owner: string; own: boolean; times: number; last: string }[];
+  recentSessions: { id: number; startedAt: string | null; endedAt: string | null; events: number }[];
 }
 
 export interface ActiveMission {
