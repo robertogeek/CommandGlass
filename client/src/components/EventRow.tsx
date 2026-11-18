@@ -16,7 +16,7 @@ export function EventRow({ e, fresh }: { e: GameEvent; fresh?: boolean }) {
   const meta = CATEGORY[e.category] ?? CATEGORY.system;
   const Icon = meta.icon;
   return (
-    <div className={`ev imp${e.importance}${fresh ? ' fresh' : ''}`}>
+    <div className={`ev imp${e.importance}${fresh ? ' fresh' : ''}`} data-cat={e.category}>
       <span className="time">{hhmm(e.ts)}</span>
       <span className={`ico c-${e.category}`} title={meta.label}>
         <Icon size={16} strokeWidth={2} aria-hidden />
