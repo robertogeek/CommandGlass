@@ -28,9 +28,23 @@ Elementos que se toman de los conceptos:
 - **Cifras** con la etiqueta pequeña arriba y el valor debajo, separadas por trazos verticales.
 - **Botones rectangulares** de esquina pequeña. Los activos llevan relleno azul tenue y subrayado.
 
+## Identidad: Space Cowboys
+
 Restricción: ni logotipos ni recursos de CIG o RSI. Donde los conceptos ponen el logo de Star
-Citizen va el **emblema propio** de SC Master (`components/Emblem.tsx`), un hexágono con anillo
-y núcleo romboidal dibujado a mano.
+Citizen va el **logo de la organización del usuario, Space Cowboys**: una estrella dorada sobre
+un anillo azul estrellado, entre laureles plateados. Lo aportó el propio usuario.
+
+- `src/assets/space-cowboys.png`: recortado al contenido, 360 × 306 px y fondo transparente. Se
+  usa en la cabecera (`.brand .org-logo`, 60 px, o 46 px con poca altura) y en el hexágono central
+  del HUD (`.status-emblem .org-logo`, 64 px, o 54 px). Se muestra siempre a todo color, sin
+  teñir ni recolorear.
+- Iconos de la app (`public/icon-192.png`, `icon-512.png` y `apple-touch-icon.png`): el logo al
+  86 % sobre el azul noche del marco (`#060a10`) con un halo azul suave. Son ficheros fijos: ya no
+  se generan al compilar (se ha retirado `scripts/make-icons.ts`).
+- El **emblema propio** (`components/Emblem.tsx`, hexágono de líneas dibujado a mano) queda para
+  los estados decorativos de una sola tinta: «Próximamente» y los vacíos.
+- Para regenerar los PNG desde el original se usó el decodificador WebP de Windows (WPF/WIC) con
+  un script de PowerShell. Si cambia el logo, basta con sustituir esos cuatro ficheros.
 
 ## Tokens (`:root` en `src/styles.css`)
 
