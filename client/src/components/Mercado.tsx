@@ -60,7 +60,7 @@ const Credit = () => (
   </p>
 );
 
-function TokenForm({ onSaved, configured }: { onSaved: () => void; configured: boolean }) {
+function TokenForm({ onSaved }: { onSaved: () => void }) {
   const [token, setToken] = useState('');
   const [state, setState] = useState<{ k: 'idle' | 'saving' | 'error'; msg?: string }>({ k: 'idle' });
   const save = async (value: string) => {
@@ -98,11 +98,6 @@ function TokenForm({ onSaved, configured }: { onSaved: () => void; configured: b
         <button className="chip on" type="submit" disabled={!token.trim() || state.k === 'saving'}>
           {state.k === 'saving' ? 'Comprobando…' : 'Guardar token'}
         </button>
-        {configured && (
-          <button className="chip" type="button" onClick={() => void save('')} disabled={state.k === 'saving'}>
-            Quitar token
-          </button>
-        )}
       </div>
       {state.k === 'error' && <div className="pad-msg err" role="alert">{state.msg}</div>}
     </form>
@@ -172,15 +167,15 @@ export function Mercado() {
       <section className="panel" aria-label="Mercado">
         <div className="label"><TrendingUp size={14} aria-hidden /> Mercado</div>
         <div className="sub">
-          Con un token gratuito de UEX verás qué se compra y vende donde estás, las mejores rutas para la nave que llevas y dónde
-          comprar o vender cada mercancía.
+          Falta tu token de UEX, que se pide al configurar CommandGlass en el PC. Con él verás qué se compra y vende donde estás, las
+          mejores rutas para la nave que llevas y dónde comprar o vender cada mercancía.
         </div>
         <ol className="steps">
           <li>Entra en <a href="https://uexcorp.space" target="_blank" rel="noreferrer">uexcorp.space</a> con tu cuenta (o créala).</li>
           <li>Ve a <strong>My Apps</strong>, crea una aplicación y copia su token.</li>
           <li>Pégalo aquí. Se guarda solo en tu PC.</li>
         </ol>
-        <TokenForm configured={false} onSaved={load} />
+        <TokenForm onSaved={load} />
       </section>
     );
   }
@@ -350,7 +345,7 @@ export function Mercado() {
             <KeyRound size={14} aria-hidden /> {editToken ? 'Cerrar' : 'Cambiar token de UEX'}
           </button>
         </div>
-        {editToken && <TokenForm configured onSaved={() => (setEditToken(false), load())} />}
+        {editToken && <TokenForm onSaved={() => (setEditToken(false), load())} />}
       </section>
     </div>
   );

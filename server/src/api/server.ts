@@ -164,6 +164,8 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
           dataDir: DATA_DIR,
           devices,
           status: tailer.status(),
+          // La configuración inicial no termina hasta que hay un token de UEX válido.
+          uexConfigured: uex.configured,
         });
       }
 
@@ -299,15 +301,11 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
 
       if (path === '/api/trade/token') {
         // El token se guarda en los ajustes locales y nunca vuelve a la interfaz.
+        // Es parte obligatoria de la configuración: se puede cambiar por otro válido, pero no quitar.
         if (req.method !== 'POST') return json(res, 405, { error: 'Usa POST' });
         if (!req.headers['content-type']?.startsWith('application/json')) return json(res, 415, { error: 'Se esperaba JSON' });
         const body = (await readJson(req)) as { token?: unknown } | null;
         const token = typeof body?.token === 'string' ? body.token.trim() : null;
-        if (token === '') {
-          setSetting(store, 'uexToken', null);
-          uex.forget();
-          return json(res, 200, { ok: true, configured: false });
-        }
         if (!token || !/^[A-Za-z0-9]{20,128}$/.test(token)) return json(res, 400, { error: 'Pega el token tal cual lo da UEX: solo letras y números.' });
         let ok = false;
         try {

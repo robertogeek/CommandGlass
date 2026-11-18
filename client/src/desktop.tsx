@@ -5,7 +5,7 @@ import '@fontsource/saira-semi-condensed/400.css';
 import '@fontsource/saira-semi-condensed/500.css';
 import './styles.css';
 import './desktop.css';
-import { CheckCircle2, Copy, FolderOpen, FolderSearch, Pin, Power, Radio, Tablet, TriangleAlert, X } from 'lucide-react';
+import { CheckCircle2, Copy, ExternalLink, FolderOpen, FolderSearch, KeyRound, Pin, Power, Radio, Tablet, TriangleAlert, X } from 'lucide-react';
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import logo from './assets/space-cowboys.png';
@@ -26,6 +26,8 @@ interface DesktopInfo {
   dataDir: string;
   devices: { remote: boolean; since: string; agent: string }[];
   status: { found: boolean; active: boolean; lastWriteAt: string | null };
+  /** Sin token de UEX la ventana muestra la configuración inicial y no deja emparejar el tablet. */
+  uexConfigured: boolean;
 }
 
 interface Bridge {
@@ -134,6 +136,10 @@ function Desktop() {
   };
 
   const devices = info?.devices ?? [];
+
+  if (info && !info.uexConfigured) {
+    return <Setup info={info} chooseDir={chooseDir} choosing={choosing} dirMsg={dirMsg} />;
+  }
 
   return (
     <div className="desk">
@@ -274,6 +280,128 @@ function Desktop() {
       <footer className="desk-foot faint">
         Cerrar esta ventana no apaga CommandGlass: sigue funcionando en la bandeja del sistema, junto al reloj.
       </footer>
+    </div>
+  );
+}
+
+/**
+ * Configuración inicial (obligatoria): carpeta de Star Citizen y token de UEX.
+ * Hasta que el token no esté guardado no aparece el código para emparejar el tablet.
+ */
+function Setup({ info, chooseDir, choosing, dirMsg }: { info: DesktopInfo; chooseDir: () => void; choosing: boolean; dirMsg: string | null }) {
+  const [token, setToken] = useState('');
+  const [state, setState] = useState<{ k: 'idle' | 'saving' | 'saved' | 'error'; msg?: string }>({ k: 'idle' });
+
+  const save = async () => {
+    setState({ k: 'saving' });
+    try {
+      const res = await fetch('/api/trade/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token }),
+      });
+      const body = (await res.json().catch(() => null)) as { error?: string } | null;
+      if (!res.ok) throw new Error(body?.error ?? 'No se ha podido guardar el token.');
+      // La ventana se refresca sola en unos segundos y pasa al código QR.
+      setState({ k: 'saved' });
+      setToken('');
+    } catch (err) {
+      setState({ k: 'error', msg: (err as Error).message });
+    }
+  };
+
+  return (
+    <div className="desk">
+      <header className="desk-head setup">
+        <img className="org-logo" src={logo} alt="Space Cowboys" width={56} height={48} />
+        <div>
+          <h1>CommandGlass</h1>
+          <p className="faint">Configuración inicial · {info.version}</p>
+        </div>
+      </header>
+
+      <main className="setup">
+        <section className={`panel setup-step ${info.gameDirFound ? 'done' : 'warn'}`} aria-label="Paso 1: Star Citizen">
+          <div className="setup-num" aria-hidden>{info.gameDirFound ? <CheckCircle2 size={18} /> : '1'}</div>
+          <div className="setup-body">
+            <div className="label"><Radio size={14} aria-hidden /> Star Citizen</div>
+            {info.gameDirFound ? (
+              <>
+                <div className="desk-ok">Juego encontrado</div>
+                <div className="desk-path">{info.gameDir}</div>
+              </>
+            ) : (
+              <>
+                <div className="desk-bad"><TriangleAlert size={18} aria-hidden /> No encuentro Star Citizen</div>
+                <div className="sub">Indica la carpeta donde está instalado: la que contiene <code>LIVE</code> o la propia <code>LIVE</code>.</div>
+              </>
+            )}
+            {bridge && (
+              <button className="chip desk-btn" onClick={chooseDir} disabled={choosing}>
+                <FolderSearch size={15} aria-hidden /> {info.gameDirFound ? 'Cambiar carpeta…' : 'Elegir carpeta…'}
+              </button>
+            )}
+            {dirMsg && <div className="sub" role="status">{dirMsg}</div>}
+          </div>
+        </section>
+
+        <section className="panel setup-step current" aria-label="Paso 2: token de UEX">
+          <div className="setup-num" aria-hidden>2</div>
+          <div className="setup-body">
+            <div className="label"><KeyRound size={14} aria-hidden /> Tu token de UEX</div>
+            <div className="sub">
+              CommandGlass usa <strong>UEX</strong> para los precios de mercancías y las rutas de comercio. Cada piloto usa su propio token:
+              es gratis y se guarda solo en este PC.
+            </div>
+            <ol className="desk-steps setup-how">
+              <li>
+                Entra en{' '}
+                <a href="https://uexcorp.space" target="_blank" rel="noreferrer">uexcorp.space <ExternalLink size={13} aria-hidden /></a>{' '}
+                con tu cuenta (o créala).
+              </li>
+              <li>Abre <strong>My Apps</strong>, crea una aplicación (el nombre da igual: «CommandGlass») y copia su token.</li>
+              <li>Pégalo aquí.</li>
+            </ol>
+            <form
+              className="setup-form"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void save();
+              }}
+            >
+              <label className="note-label" htmlFor="setup-token">Token de UEX</label>
+              <div className="toolbar">
+                <input
+                  id="setup-token"
+                  className="search plain"
+                  type="password"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="Pega aquí tu token"
+                  value={token}
+                  onChange={(e) => (setToken(e.target.value), setState({ k: 'idle' }))}
+                  aria-invalid={state.k === 'error'}
+                  aria-describedby={state.k === 'error' ? 'setup-token-err' : undefined}
+                  autoFocus
+                />
+                <button className="chip on" type="submit" disabled={!token.trim() || state.k === 'saving' || state.k === 'saved'}>
+                  {state.k === 'saving' ? 'Comprobando con UEX…' : 'Comprobar y guardar'}
+                </button>
+              </div>
+              {state.k === 'error' && <div id="setup-token-err" className="pad-msg err" role="alert">{state.msg}</div>}
+              {state.k === 'saved' && <div className="desk-ok" role="status"><CheckCircle2 size={16} aria-hidden /> Token guardado. Abriendo el código del tablet…</div>}
+            </form>
+          </div>
+        </section>
+
+        <section className="panel setup-step locked" aria-label="Paso 3: tablet">
+          <div className="setup-num" aria-hidden>3</div>
+          <div className="setup-body">
+            <div className="label"><Tablet size={14} aria-hidden /> Tu tablet</div>
+            <div className="sub">En cuanto guardes el token verás el código para emparejar el tablet.</div>
+          </div>
+        </section>
+      </main>
     </div>
   );
 }

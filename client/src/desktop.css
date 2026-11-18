@@ -83,4 +83,27 @@ body { background: radial-gradient(1100px 520px at 70% -10%, rgba(77, 176, 255, 
 .desk-close:hover { color: var(--text); background: var(--cell-hi); }
 
 .desk-foot { margin-top: auto; font-size: 13px; text-align: center; }
+
+/* Configuración inicial */
+.setup { display: grid; gap: var(--gap); max-width: 760px; width: 100%; margin: 0 auto; }
+.desk-head.setup { display: flex; }
+.setup-step { display: flex; gap: 16px; align-items: flex-start; }
+.setup-body { flex: 1; min-width: 0; }
+.setup-num {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--seam-hi);
+  border-radius: 50%;
+  font: 600 16px/1 var(--display);
+  color: var(--muted);
+}
+.setup-step.current .setup-num { border-color: var(--accent-edge); background: var(--accent-dim); color: var(--accent); }
+.setup-step.done .setup-num { border-color: rgba(111, 209, 138, 0.5); color: var(--green); }
+.setup-step.locked { opacity: 0.55; }
+.setup-how { margin: 12px 0 4px; }
+.setup-how a { color: var(--accent); display: inline-flex; align-items: center; gap: 3px; }
+.setup-form { margin-top: 12px; display: grid; gap: 6px; }
 code { color: var(--accent); }

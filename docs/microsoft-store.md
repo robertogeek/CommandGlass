@@ -101,6 +101,7 @@ Cuando termines, desinstálala desde Inicio y borra el certificado de *Personas 
 |---|---|---|
 | Aviso de Windows | SmartScreen mientras no esté firmado | Ninguno: la firma la Store |
 | Carpeta de Star Citizen | La pregunta el instalador | Se detecta sola al abrir; si no, se elige en la ventana del PC |
+| Token de UEX | Obligatorio en la configuración inicial de la ventana del PC | Igual |
 | Firewall (redes privadas) | Regla que añade el instalador | Regla declarada en el paquete |
 | Abrir al iniciar Windows | Interruptor en la app | Configuración → Aplicaciones → Inicio (la app lleva ahí) |
 | Actualizaciones | Descargar el nuevo `.exe` | Automáticas desde la Store |
