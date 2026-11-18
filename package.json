@@ -1,0 +1,28 @@
+{
+  "name": "sc-master",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Companion local para Star Citizen: lee Game.log y lo muestra en un mobiGlas para iPad.",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node server/src/main.ts",
+    "import": "node server/src/cli/import.ts",
+    "stats": "node server/src/cli/stats.ts",
+    "test": "node --test \"server/test/**/*.test.ts\"",
+    "typecheck": "tsc -p tsconfig.json && npm --prefix client run typecheck",
+    "dev:client": "npm --prefix client run dev",
+    "build": "npm --prefix client run build",
+    "setup": "npm install && npm --prefix client install && npm run build"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/qrcode": "^1.5.5",
+    "typescript": "^5.9.0"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "sc-master",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server/src/main.ts"],
+      "port": 8777
+    }
+  ]
+}
