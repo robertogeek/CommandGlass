@@ -13,6 +13,8 @@ import { COMPONENT_LABEL, type ComponentType, type WikiCatalog } from '../game/c
 import { prettyItem } from '../parser/rules.ts';
 import { loadShips, nameIndex } from '../store/hangar.ts';
 import { JUMPS, MOON_OF, SYSTEMS, loadPlaces, placeInfo } from '../store/places.ts';
+import { getSetting, loadEconomy, setSetting, walletEstimate, type Purchase } from '../store/economy.ts';
+import { buildWrapped } from '../store/wrapped.ts';
 import type { Store, StoredEvent } from '../store/db.ts';
 import type { LiveState } from '../state/reducer.ts';
 
@@ -177,6 +179,49 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         const mission = all.find((m) => m.id === decodeURIComponent(missionRoute[1]!));
         if (!mission) return json(res, 404, { error: 'No encuentro ese contrato' });
         return json(res, 200, { mission, briefing: briefingFor(mission, all), intel: wiki.lookup(mission.contract, mission.title), wiki: wiki.info });
+      }
+
+      if (path === '/api/wrapped') {
+        const year = Number(url.searchParams.get('year')) || new Date().getFullYear();
+        return json(res, 200, buildWrapped(store, year, nameIndex(await catalog.vehicleNames())));
+      }
+
+      if (path === '/api/economy/wallet') {
+        if (req.method !== 'POST') return json(res, 405, { error: 'Usa POST' });
+        if (!req.headers['content-type']?.startsWith('application/json')) return json(res, 415, { error: 'Se esperaba JSON' });
+        const body = (await readJson(req)) as { amount?: unknown } | null;
+        const amount = typeof body?.amount === 'number' && Number.isFinite(body.amount) && body.amount >= 0 ? Math.round(body.amount) : null;
+        if (amount === null) return json(res, 400, { error: 'Indica un saldo válido en aUEC' });
+        setSetting(store, 'wallet', { amount, at: new Date().toISOString() });
+        return json(res, 200, { ok: true });
+      }
+
+      if (path === '/api/economy') {
+        const { purchases, rewards } = loadEconomy(store);
+        const wallet = walletEstimate(getSetting(store, 'wallet'), purchases, rewards);
+        const group = <K extends string>(key: (p: Purchase) => K) => {
+          const m = new Map<K, { spent: number; count: number }>();
+          for (const p of purchases) {
+            const g = m.get(key(p)) ?? { spent: 0, count: 0 };
+            g.spent += p.price;
+            g.count++;
+            m.set(key(p), g);
+          }
+          return [...m.entries()].map(([k, v]) => ({ key: k, ...v })).sort((a, b) => b.spent - a.spent);
+        };
+        const recent = purchases.slice(-60).reverse();
+        const names = new Map<string, string>();
+        await Promise.all(
+          [...new Set(recent.map((p) => p.item))].map(async (cls) => names.set(cls, (await catalog.itemName(cls)) ?? prettyItem(cls))),
+        );
+        return json(res, 200, {
+          wallet,
+          totals: { spent: purchases.reduce((a, p) => a + p.price, 0), rewards: rewards.reduce((a, r) => a + r.amount, 0), purchases: purchases.length },
+          byKind: group((p) => p.kind),
+          byShop: group((p) => p.shopName).slice(0, 10),
+          recent: recent.map((p) => ({ ...p, name: names.get(p.item) ?? p.item })),
+          rewards: rewards.slice(-30).reverse(),
+        });
       }
 
       if (path === '/api/map') {

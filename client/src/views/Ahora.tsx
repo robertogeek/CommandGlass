@@ -1,4 +1,4 @@
-import { Activity, Crosshair, FileText, MapPin, Rocket, ShieldAlert, ShieldCheck, Target } from 'lucide-react';
+import { Activity, Crosshair, FileText, HeartPulse, MapPin, Rocket, ShieldAlert, ShieldCheck, Target } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { EventRow } from '../components/EventRow.tsx';
 import { duration, hhmm, n } from '../format.ts';
@@ -45,8 +45,9 @@ export function Ahora() {
         <ShipCard s={state} />
       </div>
 
-      <div className="grid g2">
+      <div className="grid g3">
         <MissionsCard s={state} />
+        <HealthCard s={state} />
         <SessionCard s={state} />
       </div>
 
@@ -139,6 +140,49 @@ function MissionsCard({ s }: { s: LiveState }) {
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+const PART_ES: Record<string, string> = {
+  Head: 'Cabeza', Torso: 'Torso', 'Left arm': 'Brazo izquierdo', 'Right arm': 'Brazo derecho', 'Left leg': 'Pierna izquierda', 'Right leg': 'Pierna derecha',
+};
+const SEVERITY_ES: Record<string, string> = { Minor: 'leve', Moderate: 'moderada', Severe: 'grave' };
+
+function HealthCard({ s }: { s: LiveState }) {
+  const injuries = s.injuries ?? [];
+  const downed = s.downedAt && Date.now() - Date.parse(s.downedAt) < 15 * 60_000;
+  // El nivel más exigente manda: nivel 1 = solo hospitales y camas de nivel 1.
+  const worstTier = injuries.length ? Math.min(...injuries.map((i) => i.tier || 3)) : null;
+  const tone = downed ? 'warn' : injuries.some((i) => i.severity === 'Severe') ? 'warn' : '';
+  return (
+    <div className={`panel ${tone}`}>
+      <div className="label"><HeartPulse size={14} aria-hidden /> Salud</div>
+      {downed ? (
+        <>
+          <div className="big">Incapacitado</div>
+          <div className="sub">Desde las {hhmm(s.downedAt!)}. Pide rescate manteniendo la tecla en el juego o desde Mandos.</div>
+          <a className="chip on health-cta" href="#mandos">Ir a Mandos</a>
+        </>
+      ) : injuries.length === 0 ? (
+        <>
+          <div className="big">Sin heridas</div>
+          <div className="sub">{s.lastDeathAt ? `Última muerte a las ${hhmm(s.lastDeathAt)}` : 'Nada que curar en esta sesión.'}</div>
+        </>
+      ) : (
+        <>
+          <div className="big">{injuries.length} {injuries.length === 1 ? 'herida' : 'heridas'}</div>
+          {injuries.map((i) => (
+            <div key={i.part} className="kv">
+              <span>{PART_ES[i.part] ?? i.part}</span>
+              <span className={i.severity === 'Severe' ? 'desk-bad' : 'faint'}>{SEVERITY_ES[i.severity] ?? i.severity} · nivel {i.tier}</span>
+            </div>
+          ))}
+          <div className="sub health-tip">
+            Necesitas una cama médica de nivel {worstTier} o mejor (cuanto menor el número, mejor la cama). Los hospitales de las ciudades curan todo.
+          </div>
+        </>
+      )}
     </div>
   );
 }

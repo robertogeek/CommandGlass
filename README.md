@@ -51,6 +51,24 @@ Al arrancar, importa los logs archivados de `logbackups/` y empieza a vigilar `G
 
 Para que el iPad no se apague mientras juegas: Ajustes → Pantalla y brillo → Bloqueo automático → Nunca (o usa Acceso Guiado).
 
+## Secciones
+
+| Sección | Qué muestra | De dónde sale |
+|---|---|---|
+| **Ahora** | Ubicación, jurisdicción, nave, contratos, heridas y nivel de cama médica que necesitas, sesión | Registro del juego |
+| **Mandos** | Botonera que pulsa las teclas del juego y chuleta de controles | `Data.p4k` + tu `actionmaps.xml` |
+| **Bitácora** | Todo lo que ha pasado, por días, con filtros | Registro del juego |
+| **Contactos** | Con quién juegas, quién te elimina, notas y marcas | Registro del juego |
+| **Hangar** | Tu equipo personal, tus naves, ficha de cada nave y qué componentes montar | Registro + [api.star-citizen.wiki](https://api.star-citizen.wiki) (precios de UEX a través de la wiki) |
+| **Contratos** | Briefing de lo que tienes en curso, estadísticas por tipo y facción, historial | Registro + api.star-citizen.wiki |
+| **Comercio** | Cartera estimada, en qué gastas, últimas compras y recompensas | Registro (el saldo lo indicas tú una vez) |
+| **Mapa** | Esquema orbital por sistema con tus sitios, tu última ruta y los saltos entre sistemas | Registro del juego |
+| **Archivo** | Resumen de tu año y todas tus sesiones | Registro del juego |
+
+Lo que el registro **no** incluye y por eso es estimado o falta: el saldo de aUEC, la reputación con cada facción (se estima con lo que da cada contrato según la wiki), tu posición exacta en el mapa y los componentes que hayas cambiado en tus naves.
+
+Los datos de la wiki se descargan en segundo plano y se guardan en `data/game/` (misiones: renovación semanal; fichas de naves y componentes: 7 días). La wiki pide que se la cite: la interfaz lo hace junto a esos datos.
+
 ## Mandos (botonera)
 
 La sección **Mandos** convierte el iPad en una botonera: cada botón pulsa en el PC la tecla de una acción del juego (tren de aterrizaje, pedir aterrizaje, faros, señuelos, linterna, casco…). También incluye una **chuleta** con todos tus controles, con buscador.

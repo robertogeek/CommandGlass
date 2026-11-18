@@ -7,6 +7,7 @@ import { useLive } from './live.tsx';
 import { Ahora } from './views/Ahora.tsx';
 import { Archivo } from './views/Archivo.tsx';
 import { Bitacora } from './views/Bitacora.tsx';
+import { Comercio } from './views/Comercio.tsx';
 import { Contactos } from './views/Contactos.tsx';
 import { Contratos } from './views/Contratos.tsx';
 import { Hangar } from './views/Hangar.tsx';
@@ -29,7 +30,7 @@ const SECTIONS: Section[] = [
   { id: 'contactos', label: 'Contactos', title: 'Contactos', icon: Users, view: () => <Contactos /> },
   { id: 'hangar', label: 'Hangar', title: 'Hangar', icon: Rocket, view: () => <Hangar /> },
   { id: 'contratos', label: 'Contratos', title: 'Contratos', icon: FileCheck, view: () => <Contratos /> },
-  { id: 'comercio', label: 'Comercio', title: 'Comercio', icon: Coins, soon: 'Precios de compra y venta de donde estás (UEX) y las mejores rutas para tu nave.' },
+  { id: 'comercio', label: 'Comercio', title: 'Comercio', icon: Coins, view: () => <Comercio /> },
   { id: 'mapa', label: 'Mapa', title: 'Mapa', icon: MapIcon, view: () => <Mapa /> },
   { id: 'archivo', label: 'Archivo', title: 'Archivo', icon: Archive, view: () => <Archivo /> },
 ];

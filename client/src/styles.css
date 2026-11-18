@@ -1155,6 +1155,23 @@ button { font: inherit; color: inherit; }
 .sys-node { fill: var(--hull-2); stroke: var(--seam-hi); stroke-width: 2; }
 .sys-node.visited { fill: rgba(183, 168, 255, 0.3); stroke: var(--violet); }
 
+.health-cta { margin-top: 10px; text-decoration: none; }
+.health-tip { margin-top: 8px; font-size: 13px; }
+.desk-bad { color: var(--amber); }
+
+.wrapped .toolbar { margin-bottom: 12px; }
+.wrap-title { margin: 0 auto 0 0; }
+.wrap-lists { margin-top: 12px; }
+.wrap-rank { display: inline-grid; place-items: center; width: 20px; height: 20px; margin-right: 6px; border-radius: 50%; background: var(--accent-dim); color: var(--accent); font: 700 12px/1 var(--display); }
+
+/* ------------------------------------------------------------ comercio */
+
+.wallet-big small { font-size: 16px; color: var(--muted); letter-spacing: 0.08em; }
+.wallet-form { margin-top: 14px; display: grid; gap: 6px; }
+.kind-row.static { cursor: default; }
+.kind-row.static:hover { background: none; }
+.desk-ok { color: var(--green); }
+
 /* ------------------------------------------------------------ guía de instalación en el tablet */
 
 .install-guide {

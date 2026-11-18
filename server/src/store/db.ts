@@ -70,6 +70,11 @@ CREATE TABLE IF NOT EXISTS mentions (
 CREATE INDEX IF NOT EXISTS mentions_name ON mentions(name);
 CREATE INDEX IF NOT EXISTS mentions_event ON mentions(event_id);
 -- Notas tuyas sobre otros jugadores: no dependen de las sesiones, así que sobreviven a un reprocesado.
+-- Ajustes tuyos (como el saldo de la cartera): tampoco dependen de las sesiones.
+CREATE TABLE IF NOT EXISTS settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS contact_notes (
   name TEXT PRIMARY KEY COLLATE NOCASE,
   mark TEXT,

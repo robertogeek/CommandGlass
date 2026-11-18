@@ -219,6 +219,9 @@ export interface LiveState {
   ship: { name: string; owner: string; own: boolean; since: string } | null;
   lastQt: { target: string; name: string; at: string } | null;
   missions: ActiveMission[];
+  injuries?: { part: string; severity: string; tier: number; at: string }[];
+  downedAt?: string | null;
+  lastDeathAt?: string | null;
   stats: {
     rewardsAuec: number;
     spentAuec: number;

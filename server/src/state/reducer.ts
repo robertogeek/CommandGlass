@@ -195,7 +195,8 @@ export function applyEvent(s: LiveState, e: GameEvent): LiveState {
       s.stats.rewardsAuec += Number(d.amount) || 0;
       break;
     case 'economy.buy':
-      s.stats.spentAuec += (Number(d.price) || 0) * (Number(d.quantity) || 1);
+      // El precio del registro ya es el total de la compra.
+      s.stats.spentAuec += Number(d.price) || 0;
       break;
     case 'combat.vehicle_destroyed':
       if (d.destroyed && d.mine) s.stats.shipsLost++;
