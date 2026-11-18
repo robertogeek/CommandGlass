@@ -983,6 +983,48 @@ button { font: inherit; color: inherit; }
   .back { display: inline-flex; }
 }
 
+/* ------------------------------------------------------------ guía de instalación en el tablet */
+
+.install-guide {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2, 5, 9, 0.78);
+}
+.install-card { position: relative; width: min(520px, 100%); padding: 22px 22px 18px; }
+.install-card h2 { margin: 4px 0 6px; font: 700 26px/1.1 var(--display); letter-spacing: 0.04em; color: var(--frost); }
+.install-steps { margin: 16px 0 0; padding-left: 22px; display: grid; gap: 12px; font-size: 16px; line-height: 1.4; }
+.install-steps svg { vertical-align: -3px; color: var(--accent); }
+.install-actions { margin-top: 18px; display: flex; justify-content: flex-end; }
+.install-close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: var(--tap);
+  height: var(--tap);
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+/* Flecha hacia el botón Compartir de Safari (arriba a la derecha en iPadOS). */
+.install-arrow {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 4px);
+  right: 64px;
+  font: 700 44px/1 var(--display);
+  color: var(--accent);
+  text-shadow: 0 0 18px var(--accent-glow);
+  animation: install-bob 1.2s var(--ease-out) infinite alternate;
+}
+@keyframes install-bob { from { transform: translateY(6px); } to { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .install-arrow { animation: none; } }
+
 /* ------------------------------------------------------------ mandos */
 
 /* Cápsulas de estado dentro de una barra de herramientas: recuadro propio. */

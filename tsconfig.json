@@ -13,5 +13,6 @@
     "skipLibCheck": true,
     "noUncheckedIndexedAccess": true
   },
-  "include": ["server/**/*.ts"]
+  "include": ["server/**/*.ts", "desktop/**/*.ts"],
+  "exclude": ["desktop/dist"]
 }

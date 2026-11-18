@@ -33,7 +33,20 @@ try {
 
 const lanIp = pickLanIp();
 const lanUrl = `http://${lanIp}:${config.port}`;
-const { pairUrl } = startServer({ config, store, tailer, lanUrl, bindings, keys });
+const { server, pairUrl } = startServer({ config, store, tailer, lanUrl, bindings, keys });
+
+// Dentro de la app de escritorio el servidor corre como proceso hijo de Electron: se le avisa al arrancar o al fallar.
+const parent = (process as unknown as { parentPort?: { postMessage(m: unknown): void } }).parentPort;
+server.on('listening', () => parent?.postMessage({ type: 'ready', port: config.port }));
+server.on('error', (err: NodeJS.ErrnoException) => {
+  const message =
+    err.code === 'EADDRINUSE'
+      ? `El puerto ${config.port} ya está en uso: puede que CommandGlass ya esté abierto en otra ventana.`
+      : `No se ha podido arrancar el servidor (${err.message}).`;
+  console.error(message);
+  parent?.postMessage({ type: 'error', code: err.code ?? null, message });
+  process.exit(1);
+});
 
 console.log(`\nEn este PC:   http://localhost:${config.port}`);
 console.log(`Emparejar:    http://localhost:${config.port}/pair  (o escanea este QR con el iPad)\n`);

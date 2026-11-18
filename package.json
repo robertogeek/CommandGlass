@@ -1,9 +1,12 @@
 {
   "name": "sc-master",
-  "version": "0.1.0",
+  "productName": "CommandGlass",
+  "version": "0.1.0-beta",
   "private": true,
-  "description": "Companion local para Star Citizen: lee Game.log y lo muestra en un mobiGlas para iPad.",
+  "description": "CommandGlass: tu mobiGlas para Star Citizen. Lee Game.log y lo muestra en el tablet.",
+  "author": "Space Cowboys",
   "type": "module",
+  "main": "desktop/dist/main.mjs",
   "engines": {
     "node": ">=24"
   },
@@ -15,7 +18,10 @@
     "typecheck": "tsc -p tsconfig.json && npm --prefix client run typecheck",
     "dev:client": "npm --prefix client run dev",
     "build": "npm --prefix client run build",
-    "setup": "npm install && npm --prefix client install && npm run build"
+    "setup": "npm install && npm --prefix client install && npm run build",
+    "desktop:build": "npm run build && node scripts/build-desktop.mjs",
+    "desktop": "npm run desktop:build && electron .",
+    "dist:win": "npm run desktop:build && electron-builder --win --publish never --config electron-builder.config.cjs"
   },
   "dependencies": {
     "qrcode": "^1.5.4"
@@ -23,6 +29,13 @@
   "devDependencies": {
     "@types/node": "^24.0.0",
     "@types/qrcode": "^1.5.5",
+    "electron": "45.3.4",
+    "electron-builder": "26.18.0",
+    "esbuild": "0.28.2",
     "typescript": "^5.9.0"
+  },
+  "allowScripts": {
+    "esbuild@0.28.2": true,
+    "electron-winstaller": false
   }
 }

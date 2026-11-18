@@ -1,0 +1,81 @@
+# Construye el instalador de Windows de CommandGlass.
+# - A mano: pestaña Actions → "Instalador de Windows" → Run workflow.
+# - Automático: al subir una etiqueta de versión (git tag v0.1.0-beta && git push --tags).
+# El .exe queda como artefacto de la ejecución (Summary → Artifacts) y, con etiqueta, en una Release privada.
+#
+# Firma (opcional, se activa sola si existen los secretos del repositorio):
+#   Certificado .pfx:        WIN_CSC_LINK (pfx en base64) + WIN_CSC_KEY_PASSWORD
+#   Azure Artifact Signing:  AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET,
+#                            AZURE_SIGNING_ENDPOINT, AZURE_SIGNING_ACCOUNT, AZURE_SIGNING_PROFILE, AZURE_SIGNING_PUBLISHER
+name: Instalador de Windows
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            client/package-lock.json
+
+      - name: Dependencias
+        run: |
+          npm ci
+          npm ci --prefix client
+
+      - name: Pruebas y tipos
+        run: |
+          npm test
+          npm run typecheck
+
+      - name: Construir instalador
+        run: npm run dist:win
+        env:
+          CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          CG_AZURE_ENDPOINT: ${{ secrets.AZURE_SIGNING_ENDPOINT }}
+          CG_AZURE_ACCOUNT: ${{ secrets.AZURE_SIGNING_ACCOUNT }}
+          CG_AZURE_PROFILE: ${{ secrets.AZURE_SIGNING_PROFILE }}
+          CG_AZURE_PUBLISHER: ${{ secrets.AZURE_SIGNING_PUBLISHER }}
+          # Sin secretos de firma, no intentar buscar certificados en el equipo.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: ¿Está firmado?
+        shell: pwsh
+        run: |
+          Get-ChildItem release -Filter *.exe | ForEach-Object {
+            $s = Get-AuthenticodeSignature $_.FullName
+            "{0}: {1} {2}" -f $_.Name, $s.Status, $s.SignerCertificate.Subject
+          }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: commandglass-windows
+          path: release/*.exe
+          if-no-files-found: error
+
+      - name: Release (solo con etiqueta)
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem release -Filter *.exe | Select-Object -First 1
+          gh release create "${{ github.ref_name }}" $exe.FullName --title "CommandGlass ${{ github.ref_name }}" --notes "Instalador de Windows de CommandGlass." --prerelease

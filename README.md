@@ -7,7 +7,31 @@ Game.log ──► lector en vivo ──┐
 logbackups/*.log ► importador ┴► parser (reglas) ► SQLite ► servidor local ► iPad (Safari, pantalla completa)
 ```
 
-## Puesta en marcha
+## Instalarlo (para el resto de la organización)
+
+1. Descarga `commandglass_v.X.Y.Z_b.exe` y ábrelo. Si Windows muestra «Windows protegió su PC», pulsa **Más información → Ejecutar de todas formas** (pasa mientras el instalador no esté firmado).
+2. Se instala en `C:\Program Files\CommandGlass`. Una página del instalador detecta dónde está Star Citizen: lo busca en el registro del lanzador de RSI y en las rutas habituales, y si no lo encuentra te pide la carpeta.
+3. Al terminar, CommandGlass se abre solo (también está en el menú Inicio y en el escritorio) y muestra un **QR**.
+4. Escanéalo con la cámara del tablet. La primera vez, la app te enseña cómo añadirla a la pantalla de inicio (en iPad: **Compartir → Añadir a pantalla de inicio**).
+
+Cerrar la ventana no apaga CommandGlass: sigue en la bandeja del sistema, junto al reloj, mientras juegas. Para tenerlo en la barra de tareas: clic derecho en su icono → **Anclar a la barra de tareas** (Windows no deja que un instalador lo haga por ti).
+
+El instalador añade una regla de firewall para que el tablet pueda conectarse, solo en **redes privadas**. Si tu wifi está marcada como pública en Windows, el tablet no conectará: cámbiala a privada en Configuración → Red e Internet.
+
+Tus datos (historial, notas, emparejamiento) se guardan en `%APPDATA%\CommandGlass\data` y se conservan al desinstalar o actualizar.
+
+## Construir el instalador
+
+```powershell
+npm run dist:win   # release\commandglass_v.<versión>.exe
+```
+
+- La versión sale de `version` en `package.json`: `0.1.0-beta` → `commandglass_v.0.1.0_b.exe`.
+- En GitHub, el flujo **Instalador de Windows** (`.github/workflows/windows-installer.yml`) hace lo mismo en `windows-latest`. Se lanza a mano desde Actions o al subir una etiqueta `v*`. El `.exe` queda en los artefactos de la ejecución; con etiqueta, también en una Release.
+- **Firma**: sale sin firmar mientras el repositorio no tenga secretos de firma. Se activa sola con un certificado `.pfx` (`WIN_CSC_LINK` en base64 + `WIN_CSC_KEY_PASSWORD`) o con Azure Artifact Signing (`AZURE_TENANT_ID`, `AZURE_CLIENT_ID`, `AZURE_CLIENT_SECRET`, `AZURE_SIGNING_ENDPOINT`, `AZURE_SIGNING_ACCOUNT`, `AZURE_SIGNING_PROFILE`, `AZURE_SIGNING_PUBLISHER`). Smart App Control solo acepta certificados de autoridades de confianza o Artifact Signing, no autofirmados.
+- La app de escritorio es Electron (`desktop/`): arranca el servidor como proceso hijo, muestra `/escritorio` (QR y estado) y vive en la bandeja.
+
+## Desarrollo
 
 Requisitos: Node.js 24 o superior.
 

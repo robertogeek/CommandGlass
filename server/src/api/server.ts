@@ -2,7 +2,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { extname, join, normalize } from 'node:path';
 import QRCode from 'qrcode';
-import { CLIENT_DIST, type AppConfig } from '../config.ts';
+import { APP_VERSION, CLIENT_DIST, DATA_DIR, type AppConfig } from '../config.ts';
 import type { LiveTailer } from '../ingest/tailer.ts';
 import type { BindingsService } from '../game/bindings.ts';
 import type { KeySender } from '../game/keysender.ts';
@@ -37,11 +37,12 @@ export interface ServerDeps {
 const DANGEROUS = new Set(['v_self_destruct', 'v_eject', 'force_respawn', 'v_emergency_exit']);
 
 export function startServer({ config, store, tailer, lanUrl, bindings, keys }: ServerDeps) {
-  const clients = new Set<ServerResponse>();
+  // Conexiones en directo abiertas; "remote" = desde otro dispositivo (el iPad), no desde este PC.
+  const clients = new Map<ServerResponse, { remote: boolean; since: string; agent: string }>();
 
   const broadcast = (event: string, data: unknown) => {
     const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-    for (const res of clients) res.write(payload);
+    for (const res of clients.keys()) res.write(payload);
   };
 
   tailer.on('events', (events: StoredEvent[], state: LiveState) => {
@@ -84,6 +85,31 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys }: S
         if (!isLoopback(req)) return html(res, 403, '<p>Abre esta página en el PC.</p>');
         const svg = await QRCode.toString(pairUrl, { type: 'svg', margin: 1, width: 320 });
         return html(res, 200, pairPage(svg, pairUrl));
+      }
+
+      // Ventana de la app de escritorio: QR, estado y carpeta del juego. Solo en este PC (muestra la clave).
+      if (path === '/escritorio') {
+        if (!isLoopback(req)) return html(res, 403, '<p>Abre esta página en el PC.</p>');
+        const file = join(CLIENT_DIST, 'desktop.html');
+        if (!existsSync(file)) return html(res, 503, '<p>Falta compilar la interfaz: ejecuta <code>npm run build</code>.</p>');
+        return send(res, 200, MIME['.html']!, readFileSync(file), { 'Cache-Control': 'no-cache' });
+      }
+
+      if (path === '/api/desktop') {
+        if (!isLoopback(req)) return json(res, 403, { error: 'Solo desde este PC' });
+        const qrSvg = await QRCode.toString(pairUrl, { type: 'svg', margin: 1, width: 300, color: { dark: '#000000', light: '#ffffff' } });
+        const devices = [...clients.values()].filter((c) => c.remote);
+        return json(res, 200, {
+          version: APP_VERSION,
+          pairUrl,
+          lanUrl,
+          qrSvg,
+          gameDir: config.gameDir,
+          gameDirFound: config.gameDirFound,
+          dataDir: DATA_DIR,
+          devices,
+          status: tailer.status(),
+        });
       }
 
       if (path === '/manifest.webmanifest') {
@@ -186,7 +212,7 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys }: S
           Connection: 'keep-alive',
         });
         res.write(`retry: 3000\nevent: state\ndata: ${JSON.stringify(snapshot(tailer.state))}\n\n`);
-        clients.add(res);
+        clients.set(res, { remote: !isLoopback(req), since: new Date().toISOString(), agent: deviceName(req.headers['user-agent']) });
         req.on('close', () => clients.delete(res));
         return;
       }
@@ -233,6 +259,17 @@ function send(res: ServerResponse, status: number, type: string, body: string | 
 
 function json(res: ServerResponse, status: number, data: unknown) {
   send(res, status, MIME['.json']!, JSON.stringify(data), { 'Cache-Control': 'no-store' });
+}
+
+/** Nombre corto del dispositivo a partir del user agent, para "iPad conectado". */
+function deviceName(ua: string | undefined): string {
+  const s = ua ?? '';
+  if (/iPhone/.test(s)) return 'iPhone';
+  if (/iPad/.test(s)) return 'iPad';
+  if (/Android/.test(s)) return /Mobile/.test(s) ? 'Móvil Android' : 'Tablet Android';
+  // Safari de iPadOS se presenta como un Mac: desde la red local, casi seguro que es el iPad.
+  if (/Macintosh/.test(s) && /Safari/.test(s) && !/Chrome|Edg|Firefox/.test(s)) return 'iPad';
+  return 'Navegador';
 }
 
 function readJson(req: IncomingMessage, limit = 16_384): Promise<unknown> {

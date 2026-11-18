@@ -2,5 +2,7 @@ node_modules/
 client/node_modules/
 client/dist/
 data/
+desktop/dist/
+release/
 *.log
 .DS_Store
