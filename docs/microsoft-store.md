@@ -56,9 +56,10 @@ El resultado es `release\commandglass_v.<versión>.appx`. Sin las variables `CG_
 5. **Opciones de envío → Funcionalidades restringidas**: el paquete declara `runFullTrust`, como cualquier app de escritorio empaquetada. Justificación sugerida:
    > CommandGlass es una aplicación de escritorio (Electron) empaquetada. Necesita ejecutarse con plena confianza para leer el registro del juego (Game.log) en la carpeta de instalación de Star Citizen, servir una página web en la red local para el tablet del propio usuario y enviar pulsaciones de teclado al juego cuando el usuario lo pide desde el tablet.
 6. **Ficha de Store** (español y, si quieres, inglés):
-   - Descripción, al menos una captura de 1366×768 o mayor, y el logo. Para capturas sin la marca de CIG, usa la ventana del PC (QR) y secciones como Comercio o Contratos.
-   - **Aviso de fans** al final de la descripción:
-     > Herramienta de fans no oficial, sin relación con Cloud Imperium Games. Star Citizen®, Roberts Space Industries® y Cloud Imperium® son marcas registradas de Cloud Imperium Rights LLC.
+   - Descripción, al menos una captura de 1366×768 o mayor, y el logo.
+   - **Marcas y permiso de CIG**: CommandGlass se hace con un acuerdo con Cloud Imperium Games. En la descripción usa el texto de atribución que fije ese acuerdo. Si no fija ninguno, usa este:
+     > Star Citizen®, Roberts Space Industries® y Cloud Imperium® son marcas registradas de Cloud Imperium Rights LLC y se usan con su permiso.
+   - En **Notas para la certificación**, indica que tienes un acuerdo con CIG para usar sus marcas y su estética. Ten a mano una copia o una carta de CIG: la Store puede pedir pruebas de que tienes derecho a usar propiedad intelectual de terceros.
    - **Directiva de privacidad**: la Store pide una URL si la app maneja datos personales; CommandGlass guarda nombres de jugadores del registro, solo en local. Puedes publicar el texto de abajo en una página pública, por ejemplo un gist o GitHub Pages; el repositorio es privado.
 7. **Enviar a certificación**. Suele tardar entre unas horas y tres días laborables.
 
