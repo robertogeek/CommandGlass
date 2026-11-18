@@ -27,6 +27,16 @@ Al arrancar, importa los logs archivados de `logbackups/` y empieza a vigilar `G
 
 Para que el iPad no se apague mientras juegas: Ajustes → Pantalla y brillo → Bloqueo automático → Nunca (o usa Acceso Guiado).
 
+## Mandos (botonera)
+
+La sección **Mandos** convierte el iPad en una botonera: cada botón pulsa en el PC la tecla de una acción del juego (tren de aterrizaje, pedir aterrizaje, faros, señuelos, linterna, casco…). También incluye una **chuleta** con todos tus controles, con buscador.
+
+- Las teclas por defecto se leen de `Data.p4k` (`Libs/Config/defaultProfile.xml`) junto con los textos oficiales en español. Tus cambios se leen de `user/client/0/Profiles/default/actionmaps.xml`. Los ficheros del juego **solo se leen**. Lo extraído se copia en `data/game/` y se vuelve a extraer cuando un parche cambia `Data.p4k`.
+- Las teclas se envían por código físico (`SendInput`), así que da igual la distribución del teclado.
+- Solo se envía si **Star Citizen está en primer plano** en el PC; si no, la botonera avisa y no pulsa nada.
+- Un toque es una acción: no hay macros ni secuencias automáticas. Autodestrucción, eyectar, salida de emergencia y reaparecer piden un segundo toque para confirmar.
+- Si ejecutas Star Citizen como administrador, Windows bloquea las pulsaciones que llegan de otro programa: arranca SC Master también como administrador, o el juego sin esos permisos.
+
 ## Configuración
 
 `data/config.json` se crea solo la primera vez:

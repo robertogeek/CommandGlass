@@ -4,6 +4,8 @@ import { extname, join, normalize } from 'node:path';
 import QRCode from 'qrcode';
 import { CLIENT_DIST, type AppConfig } from '../config.ts';
 import type { LiveTailer } from '../ingest/tailer.ts';
+import type { BindingsService } from '../game/bindings.ts';
+import type { KeySender } from '../game/keysender.ts';
 import { getContact, listContacts, setContactNote } from '../store/contacts.ts';
 import type { Store, StoredEvent } from '../store/db.ts';
 import type { LiveState } from '../state/reducer.ts';
@@ -27,9 +29,14 @@ export interface ServerDeps {
   store: Store;
   tailer: LiveTailer;
   lanUrl: string;
+  bindings: BindingsService;
+  keys: KeySender;
 }
 
-export function startServer({ config, store, tailer, lanUrl }: ServerDeps) {
+/** Acciones que no se envían sin una confirmación explícita desde la interfaz. */
+const DANGEROUS = new Set(['v_self_destruct', 'v_eject', 'force_respawn', 'v_emergency_exit']);
+
+export function startServer({ config, store, tailer, lanUrl, bindings, keys }: ServerDeps) {
   const clients = new Set<ServerResponse>();
 
   const broadcast = (event: string, data: unknown) => {
@@ -56,6 +63,17 @@ export function startServer({ config, store, tailer, lanUrl }: ServerDeps) {
     try {
       const url = new URL(req.url ?? '/', 'http://localhost');
       const path = url.pathname;
+
+      // Escrituras solo desde la propia app: una web de otro origen no puede pulsar teclas ni editar notas.
+      if (req.method !== 'GET' && req.method !== 'HEAD' && req.headers.origin) {
+        let sameHost = false;
+        try {
+          sameHost = new URL(req.headers.origin).host === req.headers.host;
+        } catch {
+          /* origen no válido */
+        }
+        if (!sameHost) return json(res, 403, { error: 'Origen no permitido' });
+      }
 
       if (!authorize(req, res, url, config.pairKey)) {
         if (path.startsWith('/api/')) return json(res, 401, { error: 'Empareja este dispositivo desde el PC' });
@@ -103,6 +121,45 @@ export function startServer({ config, store, tailer, lanUrl }: ServerDeps) {
 
       if (path === '/api/contacts') {
         return json(res, 200, listContacts(store, tailer.status().sessionId));
+      }
+
+      if (path === '/api/controls') {
+        try {
+          return json(res, 200, { available: keys.available, catalog: bindings.get() });
+        } catch (err) {
+          return json(res, 200, { available: false, error: (err as Error).message, catalog: null });
+        }
+      }
+
+      if (path === '/api/controls/focus') {
+        const fg = await keys.foreground();
+        return json(res, 200, { foreground: fg, focused: fg === 'StarCitizen' });
+      }
+
+      if (path === '/api/controls/send') {
+        if (req.method !== 'POST') return json(res, 405, { error: 'Usa POST' });
+        if (!req.headers['content-type']?.startsWith('application/json')) return json(res, 415, { error: 'Se esperaba JSON' });
+        const body = (await readJson(req)) as { id?: unknown; phase?: unknown; confirm?: unknown } | null;
+        const id = typeof body?.id === 'string' ? body.id : '';
+        const phase = body?.phase === 'down' || body?.phase === 'up' ? body.phase : 'tap';
+        // Soltar siempre se permite, aunque la acción haya desaparecido del catálogo.
+        if (phase === 'up') return json(res, 200, await keys.up(id));
+        const action = bindings.find(id);
+        if (!action) return json(res, 404, { ok: false, reason: 'unbound', message: 'Esa acción no existe en tus controles.' });
+        if (!action.keys || !action.sendable) {
+          return json(res, 200, {
+            ok: false,
+            reason: 'unbound',
+            message: action.keys
+              ? 'Esta acción usa el ratón o un eje: la botonera solo puede enviar teclado.'
+              : 'Esta acción no tiene tecla asignada. Asígnale una en Opciones → Controles del juego.',
+          });
+        }
+        if (DANGEROUS.has(action.name) && body?.confirm !== true) {
+          return json(res, 409, { ok: false, reason: 'confirm', message: 'Confirma la acción antes de enviarla.' });
+        }
+        const result = phase === 'down' ? await keys.down(id, action.keys) : await keys.tap(action.keys, action.plan);
+        return json(res, 200, result);
       }
 
       const contactRoute = /^\/api\/contacts\/([^/]+)(\/note)?$/.exec(path);

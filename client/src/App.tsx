@@ -1,4 +1,4 @@
-import { Archive, Coins, FileCheck, MapIcon, Radar, Rocket, ScrollText, Users, type LucideIcon } from 'lucide-react';
+import { Archive, Coins, FileCheck, Gamepad2, MapIcon, Radar, Rocket, ScrollText, Users, type LucideIcon } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { duration } from './format.ts';
 import { useLive } from './live.tsx';
@@ -6,6 +6,7 @@ import { Ahora } from './views/Ahora.tsx';
 import { Archivo } from './views/Archivo.tsx';
 import { Bitacora } from './views/Bitacora.tsx';
 import { Contactos } from './views/Contactos.tsx';
+import { Mandos } from './views/Mandos.tsx';
 
 interface Section {
   id: string;
@@ -18,6 +19,7 @@ interface Section {
 
 const SECTIONS: Section[] = [
   { id: 'ahora', label: 'Ahora', title: 'Ahora', icon: Radar, view: () => <Ahora /> },
+  { id: 'mandos', label: 'Mandos', title: 'Mandos', icon: Gamepad2, view: () => <Mandos /> },
   { id: 'bitacora', label: 'Bitácora', title: 'Bitácora', icon: ScrollText, view: () => <Bitacora /> },
   { id: 'contactos', label: 'Contactos', title: 'Contactos', icon: Users, view: () => <Contactos /> },
   { id: 'hangar', label: 'Hangar', title: 'Hangar', icon: Rocket, soon: 'Tu flota con fichas técnicas de star-citizen.wiki y tus estadísticas con cada nave.' },
