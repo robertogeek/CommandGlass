@@ -2,6 +2,8 @@ import { CheckCircle2, ChevronDown, ChevronRight, Circle, CircleDot, ClipboardLi
 import { useEffect, useMemo, useState } from 'react';
 import { ago, day, duration, hhmm, n } from '../format.ts';
 import { getJson, useLive } from '../live.tsx';
+import { useLang } from '../lang.tsx';
+import { MISSION_KIND } from '../terms.ts';
 import type { Briefing, Mission, MissionIntel, MissionKind, MissionsResponse, Outcome, WikiInfo } from '../types.ts';
 
 /**
@@ -19,6 +21,7 @@ const OUTCOME: Record<Outcome, { label: string; tone: string }> = {
 const PAGE = 60;
 
 export function Contratos() {
+  const { t: tr } = useLang();
   const { snapshot, liveEvents } = useLive();
   const [data, setData] = useState<MissionsResponse | null>(null);
   const [kind, setKind] = useState<MissionKind | 'all'>('all');
@@ -95,7 +98,7 @@ export function Contratos() {
           <div className="label"><Crosshair size={14} aria-hidden /> Por tipo</div>
           {data.kinds.map((k) => (
             <button key={k.kind} className={`kind-row ${kind === k.kind ? 'on' : ''}`} onClick={() => setKind(kind === k.kind ? 'all' : k.kind)}>
-              <span className="kind-name">{k.label}</span>
+              <span className="kind-name">{tr(MISSION_KIND[k.kind] ?? { en: k.label, es: k.label })}</span>
               <span className="kind-bar" aria-hidden>
                 <span className="ok" style={{ width: `${(100 * k.completed) / maxKind}%` }} />
                 <span className="bad" style={{ width: `${(100 * k.failed) / maxKind}%` }} />
@@ -141,7 +144,7 @@ export function Contratos() {
           ))}
           {kind !== 'all' && (
             <button className="chip on" onClick={() => setKind('all')}>
-              {data.kinds.find((k) => k.kind === kind)?.label} ✕
+              {tr(MISSION_KIND[kind] ?? { en: kind, es: kind })} ✕
             </button>
           )}
         </div>
@@ -242,6 +245,7 @@ function IntelBox({ intel, wiki }: { intel: MissionIntel; wiki: WikiInfo }) {
 }
 
 function BriefingCard({ id }: { id: string }) {
+  const { t } = useLang();
   const [d, setD] = useState<MissionDetail | null>(null);
   useEffect(() => {
     getJson<MissionDetail>(`/api/missions/${encodeURIComponent(id)}`).then(setD).catch(() => setD(null));
@@ -253,7 +257,7 @@ function BriefingCard({ id }: { id: string }) {
 
   return (
     <article className="panel brief" aria-label={`Briefing: ${m.title ?? 'contrato'}`}>
-      <div className="label"><ClipboardList size={14} aria-hidden /> Briefing · {b.label}</div>
+      <div className="label"><ClipboardList size={14} aria-hidden /> Briefing · {t(MISSION_KIND[b.kind] ?? { en: b.label, es: b.label })}</div>
       <div className="big">{m.title ?? 'Contrato en curso'}</div>
       <div className="sub">
         {m.acceptedAt ? `Aceptado a las ${hhmm(m.acceptedAt)} · hace ${duration(m.acceptedAt)}` : ''}

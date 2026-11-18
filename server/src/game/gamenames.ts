@@ -9,10 +9,10 @@ import { extractFromP4k } from './p4k.ts';
 
 const EN = 'Data/Localization/english/global.ini';
 const ES = 'Data/Localization/spanish_(spain)/global.ini';
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 
 /** Solo lo que hace falta: sitios del universo, naves y objetos. Sin descripciones. */
-const KEEP = /^(Stanton|Pyro|Nyx|Castra|Magnus|Terra|Delamar|RR_|item_Name|vehicle_Name)/i;
+const KEEP = /^(Stanton|Pyro|Nyx|Castra|Magnus|Terra|Delamar|RR_|item_Name|vehicle_Name|mission_items_QTQuantumBeacon$|Marker_Classification_PartyMember$)/i;
 
 interface Cache {
   version: number;

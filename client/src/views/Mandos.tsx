@@ -16,11 +16,8 @@ import type { BindingMap, BoundAction, ControlsResponse, SendResult } from '../t
 type Context = 'ship' | 'foot' | 'any';
 
 interface PadButton {
+  /** Acción del juego ("mapa.acción"): el botón muestra su nombre oficial en el idioma elegido. */
   id: string;
-  /** Texto en español. */
-  label: string;
-  /** Texto en inglés, como en el juego. */
-  en: string;
   danger?: boolean;
 }
 
@@ -36,96 +33,96 @@ const PANELS: Panel[] = [
   {
     id: 'vuelo', title: 'Vuelo', icon: Rocket, context: 'ship',
     buttons: [
-      { id: 'spaceship_general.v_flightready', label: 'Inicio rápido', en: 'Flight Ready' },
-      { id: 'spaceship_power.v_power_toggle', label: 'Energía', en: 'Power' },
-      { id: 'spaceship_movement.v_toggle_landing_system', label: 'Tren de aterrizaje', en: 'Landing Gear' },
-      { id: 'spaceship_movement.v_atc_request', label: 'Pedir aterrizaje', en: 'Request Landing' },
-      { id: 'spaceship_movement.v_autoland', label: 'Aterrizaje automático', en: 'Auto Land' },
-      { id: 'spaceship_movement.v_atc_loading_area_request', label: 'Zona de carga', en: 'Cargo Loading' },
-      { id: 'spaceship_docking.v_toggle_docking_request', label: 'Pedir atraque', en: 'Request Docking' },
-      { id: 'spaceship_movement.v_master_mode_cycle_long', label: 'Modo NAV / SCM', en: 'NAV / SCM Mode' },
-      { id: 'spaceship_movement.v_vtol_toggle', label: 'VTOL', en: 'VTOL' },
-      { id: 'spaceship_movement.v_ifcs_vector_decoupling_toggle', label: 'Desacoplado', en: 'Decoupled' },
-      { id: 'lights_controller.v_lights', label: 'Faros', en: 'Headlights' },
-      { id: 'seat_general.v_light_amplification_toggle', label: 'Visión nocturna', en: 'Night Vision' },
+      { id: 'spaceship_general.v_flightready' },
+      { id: 'spaceship_power.v_power_toggle' },
+      { id: 'spaceship_movement.v_toggle_landing_system' },
+      { id: 'spaceship_movement.v_atc_request' },
+      { id: 'spaceship_movement.v_autoland' },
+      { id: 'spaceship_movement.v_atc_loading_area_request' },
+      { id: 'spaceship_docking.v_toggle_docking_request' },
+      { id: 'spaceship_movement.v_master_mode_cycle_long' },
+      { id: 'spaceship_movement.v_vtol_toggle' },
+      { id: 'spaceship_movement.v_ifcs_vector_decoupling_toggle' },
+      { id: 'lights_controller.v_lights' },
+      { id: 'seat_general.v_light_amplification_toggle' },
     ],
   },
   {
     id: 'energia', title: 'Energía y escudos', icon: Zap, context: 'ship',
     buttons: [
-      { id: 'spaceship_power.v_power_toggle_thrusters', label: 'Propulsores', en: 'Thrusters' },
-      { id: 'spaceship_power.v_power_toggle_shields', label: 'Escudos', en: 'Shields' },
-      { id: 'spaceship_power.v_power_toggle_weapons', label: 'Armas', en: 'Weapons' },
-      { id: 'spaceship_power.v_engineering_assignment_weapons_increase', label: 'Armas +', en: 'Weapons +' },
-      { id: 'spaceship_power.v_engineering_assignment_engine_increase', label: 'Motores +', en: 'Engines +' },
-      { id: 'spaceship_power.v_engineering_assignment_shields_increase', label: 'Escudos +', en: 'Shields +' },
-      { id: 'spaceship_power.v_engineering_assignment_weapons_decrease', label: 'Armas −', en: 'Weapons −' },
-      { id: 'spaceship_power.v_engineering_assignment_engine_decrease', label: 'Motores −', en: 'Engines −' },
-      { id: 'spaceship_power.v_engineering_assignment_shields_decrease', label: 'Escudos −', en: 'Shields −' },
-      { id: 'spaceship_power.v_engineering_assignment_reset', label: 'Reparto equilibrado', en: 'Reset Power' },
+      { id: 'spaceship_power.v_power_toggle_thrusters' },
+      { id: 'spaceship_power.v_power_toggle_shields' },
+      { id: 'spaceship_power.v_power_toggle_weapons' },
+      { id: 'spaceship_power.v_engineering_assignment_weapons_increase' },
+      { id: 'spaceship_power.v_engineering_assignment_engine_increase' },
+      { id: 'spaceship_power.v_engineering_assignment_shields_increase' },
+      { id: 'spaceship_power.v_engineering_assignment_weapons_decrease' },
+      { id: 'spaceship_power.v_engineering_assignment_engine_decrease' },
+      { id: 'spaceship_power.v_engineering_assignment_shields_decrease' },
+      { id: 'spaceship_power.v_engineering_assignment_reset' },
     ],
   },
   {
     id: 'combate', title: 'Combate', icon: Crosshair, context: 'ship',
     buttons: [
-      { id: 'spaceship_defensive.v_weapon_countermeasure_decoy_launch', label: 'Señuelos', en: 'Decoys' },
-      { id: 'spaceship_defensive.v_weapon_countermeasure_noise_launch', label: 'Ruido', en: 'Noise' },
-      { id: 'spaceship_weapons.v_weapon_gimbals_state_toggle', label: 'Cardán fijo / libre', en: 'Gimbal Mode' },
-      { id: 'spaceship_weapons.v_weapon_aim_type_cycle', label: 'Tipo de puntería', en: 'Aim Mode' },
-      { id: 'spaceship_targeting.v_auto_targeting_toggle_long', label: 'Fijación automática', en: 'Auto Targeting' },
-      { id: 'spaceship_targeting.v_target_unlock', label: 'Soltar objetivo', en: 'Unlock Target' },
-      { id: 'spaceship_targeting.v_target_remove_all_pins', label: 'Quitar marcas', en: 'Clear Pins' },
-      { id: 'seat_general.v_toggle_scan_mode', label: 'Modo escáner', en: 'Scan Mode' },
+      { id: 'spaceship_defensive.v_weapon_countermeasure_decoy_launch' },
+      { id: 'spaceship_defensive.v_weapon_countermeasure_noise_launch' },
+      { id: 'spaceship_weapons.v_weapon_gimbals_state_toggle' },
+      { id: 'spaceship_weapons.v_weapon_aim_type_cycle' },
+      { id: 'spaceship_targeting.v_auto_targeting_toggle_long' },
+      { id: 'spaceship_targeting.v_target_unlock' },
+      { id: 'spaceship_targeting.v_target_remove_all_pins' },
+      { id: 'seat_general.v_toggle_scan_mode' },
     ],
   },
   {
     id: 'industria', title: 'Minería y recuperación', icon: Pickaxe, context: 'ship',
     buttons: [
-      { id: 'seat_general.v_cycle_industrial_mode', label: 'Modo industrial', en: 'Industrial Mode' },
-      { id: 'spaceship_mining.v_mining_use_consumable1', label: 'Módulo 1', en: 'Module 1' },
-      { id: 'spaceship_mining.v_mining_use_consumable2', label: 'Módulo 2', en: 'Module 2' },
-      { id: 'spaceship_mining.v_mining_use_consumable3', label: 'Módulo 3', en: 'Module 3' },
-      { id: 'spaceship_mining.v_jettison_volatile_cargo', label: 'Soltar carga volátil', en: 'Jettison Volatile Cargo' },
-      { id: 'spaceship_salvage.v_salvage_toggle_gimbal_mode', label: 'Cardán de recuperación', en: 'Salvage Gimbal' },
-      { id: 'spaceship_salvage.v_salvage_reset_gimbal', label: 'Centrar cabezales', en: 'Reset Heads' },
+      { id: 'seat_general.v_cycle_industrial_mode' },
+      { id: 'spaceship_mining.v_mining_use_consumable1' },
+      { id: 'spaceship_mining.v_mining_use_consumable2' },
+      { id: 'spaceship_mining.v_mining_use_consumable3' },
+      { id: 'spaceship_mining.v_jettison_volatile_cargo' },
+      { id: 'spaceship_salvage.v_salvage_toggle_gimbal_mode' },
+      { id: 'spaceship_salvage.v_salvage_reset_gimbal' },
     ],
   },
   {
     id: 'pie', title: 'A pie', icon: User, context: 'foot',
     buttons: [
-      { id: 'player.toggle_flashlight', label: 'Linterna', en: 'Flashlight' },
-      { id: 'player.toggleAttachHelmet', label: 'Casco', en: 'Helmet' },
-      { id: 'player.visor_wipe', label: 'Limpiar visor', en: 'Wipe Visor' },
-      { id: 'player.holster', label: 'Enfundar', en: 'Holster' },
-      { id: 'player.weapon_change_firemode', label: 'Modo de disparo', en: 'Fire Mode' },
-      { id: 'player.toggle_lowered', label: 'Bajar arma', en: 'Lower Weapon' },
-      { id: 'player.select_primary_pit', label: 'Arma principal', en: 'Primary' },
-      { id: 'player.select_secondary_pit', label: 'Arma secundaria', en: 'Secondary' },
-      { id: 'player.select_sidearm_pit', label: 'Pistola', en: 'Sidearm' },
-      { id: 'player.select_gadget_pit', label: 'Utensilio', en: 'Gadget' },
-      { id: 'player.selectUnarmedCombat', label: 'Sin armas', en: 'Unarmed' },
-      { id: 'player.thirdperson', label: 'Tercera persona', en: 'Third Person' },
+      { id: 'player.toggle_flashlight' },
+      { id: 'player.toggleAttachHelmet' },
+      { id: 'player.visor_wipe' },
+      { id: 'player.holster' },
+      { id: 'player.weapon_change_firemode' },
+      { id: 'player.toggle_lowered' },
+      { id: 'player.select_primary_pit' },
+      { id: 'player.select_secondary_pit' },
+      { id: 'player.select_sidearm_pit' },
+      { id: 'player.select_gadget_pit' },
+      { id: 'player.selectUnarmedCombat' },
+      { id: 'player.thirdperson' },
     ],
   },
   {
     id: 'mobiglas', title: 'mobiGlas y comunicación', icon: MessageSquare, context: 'any',
     buttons: [
-      { id: 'spaceship_hud.mobiglas', label: 'mobiGlas', en: 'mobiGlas' },
-      { id: 'spaceship_hud.v_starmap', label: 'Mapa estelar', en: 'Star Map' },
-      { id: 'default.toggle_contact', label: 'Contactos', en: 'Contacts' },
-      { id: 'default.toggle_chat', label: 'Chat', en: 'Chat' },
-      { id: 'default.notification_accept', label: 'Aceptar aviso', en: 'Accept' },
-      { id: 'default.notification_decline', label: 'Rechazar aviso', en: 'Decline' },
+      { id: 'spaceship_hud.mobiglas' },
+      { id: 'spaceship_hud.v_starmap' },
+      { id: 'default.toggle_contact' },
+      { id: 'default.toggle_chat' },
+      { id: 'default.notification_accept' },
+      { id: 'default.notification_decline' },
     ],
   },
   {
     id: 'emergencia', title: 'Emergencia', icon: Siren, context: 'any',
     buttons: [
-      { id: 'player.downedRevivalRequest', label: 'Pedir rescate', en: 'Request Rescue' },
-      { id: 'seat_general.v_emergency_exit', label: 'Salida de emergencia', en: 'Emergency Exit', danger: true },
-      { id: 'seat_general.v_eject', label: 'Eyectar', en: 'Eject', danger: true },
-      { id: 'spaceship_general.v_self_destruct', label: 'Autodestrucción', en: 'Self-Destruct', danger: true },
-      { id: 'player.force_respawn', label: 'Reaparecer', en: 'Respawn', danger: true },
+      { id: 'player.downedRevivalRequest' },
+      { id: 'seat_general.v_emergency_exit', danger: true },
+      { id: 'seat_general.v_eject', danger: true },
+      { id: 'spaceship_general.v_self_destruct', danger: true },
+      { id: 'player.force_respawn', danger: true },
     ],
   },
 ];
@@ -193,7 +190,7 @@ export function Mandos() {
             <div className="panel warn">
               <div className="label"><HeartPulse size={14} aria-hidden /> Estás incapacitado</div>
               <div className="pad-grid">
-                <PadKey button={{ id: 'player.downedRevivalRequest', label: 'Pedir rescate', en: 'Request Rescue' }} action={byId.get('player.downedRevivalRequest')} />
+                <PadKey button={{ id: 'player.downedRevivalRequest' }} action={byId.get('player.downedRevivalRequest')} />
               </div>
             </div>
           )}
@@ -233,7 +230,6 @@ async function sendAction(id: string, confirm: boolean): Promise<SendResult> {
 }
 
 function PadKey({ button, action }: { button: PadButton; action: BoundAction | undefined }) {
-  const { t } = useLang();
   const [state, setState] = useState<'idle' | 'armed' | 'sending' | 'ok' | 'error'>('idle');
   const [message, setMessage] = useState<string | null>(null);
   const timer = useRef<number | undefined>(undefined);
@@ -284,7 +280,7 @@ function PadKey({ button, action }: { button: PadButton; action: BoundAction | u
       disabled={disabled}
       title={action ? `${action.label}${action.description ? ` — ${action.description}` : ''}` : undefined}
     >
-      <span className="pad-label">{state === 'armed' ? '¿Seguro?' : t({ en: button.en, es: button.label })}</span>
+      <span className="pad-label">{state === 'armed' ? '¿Seguro?' : action?.label ?? button.id.split('.').pop()}</span>
       <span className="pad-keys">
         {action?.keyLabels.length ? action.keyLabels.map((k) => <kbd key={k}>{k}</kbd>) : <span className="faint">sin tecla</span>}
         {action && action.plan.holdMs > 300 && <span className="faint hold-hint">mantiene {(action.plan.holdMs / 1000).toFixed(1).replace('.', ',')} s</span>}

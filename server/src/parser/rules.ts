@@ -1,5 +1,5 @@
 import type { EventDraft, LogLine, Mention, ParserContext } from './types.ts';
-import { actorName, isEntityName, locationInfo, qtTargetName, shardInfo, shipName, stripEntityId } from './names.ts';
+import { actorName, isEntityName, itemName, locationInfo, qtTargetName, shardInfo, shipName, stripEntityId } from './names.ts';
 
 /**
  * Reglas de interpretación del Game.log.
@@ -244,7 +244,7 @@ const actorDeath: Rule = (l, api) => {
   const [, victim, victimGeid, zone, killer, killerGeid, weapon, damageType] = m as unknown as string[];
   const victimIsMe = api.isMe(victim, victimGeid);
   const killerIsMe = api.isMe(killer, killerGeid);
-  const weaponName = weapon && weapon !== 'unknown' ? shipName(weapon) : null;
+  const weaponName = weapon && weapon !== 'unknown' ? (itemName(weapon) ?? shipName(weapon)) : null;
   const victimNpc = isEntityName(victim!);
 
   let summary: string;
@@ -338,7 +338,7 @@ const shopBuy: Rule = (l) => {
   if (!m) return null;
   const price = Math.round(Number(m[2]));
   const qty = Number(m[4]);
-  const item = m[3]!.replace(/_/g, ' ');
+  const item = itemName(m[3]!) ?? m[3]!;
   return {
     type: 'economy.buy',
     category: 'economy',
@@ -377,10 +377,9 @@ const gearEvent = (port: string, cls: string, api: RuleApi, ts: string): EventDr
   };
 };
 
-/** "cds_armor_medium_helmet_01_01_20" → "Cds armor medium helmet" (el nombre bueno lo pone la wiki en la interfaz). */
+/** Nombre oficial del objeto en el juego; si no lo tiene, su código tal cual (sin inventar nombre). */
 export function prettyItem(cls: string): string {
-  const s = cls.replace(/(_\d+)+$/, '').replace(/_/g, ' ').trim();
-  return s.charAt(0).toUpperCase() + s.slice(1);
+  return itemName(cls) ?? cls;
 }
 
 const attachmentReceived: Rule = (l, api) => {

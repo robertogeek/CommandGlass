@@ -2,6 +2,8 @@ import { ArrowLeft, Backpack, Cpu, ExternalLink, Rocket, Shield, Sparkles, Sword
 import { useEffect, useMemo, useState } from 'react';
 import { ago, n } from '../format.ts';
 import { getJson, useLive } from '../live.tsx';
+import { useLang } from '../lang.tsx';
+import { COMPONENT, GEAR_GROUP, GEAR_PORT, type Term } from '../terms.ts';
 import type { HangarResponse, ShipSpec, ShipUse, UpgradeSlot } from '../types.ts';
 
 /**
@@ -9,41 +11,19 @@ import type { HangarResponse, ShipSpec, ShipUse, UpgradeSlot } from '../types.ts
  * y las mejores alternativas por tamaño (datos de api.star-citizen.wiki, precios de UEX a través de la wiki).
  */
 
-const GEAR_GROUPS: { label: string; icon: typeof Shield; match: RegExp }[] = [
-  { label: 'Armadura', icon: Shield, match: /^Armor_(Helmet|Torso|Arms|Legs|Undersuit)$/i },
-  { label: 'Armas', icon: Swords, match: /^wep_/i },
-  { label: 'Mochila y consumibles', icon: Backpack, match: /Backpack|medPen|grenade/i },
+const GEAR_GROUPS: { key: keyof typeof GEAR_GROUP; icon: typeof Shield; match: RegExp }[] = [
+  { key: 'armor', icon: Shield, match: /^Armor_(Helmet|Torso|Arms|Legs|Undersuit)$/i },
+  { key: 'weapons', icon: Swords, match: /^wep_/i },
+  { key: 'utility', icon: Backpack, match: /Backpack|medPen|grenade/i },
 ];
 
-const PORT_LABEL: Record<string, string> = {
-  Armor_Helmet: 'Casco',
-  Armor_Torso: 'Torso',
-  Armor_Arms: 'Brazos',
-  Armor_Legs: 'Piernas',
-  Armor_Undersuit: 'Traje interior',
-  Armor_Backpack: 'Mochila',
-  Backpack: 'Mochila',
-  wep_sidearm: 'Cadera',
-};
-
-function portLabel(port: string): string {
-  if (PORT_LABEL[port]) return PORT_LABEL[port]!;
-  if (/^wep_stocked/i.test(port)) return 'Espalda';
-  if (/^medPen/i.test(port)) return 'MedPen';
-  if (/^grenade/i.test(port)) return 'Granada';
-  return port;
+function portTerm(port: string): Term | null {
+  if (GEAR_PORT[port]) return GEAR_PORT[port]!;
+  if (/^wep_stocked/i.test(port)) return GEAR_PORT.back!;
+  if (/^medPen/i.test(port)) return GEAR_PORT.medpen!;
+  if (/^grenade/i.test(port)) return GEAR_PORT.grenade!;
+  return null;
 }
-
-const STOCK_LABEL: Record<string, string> = {
-  Shield: 'Escudo',
-  PowerPlant: 'Planta de energía',
-  Cooler: 'Refrigerador',
-  QuantumDrive: 'Motor cuántico',
-  WeaponGun: 'Arma',
-  Turret: 'Torreta',
-  MissileLauncher: 'Lanzamisiles',
-  Radar: 'Radar',
-};
 
 /** "#hangar/ANVL_Paladin": la nave seleccionada va en el hash. */
 function useSelectedShip(): [string | null, (cls: string | null) => void] {
@@ -61,6 +41,7 @@ function useSelectedShip(): [string | null, (cls: string | null) => void] {
 }
 
 export function Hangar() {
+  const { t } = useLang();
   const { snapshot } = useLive();
   const [data, setData] = useState<HangarResponse | null>(null);
   const [error, setError] = useState(false);
@@ -92,11 +73,11 @@ export function Hangar() {
               const items = data.loadout.filter((l) => g.match.test(l.port)).sort((a, b) => a.port.localeCompare(b.port));
               if (!items.length) return null;
               return (
-                <div key={g.label} className="gear-group">
-                  <h3 className="brief-h"><g.icon size={14} aria-hidden /> {g.label}</h3>
+                <div key={g.key} className="gear-group">
+                  <h3 className="brief-h"><g.icon size={14} aria-hidden /> {t(GEAR_GROUP[g.key]!)}</h3>
                   {items.map((l) => (
                     <div key={l.port} className="kv">
-                      <span className="faint">{portLabel(l.port)}</span>
+                      <span className="faint">{(() => { const p = portTerm(l.port); return p ? t(p) : l.port; })()}</span>
                       <span className="gear-name">{l.name}</span>
                     </div>
                   ))}
@@ -153,6 +134,7 @@ function ShipCard({ s, current, onOpen }: { s: ShipUse; current: boolean; onOpen
 }
 
 function ShipDetail({ cls, use, onBack }: { cls: string; use: ShipUse | null; onBack: () => void }) {
+  const { t } = useLang();
   const [d, setD] = useState<{ spec: ShipSpec; upgrades: UpgradeSlot[] } | null | 'missing'>(null);
   useEffect(() => {
     getJson<{ spec: ShipSpec; upgrades: UpgradeSlot[] }>(`/api/hangar/ship/${encodeURIComponent(cls)}`).then(setD).catch(() => setD('missing'));
@@ -214,7 +196,7 @@ function ShipDetail({ cls, use, onBack }: { cls: string; use: ShipUse | null; on
           <div className="label"><Cpu size={14} aria-hidden /> De serie</div>
           {[...stockGroups.entries()].map(([type, items]) => (
             <div key={type} className="kv">
-              <span className="faint">{STOCK_LABEL[type] ?? type}</span>
+              <span className="faint">{COMPONENT[type] ? t(COMPONENT[type]!) : type}</span>
               <span className="gear-name">{summarize(items.map((i) => `${i.name}${i.size ? ` (S${i.size})` : ''}`))}</span>
             </div>
           ))}
@@ -230,7 +212,7 @@ function ShipDetail({ cls, use, onBack }: { cls: string; use: ShipUse | null; on
             return (
               <div key={`${u.type}-${u.size}`} className="upgrade">
                 <div className="upgrade-head">
-                  <strong>{u.label} S{u.size}</strong>
+                  <strong>{COMPONENT[u.type] ? t(COMPONENT[u.type]!) : u.label} S{u.size}</strong>
                   <span className="faint">de serie: {summarize(u.stock)}</span>
                 </div>
                 <ol className="upgrade-list">

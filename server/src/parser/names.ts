@@ -61,12 +61,23 @@ export function shipName(cls: string): string {
     }
   }
   base = base.replace(/_PU$/i, '');
+  // Nombre oficial del juego si lo hay ("ANVL_Lightning_F8C" → "Anvil F8C Lightning").
+  const official = GAME_NAMES?.get(`vehicle_name${base}`.toLowerCase())?.trim();
+  if (official && !official.startsWith('@')) return official + suffix;
   const parts = base.split('_').filter(Boolean);
   const first = parts[0];
   if (first && MANUFACTURERS[first.toUpperCase()]) {
     parts[0] = MANUFACTURERS[first.toUpperCase()]!;
   }
   return parts.join(' ') + suffix;
+}
+
+/** Nombre oficial de un objeto ("crlf_consumable_healing_01" → "MedPen (Hemozal)"), o null si el juego no lo nombra. */
+export function itemName(cls: string): string | null {
+  const c = stripEntityId(cls).toLowerCase();
+  // El juego usa las dos formas: "item_Namecrlf_…" y "item_Name_cds_armor_…".
+  const v = (GAME_NAMES?.get(`item_name${c}`) ?? GAME_NAMES?.get(`item_name_${c}`))?.trim();
+  return v && !v.startsWith('@') && !/^PH\b|placeholder/i.test(v) ? v : null;
 }
 
 /** Nombre de un actor del log: jugador tal cual, NPC/entidad humanizado. */
@@ -231,28 +242,53 @@ function humanizeWords(s: string): string {
     .trim();
 }
 
-/** Nombre del destino de un salto cuántico. */
+/**
+ * Nombre del destino de un salto cuántico, siempre el del juego (global.ini).
+ * Si el juego no le da nombre, el código limpio, sin traducir ni inventar.
+ */
 export function qtTargetName(code: string): string {
-  if (/^MISSION_QT_Bounty_Beacon/i.test(code)) return 'Baliza de recompensa';
-  if (/^MISSION_QT_/i.test(code)) return 'Baliza de misión';
-  if (/^PartyMemberMarker_/i.test(code)) return 'Miembro del grupo';
-  if (/^NavPoint_Dynamic/i.test(code)) return 'Punto de navegación';
-  if (/^ObjectContainer_RestStop/i.test(code)) return 'Estación de descanso';
-  const jp = /rs_ext_(\w+)-(\w+)_jp\d/i.exec(code);
-  if (jp) return `Punto de salto ${cap(jp[1]!)} → ${cap(jp[2]!)}`;
-  if (/^levski/i.test(code)) return 'Levski';
-  const city = /^(\w+?)_(City_objectContainer|LOC)$/i.exec(code);
+  const ini = (key: string) => GAME_NAMES?.get(key.toLowerCase())?.trim() || null;
+  const strip = code.replace(/_\d{6,}$/, '').replace(/_\{[0-9A-F-]+\}\.socpak$/i, '');
+  if (/^MISSION_QT_/i.test(strip)) return ini('mission_items_QTQuantumBeacon') ?? 'Quantum Beacon';
+  if (/^PartyMemberMarker/i.test(strip)) return ini('Marker_Classification_PartyMember') ?? 'Party Member';
+  // "rs_ext_nyx-castra_jp1" → "Nyx - Castra Jump Point"
+  const jp = /rs_ext_(\w+?)-(\w+?)_jp\d*/i.exec(strip);
+  if (jp) {
+    const a = systemKey(jp[1]!);
+    const b = systemKey(jp[2]!);
+    const name = ini(`${a}_JumpPoint_${b}`);
+    if (name) return name;
+  }
+  // "LOC_RR_S2_L1" → "CRU L1"
+  const lp = /^LOC_RR_S(\d)_L(\d)$/i.exec(strip);
+  if (lp) return ini(`Stanton${lp[1]}_L${lp[2]}`) ?? strip;
+  // "rs_ext_cru-leo1" → la estación de ese planeta
+  const rr = /^rs_ext_([a-z]+)-(leo|l\d)\d*$/i.exec(strip);
+  if (rr) {
+    const point = rr[2]!.toUpperCase() === 'LEO' ? 'LEO' : rr[2]!.toUpperCase();
+    const named = gameName(`RR_${rr[1]!.toUpperCase()}_${point}`);
+    if (named) return named;
+  }
+  const city = /^(\w+?)_(City_objectContainer|LOC)$/i.exec(strip);
   if (city) return CITIES[city[1]!] ?? city[1]!;
-  const ooc = /^OOC_(Stanton_?\d[a-z]?)_?(\w*)$/i.exec(code);
-  if (ooc) return humanizeWords(ooc[2]?.replace(/_/g, ' ') || ooc[1]!);
-  const lp = /^LOC_RR_S(\d)_L(\d)$/i.exec(code);
-  if (lp) return `Punto Lagrange L${lp[2]} (Stanton ${lp[1]})`;
-  return humanizeWords(code.replace(/_/g, ' '));
+  const ooc = /^OOC_(Stanton|Pyro|Nyx)_?(\d[a-z]?)_?(\w*)$/i.exec(strip);
+  if (ooc) {
+    const body = `${cap(ooc[1]!)}${ooc[2]}`;
+    const named = (ooc[3] && ini(`${body}_${ooc[3]}`)) || ini(body);
+    if (named) return named;
+  }
+  if (/^levski/i.test(strip)) return 'Levski';
+  // Sin nombre en el juego: el código sin prefijos técnicos.
+  return gameName(strip) ?? humanizeWords(strip.replace(/^ObjectContainer_/i, '').replace(/_/g, ' '));
+}
+
+function systemKey(s: string): string {
+  const map: Record<string, string> = { stan: 'Stanton', stanton: 'Stanton', nyx: 'Nyx', pyro: 'Pyro', castra: 'Castra', magnus: 'Magnus', terra: 'Terra' };
+  return map[s.toLowerCase()] ?? cap(s);
 }
 
 function cap(s: string): string {
-  const map: Record<string, string> = { stan: 'Stanton', cru: 'Crusader', arc: 'ArcCorp' };
-  return map[s.toLowerCase()] ?? s.charAt(0).toUpperCase() + s.slice(1);
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
 /** "pub_euw1b_13165946_220" -> {region:"euw1b", label:"EU oeste · 220"} */

@@ -10,7 +10,7 @@ import { getContact, listContacts, setContactNote } from '../store/contacts.ts';
 import { briefingFor, factionStats, kindStats, loadMissions } from '../store/missions.ts';
 import type { WikiMissions } from '../game/wiki.ts';
 import { COMPONENT_LABEL, type ComponentType, type WikiCatalog } from '../game/catalog.ts';
-import { prettyItem } from '../parser/rules.ts';
+import { itemName } from '../parser/names.ts';
 import { loadShips, nameIndex } from '../store/hangar.ts';
 import { JUMPS, MOON_OF, SYSTEMS, loadPlaces, placeInfo } from '../store/places.ts';
 import { getSetting, loadEconomy, setSetting, walletEstimate, type Purchase } from '../store/economy.ts';
@@ -226,7 +226,7 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         const recent = purchases.slice(-60).reverse();
         const names = new Map<string, string>();
         await Promise.all(
-          [...new Set(recent.map((p) => p.item))].map(async (cls) => names.set(cls, (await catalog.itemName(cls)) ?? prettyItem(cls))),
+          [...new Set(recent.map((p) => p.item))].map(async (cls) => names.set(cls, itemName(cls) ?? (await catalog.itemName(cls)) ?? cls)),
         );
         return json(res, 200, {
           wallet,
@@ -264,7 +264,7 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
             port,
             cls: v.cls,
             at: v.at,
-            name: (await catalog.itemName(v.cls)) ?? prettyItem(v.cls),
+            name: itemName(v.cls) ?? (await catalog.itemName(v.cls)) ?? v.cls,
           })),
         );
         return json(res, 200, { ships, fleet, loadout, loadoutAt: withGear?.lastEventAt ?? null });

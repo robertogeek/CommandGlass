@@ -2,6 +2,8 @@ import { Activity, Crosshair, FileText, HeartPulse, MapPin, Rocket, ShieldAlert,
 import { useEffect, useMemo, useState } from 'react';
 import { ContractGains } from '../components/ContractGains.tsx';
 import { EventRow } from '../components/EventRow.tsx';
+import { useLang } from '../lang.tsx';
+import { BODY_PART, MEDBED, SEVERITY } from '../terms.ts';
 import { duration, hhmm, n } from '../format.ts';
 import { getJson, mergeEvents, useLive } from '../live.tsx';
 import type { GameEvent, LiveState } from '../types.ts';
@@ -146,12 +148,8 @@ function MissionsCard({ s }: { s: LiveState }) {
   );
 }
 
-const PART_ES: Record<string, string> = {
-  Head: 'Cabeza', Torso: 'Torso', 'Left arm': 'Brazo izquierdo', 'Right arm': 'Brazo derecho', 'Left leg': 'Pierna izquierda', 'Right leg': 'Pierna derecha',
-};
-const SEVERITY_ES: Record<string, string> = { Minor: 'leve', Moderate: 'moderada', Severe: 'grave' };
-
 function HealthCard({ s }: { s: LiveState }) {
+  const { t } = useLang();
   const injuries = s.injuries ?? [];
   const downed = s.downedAt && Date.now() - Date.parse(s.downedAt) < 15 * 60_000;
   // El nivel más exigente manda: nivel 1 = solo hospitales y camas de nivel 1.
@@ -176,12 +174,12 @@ function HealthCard({ s }: { s: LiveState }) {
           <div className="big">{injuries.length} {injuries.length === 1 ? 'herida' : 'heridas'}</div>
           {injuries.map((i) => (
             <div key={i.part} className="kv">
-              <span>{PART_ES[i.part] ?? i.part}</span>
-              <span className={i.severity === 'Severe' ? 'desk-bad' : 'faint'}>{SEVERITY_ES[i.severity] ?? i.severity} · nivel {i.tier}</span>
+              <span>{BODY_PART[i.part] ? t(BODY_PART[i.part]!) : i.part}</span>
+              <span className={i.severity === 'Severe' ? 'desk-bad' : 'faint'}>{SEVERITY[i.severity] ? t(SEVERITY[i.severity]!) : i.severity} · Tier {i.tier}</span>
             </div>
           ))}
           <div className="sub health-tip">
-            Necesitas una cama médica de nivel {worstTier} o mejor (cuanto menor el número, mejor la cama). Los hospitales de las ciudades curan todo.
+            Necesitas una {t(MEDBED)} de Tier {worstTier} o mejor (cuanto menor el número, mejor). Los hospitales de las ciudades curan todo.
           </div>
         </>
       )}
