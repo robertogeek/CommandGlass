@@ -5,7 +5,7 @@ import '@fontsource/saira-semi-condensed/400.css';
 import '@fontsource/saira-semi-condensed/500.css';
 import './styles.css';
 import './desktop.css';
-import { CheckCircle2, Copy, ExternalLink, FolderOpen, FolderSearch, KeyRound, Pin, Power, Radio, Tablet, TriangleAlert, X } from 'lucide-react';
+import { CheckCircle2, Coffee, Copy, ExternalLink, FolderOpen, FolderSearch, KeyRound, Pin, Power, Radio, Tablet, TriangleAlert, X } from 'lucide-react';
 import { StrictMode, useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import logo from './assets/space-cowboys.png';
@@ -48,6 +48,8 @@ declare global {
 
 const bridge = window.commandglass;
 const PIN_TIP_KEY = 'cg-pin-tip-dismissed';
+/** Enlace de PayPal de robertogeek para que quien quiera le invite a un café. Vacío = no se muestra. */
+const DONATE_URL = 'https://paypal.me/robertogeek';
 
 function readFlag(key: string): boolean {
   try {
@@ -272,6 +274,16 @@ function Desktop() {
               <div className="sub">
                 Para anclarlo a la barra de tareas: clic derecho en el icono de CommandGlass en la barra → <strong>Anclar a la barra de tareas</strong>.
               </div>
+            </section>
+          )}
+
+          {DONATE_URL && (
+            <section className="panel" aria-label="Invitar a un café">
+              <div className="label"><Coffee size={14} aria-hidden /> ¿Te está siendo útil?</div>
+              <div className="sub">CommandGlass es gratis. Si te ayuda en tus partidas, puedes invitar a robertogeek a un café, o a lo que quieras.</div>
+              <a className="chip desk-btn" href={DONATE_URL} target="_blank" rel="noreferrer">
+                <Coffee size={15} aria-hidden /> Invitar con PayPal <ExternalLink size={13} aria-hidden />
+              </a>
             </section>
           )}
         </div>

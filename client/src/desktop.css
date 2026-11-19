@@ -64,6 +64,7 @@ body { background: radial-gradient(1100px 520px at 70% -10%, rgba(77, 176, 255, 
   -webkit-user-select: text;
 }
 .desk-btn { margin-top: 12px; }
+a.chip { text-decoration: none; }
 
 .desk-tip { position: relative; }
 .desk-close {
