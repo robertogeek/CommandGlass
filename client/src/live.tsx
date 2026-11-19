@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { reportClientError } from './clientLog.ts';
 import type { GameEvent, Snapshot } from './types.ts';
 
 export interface Alert {
@@ -30,8 +31,19 @@ export function LiveProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const es = new EventSource('/api/stream');
-    es.onopen = () => setConnected(true);
-    es.onerror = () => setConnected(false);
+    let lost: ReturnType<typeof setTimeout> | undefined;
+    es.onopen = () => {
+      setConnected(true);
+      clearTimeout(lost);
+      lost = undefined;
+    };
+    es.onerror = () => {
+      setConnected(false);
+      // El navegador reintenta solo; si en 15 s no ha vuelto, queda constancia en el PC (una vez por página).
+      lost ??= setTimeout(() => {
+        if (es.readyState !== EventSource.OPEN) reportClientError('Conexión en directo perdida más de 15 s');
+      }, 15_000);
+    };
     es.addEventListener('state', (e) => setSnapshot(JSON.parse((e as MessageEvent).data)));
     es.addEventListener('status', (e) => {
       const status = JSON.parse((e as MessageEvent).data);
@@ -45,7 +57,10 @@ export function LiveProvider({ children }: { children: ReactNode }) {
       const incoming = (JSON.parse((e as MessageEvent).data) as Alert[]).reverse();
       setAlerts((prev) => [...incoming, ...prev].slice(0, 50));
     });
-    return () => es.close();
+    return () => {
+      clearTimeout(lost);
+      es.close();
+    };
   }, []);
 
   return <LiveContext.Provider value={{ snapshot, liveEvents, alerts, connected }}>{children}</LiveContext.Provider>;
@@ -55,7 +70,10 @@ export const useLive = () => useContext(LiveContext);
 
 export async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url, { credentials: 'same-origin' });
-  if (!res.ok) throw new Error(`${res.status} ${url}`);
+  if (!res.ok) {
+    reportClientError(`API ${res.status} ${url.split('?')[0]}`);
+    throw new Error(`${res.status} ${url}`);
+  }
   return (await res.json()) as T;
 }
 

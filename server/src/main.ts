@@ -1,13 +1,14 @@
 import { networkInterfaces } from 'node:os';
 import QRCode from 'qrcode';
 import { startServer } from './api/server.ts';
-import { backupsDir, DATA_DIR, dbPath, gameLogPath, loadConfig } from './config.ts';
+import { APP_VERSION, backupsDir, DATA_DIR, dbPath, gameLogPath, loadConfig } from './config.ts';
 import { BindingsService } from './game/bindings.ts';
 import { KeySender } from './game/keysender.ts';
 import { WikiMissions } from './game/wiki.ts';
 import { WikiCatalog } from './game/catalog.ts';
 import { CommunityContracts } from './game/starstrings.ts';
 import { GameStarmap } from './game/starmap.ts';
+import { setupLog } from './log.ts';
 import { loadGameNames } from './game/gamenames.ts';
 import { setGameNames } from './parser/names.ts';
 import { importBackups } from './ingest/importer.ts';
@@ -16,10 +17,12 @@ import { Store } from './store/db.ts';
 import { getSetting } from './store/economy.ts';
 import { UexMarket } from './game/uex.ts';
 
+// Registro en data/logs/commandglass.log (va en el informe de diagnóstico).
+setupLog(DATA_DIR);
 const config = loadConfig();
 const store = new Store(dbPath());
 
-console.log('CommandGlass · mobiGlas para Star Citizen\n');
+console.log(`CommandGlass ${APP_VERSION} · mobiGlas para Star Citizen\n`);
 console.log(`Carpeta del juego: ${config.gameDir}`);
 
 // Nombres oficiales de los sitios (Baijini Point, Everus Harbor…) antes de procesar el historial.

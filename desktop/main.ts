@@ -1,5 +1,5 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, shell, Tray, utilityProcess, type UtilityProcess } from 'electron';
-import { appendFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, session, shell, Tray, utilityProcess, type UtilityProcess } from 'electron';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { normalizeGameDir } from '../server/src/game/locate.ts';
 
@@ -72,6 +72,23 @@ function boot() {
   Menu.setApplicationMenu(null);
   mkdirSync(paths.data, { recursive: true });
   mkdirSync(dirname(logFile), { recursive: true });
+  // La salida del servidor se guarda aquí; el servidor lleva además su propio registro con fecha (data/logs).
+  try {
+    if (statSync(logFile).size > 2_000_000) renameSync(logFile, logFile.replace(/\.log$/, '.old.log'));
+  } catch {
+    /* aún no existe */
+  }
+  // Informe de diagnóstico: Windows pregunta dónde guardarlo (en Descargas por defecto) y luego se abre la carpeta.
+  session.defaultSession.on('will-download', (_e, item) => {
+    item.setSaveDialogOptions({
+      title: T('Guardar informe de diagnóstico', 'Save diagnostic report'),
+      defaultPath: join(app.getPath('downloads'), item.getFilename()),
+      filters: [{ name: 'ZIP', extensions: ['zip'] }],
+    });
+    item.once('done', (_ev, state) => {
+      if (state === 'completed') shell.showItemInFolder(item.getSavePath());
+    });
+  });
   createTray();
   registerIpc();
   startServer();
@@ -252,10 +269,16 @@ function showWindow() {
     win.on('closed', () => (win = null));
     // Solo la propia página local; cualquier enlace externo se abre en el navegador.
     win.webContents.setWindowOpenHandler(({ url }) => {
-      if (/^https?:\/\//.test(url)) void shell.openExternal(url);
+      if (/^(https?|mailto):/.test(url)) void shell.openExternal(url);
       return { action: 'deny' };
     });
     win.webContents.on('will-navigate', (e, url) => {
+      if (url.startsWith('mailto:')) {
+        // Correo de soporte: lo abre el programa de correo del usuario.
+        e.preventDefault();
+        void shell.openExternal(url);
+        return;
+      }
       if (!url.startsWith(`http://localhost:${PORT}/`) && !url.startsWith('data:')) e.preventDefault();
     });
     win.loadURL(serverReady ? uiUrl() : loadingPage(T('Arrancando CommandGlass…', 'Starting CommandGlass…')));

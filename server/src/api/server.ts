@@ -17,6 +17,7 @@ import { itemName } from '../parser/names.ts';
 import { loadShips, nameIndex } from '../store/hangar.ts';
 import { jumpVisits, loadPlaces, placeInfo, placeLocator } from '../store/places.ts';
 import type { GameStarmap } from '../game/starmap.ts';
+import { addClientReport, buildDiagnostics } from '../diagnostics.ts';
 import { getSetting, loadEconomy, setSetting, walletEstimate, type Purchase } from '../store/economy.ts';
 import { buildWrapped } from '../store/wrapped.ts';
 import { alertsFor } from '../alerts.ts';
@@ -61,6 +62,8 @@ const DANGEROUS = new Set(['v_self_destruct', 'v_eject', 'force_respawn', 'v_eme
 export function startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community, uex, starmap }: ServerDeps) {
   // Conexiones en directo abiertas; "remote" = desde otro dispositivo (el iPad), no desde este PC.
   const clients = new Map<ServerResponse, { remote: boolean; since: string; agent: string }>();
+  // Límite de informes de los tablets por dirección (por si una interfaz rota se pone a mandar errores sin parar).
+  const clientLogHits = new Map<string, number[]>();
 
   const broadcast = (event: string, data: unknown) => {
     const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
@@ -177,6 +180,48 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
           // La configuración inicial no termina hasta que hay un token de UEX válido.
           uexConfigured: uex.configured,
         });
+      }
+
+      // Informe de diagnóstico para mandarlo por correo si algo falla. Solo desde este PC: puede llevar el Game.log.
+      if (path === '/api/diagnostics') {
+        if (!isLoopback(req)) return json(res, 403, { error: tx('Solo desde este PC', 'Only from this PC') });
+        const { name, zip } = buildDiagnostics(
+          {
+            config,
+            store,
+            tailer,
+            sources: { wiki: wiki.info, community: community.info, starmap: starmap.info, uex: { configured: uex.configured } },
+            devices: [...clients.values()],
+          },
+          { gameLog: url.searchParams.get('gamelog') !== '0' },
+        );
+        console.log(`[diagnóstico] Informe creado: ${name} (${Math.round(zip.length / 1024)} KB)`);
+        return send(res, 200, 'application/zip', zip, { 'Content-Disposition': `attachment; filename="${name}"`, 'Cache-Control': 'no-store' });
+      }
+
+      // Lo que cuenta cada tablet al conectarse (navegador, pantalla) y los errores de su interfaz.
+      if (path === '/api/client-log' && req.method === 'POST') {
+        const ip = req.socket.remoteAddress ?? '';
+        const now = Date.now();
+        const recent = (clientLogHits.get(ip) ?? []).filter((t) => now - t < 60_000);
+        if (recent.length >= 30) return json(res, 429, { ok: false });
+        clientLogHits.set(ip, [...recent, now]);
+        const body = (await readJson(req, 8192)) as { kind?: string; message?: unknown; detail?: unknown } | null;
+        if (!body || typeof body.message !== 'string') return json(res, 400, { ok: false });
+        const kind = body.kind === 'error' ? 'error' : 'hello';
+        const report = {
+          ts: new Date().toISOString(),
+          device: deviceName(req.headers['user-agent']),
+          remote: !isLoopback(req),
+          kind,
+          message: body.message.slice(0, 600),
+          detail: typeof body.detail === 'string' ? body.detail.slice(0, 2000) : undefined,
+        } as const;
+        addClientReport(report);
+        const line = `[tablet] ${report.device}${report.remote ? '' : ' (PC)'} · ${kind === 'error' ? 'error' : 'conexión'}: ${report.message}`;
+        if (kind === 'error') console.warn(`${line}${report.detail ? `\n${report.detail}` : ''}`);
+        else console.log(line);
+        return json(res, 200, { ok: true });
       }
 
       if (path === '/manifest.webmanifest') {

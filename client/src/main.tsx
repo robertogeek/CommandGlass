@@ -14,6 +14,10 @@ import { ContractToast } from './components/ContractGains.tsx';
 import { AlertCenter } from './components/AlertCenter.tsx';
 import { LangProvider } from './lang.tsx';
 import { LiveProvider } from './live.tsx';
+import { startClientLog } from './clientLog.ts';
+
+// Navegador, pantalla y errores de la interfaz al registro del PC (para el informe de diagnóstico).
+startClientLog('tablet');
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

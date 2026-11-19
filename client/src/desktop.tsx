@@ -5,13 +5,16 @@ import '@fontsource/saira-semi-condensed/400.css';
 import '@fontsource/saira-semi-condensed/500.css';
 import './styles.css';
 import './desktop.css';
-import { CheckCircle2, Coffee, Copy, ExternalLink, FolderOpen, FolderSearch, KeyRound, Pin, Power, Radio, Tablet, TriangleAlert, X } from 'lucide-react';
+import { CheckCircle2, Coffee, Copy, ExternalLink, FileDown, FolderOpen, FolderSearch, KeyRound, LifeBuoy, Pin, Power, Radio, Tablet, TriangleAlert, X } from 'lucide-react';
 import { StrictMode, useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import logo from './assets/space-cowboys.png';
 import madeByCommunity from './assets/made-by-the-community.png';
 import { hhmm } from './format.ts';
 import { LangProvider, LangSwitch, useLang } from './lang.tsx';
+import { startClientLog } from './clientLog.ts';
+
+startClientLog('ventana del PC');
 
 /**
  * Ventana de la app de escritorio: lo que ven tus compis al abrir CommandGlass en el PC.
@@ -295,6 +298,8 @@ function Desktop() {
             </section>
           )}
 
+          <Diagnostics />
+
           {pinTip && (
             <section className="panel desk-tip" aria-label={t('Anclar a la barra de tareas', 'Pin to taskbar')}>
               <button className="desk-close" onClick={() => (setPinTip(false), writeFlag(PIN_TIP_KEY))} aria-label={t('Cerrar aviso', 'Dismiss tip')}>
@@ -339,6 +344,48 @@ function Desktop() {
 }
 
 /** Qué carpeta indicar cuando no se encuentra el juego. */
+const SUPPORT_MAIL = 'mail+commandglass@robertoromero.es';
+
+/** Informe de diagnóstico: se guarda como .zip y el usuario lo manda por correo. No se envía solo. */
+function Diagnostics() {
+  const { t } = useLang();
+  const [withGameLog, setWithGameLog] = useState(true);
+  const [created, setCreated] = useState(false);
+  const mail =
+    `mailto:${SUPPORT_MAIL}?subject=${encodeURIComponent(t('CommandGlass: algo no funciona', "CommandGlass: something isn't working"))}` +
+    `&body=${encodeURIComponent(t('Qué falla y cuándo:\n\n\nAdjunto el informe de diagnóstico.', "What's wrong and when:\n\n\nThe diagnostic report is attached."))}`;
+  return (
+    <section className="panel" aria-label={t('Informe de diagnóstico', 'Diagnostic report')}>
+      <div className="label"><LifeBuoy size={14} aria-hidden /> {t('¿Algo no funciona?', "Something isn't working?")}</div>
+      <div className="sub">
+        {t(
+          'Crea un informe y mándalo por correo contando qué falla. Lleva el registro de CommandGlass y lo que la app ha entendido de tus partidas, nunca tu token de UEX. No se envía solo. Si el fallo es en el tablet, ábrelo antes de crearlo.',
+          "Create a report and email it, telling us what's wrong. It has the CommandGlass log and what the app understood from your sessions, never your UEX token. Nothing is sent automatically. If the problem is on the tablet, open it before creating the report.",
+        )}
+      </div>
+      <label className="desk-check">
+        <input type="checkbox" checked={withGameLog} onChange={(e) => setWithGameLog(e.target.checked)} />
+        <span>
+          {t(
+            'Incluir el Game.log de la última partida (lleva tu nombre de jugador y el de otros jugadores con los que te has cruzado)',
+            "Include the Game.log from your last session (it has your player name and those of players you've come across)",
+          )}
+        </span>
+      </label>
+      <a className="chip desk-btn" href={`/api/diagnostics?gamelog=${withGameLog ? 1 : 0}`} download onClick={() => setCreated(true)}>
+        <FileDown size={15} aria-hidden /> {t('Crear informe…', 'Create report…')}
+      </a>
+      {created && (
+        <div className="sub" role="status">
+          {t('Guarda el .zip y envíalo a ', 'Save the .zip and send it to ')}
+          <a href={mail}>{SUPPORT_MAIL}</a>
+          {t(' con el archivo adjunto.', ' with the file attached.')}
+        </div>
+      )}
+    </section>
+  );
+}
+
 function GameDirHint() {
   const { lang } = useLang();
   return lang === 'es' ? (
