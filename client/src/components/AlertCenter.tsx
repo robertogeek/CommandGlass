@@ -1,5 +1,6 @@
 import { Bell, BellOff, HeartPulse, Pickaxe, ShieldAlert, Skull, Sparkles, Swords, X, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { useLang } from '../lang.tsx';
 import { useLive, type Alert } from '../live.tsx';
 
 /**
@@ -53,6 +54,7 @@ function beep(level: Alert['level']) {
 
 export function AlertCenter() {
   const { alerts } = useLive();
+  const { t } = useLang();
   const [shown, setShown] = useState<Alert[]>([]);
   const [sound, setSound] = useState(soundOn);
   const seen = useRef(new Set<string>());
@@ -64,8 +66,8 @@ export function AlertCenter() {
     setShown((prev) => [...fresh, ...prev].slice(0, 4));
     if (sound) beep(fresh.some((a) => a.level === 'danger') ? 'danger' : fresh[0]!.level);
     const ids = fresh.map((a) => a.id);
-    const t = window.setTimeout(() => setShown((prev) => prev.filter((a) => !ids.includes(a.id))), 10_000);
-    return () => window.clearTimeout(t);
+    const timer = window.setTimeout(() => setShown((prev) => prev.filter((a) => !ids.includes(a.id))), 10_000);
+    return () => window.clearTimeout(timer);
   }, [alerts, sound]);
 
   const toggleSound = () => {
@@ -82,10 +84,12 @@ export function AlertCenter() {
 
   return (
     <>
-      <button className="alert-sound" onClick={toggleSound} aria-pressed={sound} title={sound ? 'Sonido de avisos activado' : 'Sonido de avisos desactivado'} aria-label={sound ? 'Desactivar sonido de avisos' : 'Activar sonido de avisos'}>
+      <button className="alert-sound" onClick={toggleSound} aria-pressed={sound}
+        title={sound ? t('Sonido de avisos activado', 'Alert sound on') : t('Sonido de avisos desactivado', 'Alert sound off')}
+        aria-label={sound ? t('Desactivar sonido de avisos', 'Turn off alert sound') : t('Activar sonido de avisos', 'Turn on alert sound')}>
         {sound ? <Bell size={16} aria-hidden /> : <BellOff size={16} aria-hidden />}
       </button>
-      <div className="alerts" role="region" aria-label="Avisos" aria-live="assertive">
+      <div className="alerts" role="region" aria-label={t('Avisos', 'Alerts')} aria-live="assertive">
         {shown.map((a) => {
           const Icon = ICON[a.kind] ?? (a.kind.startsWith('hostile') ? ShieldAlert : Bell);
           return (
@@ -95,7 +99,7 @@ export function AlertCenter() {
                 <strong>{a.title}</strong>
                 {a.body && <span>{a.body}</span>}
               </a>
-              <button className="alert-close" onClick={() => setShown((p) => p.filter((x) => x.id !== a.id))} aria-label="Cerrar aviso">
+              <button className="alert-close" onClick={() => setShown((p) => p.filter((x) => x.id !== a.id))} aria-label={t('Cerrar aviso', 'Dismiss alert')}>
                 <X size={16} aria-hidden />
               </button>
             </div>

@@ -2,8 +2,8 @@ import { Archive, Coins, FileCheck, FileText, Gamepad2, MapIcon, MapPin, Radar, 
 import { useEffect, useState, type ReactNode } from 'react';
 import { Emblem } from './components/Emblem.tsx';
 import logo from './assets/space-cowboys.png';
-import { duration } from './format.ts';
-import { LangSwitch } from './lang.tsx';
+import { duration, hhmm } from './format.ts';
+import { LangSwitch, useLang } from './lang.tsx';
 import { useLive } from './live.tsx';
 import { Ahora } from './views/Ahora.tsx';
 import { Archivo } from './views/Archivo.tsx';
@@ -16,26 +16,28 @@ import { Hangar } from './views/Hangar.tsx';
 import { Mapa } from './views/Mapa.tsx';
 import { Mandos } from './views/Mandos.tsx';
 
+type Bilingual = { es: string; en: string };
+
 interface Section {
   id: string;
-  label: string;
-  title: string;
+  label: Bilingual;
+  title: Bilingual;
   icon: LucideIcon;
   view?: () => ReactNode;
-  soon?: string;
+  soon?: Bilingual;
 }
 
 const SECTIONS: Section[] = [
-  { id: 'ahora', label: 'Ahora', title: 'Ahora', icon: Radar, view: () => <Ahora /> },
-  { id: 'mandos', label: 'Mandos', title: 'Mandos', icon: Gamepad2, view: () => <Mandos /> },
-  { id: 'bitacora', label: 'Bitácora', title: 'Bitácora', icon: ScrollText, view: () => <Bitacora /> },
-  { id: 'contactos', label: 'Contactos', title: 'Contactos', icon: Users, view: () => <Contactos /> },
-  { id: 'hangar', label: 'Hangar', title: 'Hangar', icon: Rocket, view: () => <Hangar /> },
-  { id: 'contratos', label: 'Contratos', title: 'Contratos', icon: FileCheck, view: () => <Contratos /> },
-  { id: 'combate', label: 'Combate', title: 'Combate', icon: Swords, view: () => <Combate /> },
-  { id: 'comercio', label: 'Comercio', title: 'Comercio', icon: Coins, view: () => <Comercio /> },
-  { id: 'mapa', label: 'Mapa', title: 'Mapa', icon: MapIcon, view: () => <Mapa /> },
-  { id: 'archivo', label: 'Archivo', title: 'Archivo', icon: Archive, view: () => <Archivo /> },
+  { id: 'ahora', label: { es: 'Ahora', en: 'Now' }, title: { es: 'Ahora', en: 'Now' }, icon: Radar, view: () => <Ahora /> },
+  { id: 'mandos', label: { es: 'Mandos', en: 'Controls' }, title: { es: 'Mandos', en: 'Controls' }, icon: Gamepad2, view: () => <Mandos /> },
+  { id: 'bitacora', label: { es: 'Bitácora', en: 'Logbook' }, title: { es: 'Bitácora', en: 'Logbook' }, icon: ScrollText, view: () => <Bitacora /> },
+  { id: 'contactos', label: { es: 'Contactos', en: 'Contacts' }, title: { es: 'Contactos', en: 'Contacts' }, icon: Users, view: () => <Contactos /> },
+  { id: 'hangar', label: { es: 'Hangar', en: 'Hangar' }, title: { es: 'Hangar', en: 'Hangar' }, icon: Rocket, view: () => <Hangar /> },
+  { id: 'contratos', label: { es: 'Contratos', en: 'Contracts' }, title: { es: 'Contratos', en: 'Contracts' }, icon: FileCheck, view: () => <Contratos /> },
+  { id: 'combate', label: { es: 'Combate', en: 'Combat' }, title: { es: 'Combate', en: 'Combat' }, icon: Swords, view: () => <Combate /> },
+  { id: 'comercio', label: { es: 'Comercio', en: 'Trade' }, title: { es: 'Comercio', en: 'Trade' }, icon: Coins, view: () => <Comercio /> },
+  { id: 'mapa', label: { es: 'Mapa', en: 'Map' }, title: { es: 'Mapa', en: 'Map' }, icon: MapIcon, view: () => <Mapa /> },
+  { id: 'archivo', label: { es: 'Archivo', en: 'Archive' }, title: { es: 'Archivo', en: 'Archive' }, icon: Archive, view: () => <Archivo /> },
 ];
 
 function useHashSection(): [string, (id: string) => void] {
@@ -53,12 +55,13 @@ function useHashSection(): [string, (id: string) => void] {
 export function App() {
   const [sectionId, go] = useHashSection();
   const section = SECTIONS.find((s) => s.id === sectionId) ?? SECTIONS[0]!;
+  const { t } = useLang();
 
   return (
     <div className="app">
       <span className="hud-notch" aria-hidden />
-      <TopBar title={section.title} />
-      <nav className="rail" aria-label="Secciones">
+      <TopBar title={t(section.title)} />
+      <nav className="rail" aria-label={t('Secciones', 'Sections')}>
         {SECTIONS.map((s) => {
           const Icon = s.icon;
           return (
@@ -69,7 +72,7 @@ export function App() {
               aria-current={s.id === section.id ? 'page' : undefined}
             >
               <Icon size={24} strokeWidth={1.5} aria-hidden />
-              {s.label}
+              {t(s.label)}
             </button>
           );
         })}
@@ -85,9 +88,9 @@ export function App() {
                   <Emblem size={128} spin />
                   <section.icon size={40} strokeWidth={1.3} aria-hidden />
                 </div>
-                <h2>{section.title}</h2>
-                <p>{section.soon}</p>
-                <span className="soon-tag">Próximamente</span>
+                <h2>{t(section.title)}</h2>
+                <p>{section.soon ? t(section.soon) : null}</p>
+                <span className="soon-tag">{t('Próximamente', 'Coming soon')}</span>
               </div>
             </div>
           )}
@@ -102,21 +105,22 @@ function TopBar({ title }: { title: string }) {
   const { snapshot, connected } = useLive();
   const state = snapshot?.state;
   const status = snapshot?.status;
+  const { t } = useLang();
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 15_000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(new Date()), 15_000);
+    return () => clearInterval(timer);
   }, []);
 
   let dot = 'off';
-  let text = 'Sin conexión con el PC';
+  let text = t('Sin conexión con el PC', 'No connection to the PC');
   if (connected) {
     if (status?.active && !state?.endedAt) {
       dot = 'live';
-      text = 'En directo';
+      text = t('En directo', 'Live');
     } else {
       dot = '';
-      text = state?.endedAt ? 'Juego cerrado' : 'Sin actividad';
+      text = state?.endedAt ? t('Juego cerrado', 'Game closed') : t('Sin actividad', 'No activity');
     }
   }
 
@@ -133,8 +137,8 @@ function TopBar({ title }: { title: string }) {
         <span className="pill"><span className={`dot ${dot}`} /> {text}</span>
         {state?.player.name && <span className="pill"><UserRound size={16} strokeWidth={1.6} aria-hidden /> {state.player.name}</span>}
         <span className="pill clock">
-          <strong>{now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</strong>
-          <small>Hora local</small>
+          <strong>{hhmm(now)}</strong>
+          <small>{t('Hora local', 'Local time')}</small>
         </span>
       </div>
     </header>
@@ -144,25 +148,26 @@ function TopBar({ title }: { title: string }) {
 /** Franja inferior tipo HUD: lo esencial del estado, visible desde cualquier sección. */
 function StatusBar() {
   const { snapshot } = useLive();
+  const { t } = useLang();
   const s = snapshot?.state ?? null;
   const lawless = !!s?.jurisdiction?.lawless;
   const session = s?.startedAt ? duration(s.startedAt, s.endedAt) : null;
 
   return (
-    <footer className="statusbar" aria-label="Estado">
-      <Seg k="Ubicación" icon={MapPin} v={s ? (s.location?.name ?? 'En ruta') : '—'} />
+    <footer className="statusbar" aria-label={t('Estado', 'Status')}>
+      <Seg k={t('Ubicación', 'Location')} icon={MapPin} v={s ? (s.location?.name ?? t('En ruta', 'In transit')) : '—'} />
       <Seg
-        k="Jurisdicción"
+        k={t('Jurisdicción', 'Jurisdiction')}
         icon={lawless ? ShieldAlert : ShieldCheck}
-        v={s?.jurisdiction ? (lawless ? 'Sin ley' : s.jurisdiction.name) : '—'}
+        v={s?.jurisdiction ? (lawless ? t('Sin ley', 'Lawless') : s.jurisdiction.name) : '—'}
         tone={lawless ? 'warn' : s?.armistice ? 'safe' : undefined}
       />
-      <Seg k="Nave" icon={Rocket} v={s ? (s.ship?.name ?? 'A pie') : '—'} className="opt" />
+      <Seg k={t('Nave', 'Ship')} icon={Rocket} v={s ? (s.ship?.name ?? t('A pie', 'On foot')) : '—'} className="opt" />
       <div className="status-emblem" aria-hidden>
         <img className="org-logo" src={logo} alt="" width={64} height={54} />
       </div>
-      <Seg k="Contratos" icon={FileText} v={s ? `${s.missions.length} activos` : '—'} className="opt" />
-      <Seg k={s?.endedAt ? 'Última sesión' : 'Sesión'} icon={Timer} v={session ?? '—'} />
+      <Seg k={t('Contratos', 'Contracts')} icon={FileText} v={s ? t(`${s.missions.length} activos`, `${s.missions.length} active`) : '—'} className="opt" />
+      <Seg k={s?.endedAt ? t('Última sesión', 'Last session') : t('Sesión', 'Session')} icon={Timer} v={session ?? '—'} />
       <Seg k="Shard" icon={Server} v={s?.shard?.label ?? '—'} />
     </footer>
   );

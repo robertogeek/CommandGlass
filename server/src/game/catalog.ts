@@ -24,11 +24,19 @@ export function sizeNumber(v: unknown): number | null {
 }
 
 export type ComponentType = 'Shield' | 'PowerPlant' | 'Cooler' | 'QuantumDrive';
-export const COMPONENT_LABEL: Record<ComponentType, string> = {
-  Shield: 'Escudo',
-  PowerPlant: 'Planta de energía',
-  Cooler: 'Refrigerador',
-  QuantumDrive: 'Motor cuántico',
+export const COMPONENT_LABEL: Record<ComponentType, { es: string; en: string }> = {
+  Shield: { es: 'Escudo', en: 'Shield' },
+  PowerPlant: { es: 'Planta de energía', en: 'Power Plant' },
+  Cooler: { es: 'Refrigerador', en: 'Cooler' },
+  QuantumDrive: { es: 'Motor cuántico', en: 'Quantum Drive' },
+};
+
+/** Nombre de la estadística con la que se ordenan las mejoras de cada tipo (la caché guarda el texto en español). */
+export const STAT_LABEL: Record<ComponentType, { es: string; en: string }> = {
+  Shield: { es: 'Vida del escudo', en: 'Shield HP' },
+  PowerPlant: { es: 'Segmentos de energía', en: 'Power segments' },
+  Cooler: { es: 'Segmentos de refrigeración', en: 'Cooling segments' },
+  QuantumDrive: { es: 'Velocidad (Mm/s)', en: 'Speed (Mm/s)' },
 };
 
 export interface StockItem {

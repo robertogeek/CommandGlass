@@ -17,13 +17,14 @@ import { LiveProvider } from './live.tsx';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <LiveProvider>
-      <LangProvider>
-      <App />
-      <ContractToast />
-      <AlertCenter />
-      <InstallGuide />
-      </LangProvider>
-    </LiveProvider>
+    {/* El idioma va por fuera: al cambiarlo se reabre la conexión en directo y llegan los textos del servidor ya traducidos. */}
+    <LangProvider>
+      <LiveProvider>
+        <App />
+        <ContractToast />
+        <AlertCenter />
+        <InstallGuide />
+      </LiveProvider>
+    </LangProvider>
   </StrictMode>,
 );

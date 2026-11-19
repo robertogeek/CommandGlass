@@ -1,3 +1,4 @@
+import { tx } from '../i18n.ts';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { parseCryXml, parseTextXml, type XmlNode } from './cryxml.ts';
@@ -129,7 +130,7 @@ export class BindingsService {
       const overrides = userStat ? readUserOverrides(readFileSync(this.userProfilePath, 'utf8')) : new Map<string, UserOverride>();
       // En español, lo que la traducción oficial no cubre sale en inglés, como en el propio juego.
       const labels = lang === 'es' ? { ...defaults.labelsEn, ...defaults.labelsEs } : defaults.labelsEn;
-      catalog = buildCatalog(defaults, labels, overrides, userStat ? this.userProfilePath : null, userStat ? new Date(userMtime).toISOString() : null);
+      catalog = buildCatalog(defaults, labels, overrides, userStat ? this.userProfilePath : null, userStat ? new Date(userMtime).toISOString() : null, lang);
       this.catalogs.set(lang, catalog);
     }
     return catalog;
@@ -142,7 +143,7 @@ export class BindingsService {
   }
 
   private loadDefaults(): Cache {
-    if (!existsSync(this.p4kPath)) throw new Error(`No encuentro Data.p4k en ${this.gameDir}`);
+    if (!existsSync(this.p4kPath)) throw new Error(tx(`No encuentro Data.p4k en ${this.gameDir}`, `Data.p4k not found in ${this.gameDir}`));
     const st = statSync(this.p4kPath);
     if (this.cache && this.cache.p4kSize === st.size && this.cache.p4kMtimeMs === st.mtimeMs) return this.cache;
 
@@ -159,7 +160,7 @@ export class BindingsService {
     const t0 = Date.now();
     const files = extractFromP4k(this.p4kPath, [PROFILE, LANG_ES, LANG_EN]);
     const profileBuf = files.get(PROFILE);
-    if (!profileBuf) throw new Error('No encuentro defaultProfile.xml dentro de Data.p4k');
+    if (!profileBuf) throw new Error(tx('No encuentro defaultProfile.xml dentro de Data.p4k', 'defaultProfile.xml not found inside Data.p4k'));
     mkdirSync(this.cacheDir, { recursive: true });
     // Copia de lo extraído, por si quieres revisarlo (formato binario CryXmlB).
     writeFileSync(join(this.cacheDir, 'defaultProfile.cryxml'), profileBuf);
@@ -290,6 +291,7 @@ function buildCatalog(
   overrides: Map<string, UserOverride>,
   userProfile: string | null,
   userProfileChangedAt: string | null,
+  lang: GameLang = 'en',
 ): Catalog {
   const label = (key: string, fallback: string) => (key && labels[key]) || fallback;
   const maps: BindingMap[] = c.maps.map((m) => ({
@@ -309,7 +311,7 @@ function buildCatalog(
         label: label(a.labelKey, a.name),
         description: (a.descKey && labels[a.descKey]) || null,
         keys: combo?.keys ?? null,
-        keyLabels: combo?.keys.map(keyLabel) ?? [],
+        keyLabels: combo?.keys.map((k) => keyLabel(k, lang)) ?? [],
         sendable: Boolean(combo?.sendable),
         mode,
         plan: planFor(mode, c.modes[mode], o?.multiTap),

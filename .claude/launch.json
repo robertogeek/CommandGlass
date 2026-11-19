@@ -12,6 +12,20 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["client/node_modules/vite/bin/vite.js", "client", "--port", "5173", "--strictPort"],
       "port": 5173
+    },
+    {
+      "name": "sc-master-alt",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["server/src/main.ts"],
+      "env": { "PORT": "8778" },
+      "port": 8778
+    },
+    {
+      "name": "client-dev-alt",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["client/node_modules/vite/bin/vite.js", "client", "--port", "5174", "--strictPort"],
+      "env": { "CG_API_PORT": "8778" },
+      "port": 5174
     }
   ]
 }

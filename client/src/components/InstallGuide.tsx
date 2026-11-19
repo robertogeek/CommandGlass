@@ -1,5 +1,6 @@
 import { MoreVertical, Share, SquarePlus, X } from 'lucide-react';
 import { useState } from 'react';
+import { useLang } from '../lang.tsx';
 
 /**
  * Guía de "Añadir a pantalla de inicio" la primera vez que se abre CommandGlass en el navegador del tablet.
@@ -31,6 +32,7 @@ function dismissed(): boolean {
 }
 
 export function InstallGuide() {
+  const { t } = useLang();
   const [open, setOpen] = useState(() => !isStandalone() && platform() !== 'other' && !dismissed());
   if (!open) return null;
   const p = platform();
@@ -47,33 +49,47 @@ export function InstallGuide() {
   return (
     <div className="install-guide" role="dialog" aria-modal="true" aria-labelledby="install-title">
       <div className="panel install-card">
-        <button className="install-close" onClick={close} aria-label="Cerrar la guía">
+        <button className="install-close" onClick={close} aria-label={t('Cerrar la guía', 'Close the guide')}>
           <X size={18} aria-hidden />
         </button>
-        <div className="label">Primera vez en este tablet</div>
-        <h2 id="install-title">Instala CommandGlass como app</h2>
-        <p className="sub">Así se abre a pantalla completa, sin barras del navegador, y lo tienes a un toque.</p>
+        <div className="label">{t('Primera vez en este tablet', 'First time on this tablet')}</div>
+        <h2 id="install-title">{t('Instala CommandGlass como app', 'Install CommandGlass as an app')}</h2>
+        <p className="sub">
+          {t(
+            'Así se abre a pantalla completa, sin barras del navegador, y lo tienes a un toque.',
+            "It opens full screen, without browser bars, and it's always one tap away.",
+          )}
+        </p>
         {p === 'ios' ? (
           <ol className="install-steps">
             <li>
-              Toca <strong>Compartir</strong> <Share size={18} aria-label="(el cuadrado con la flecha)" /> arriba a la derecha, junto a la barra de direcciones.
+              {t('Toca', 'Tap')} <strong>{t('Compartir', 'Share')}</strong>{' '}
+              <Share size={18} aria-label={t('(el cuadrado con la flecha)', '(the square with the arrow)')} />{' '}
+              {t('arriba a la derecha, junto a la barra de direcciones.', 'at the top right, next to the address bar.')}
             </li>
             <li>
-              Elige <strong>Añadir a pantalla de inicio</strong> <SquarePlus size={18} aria-hidden />. Si no lo ves, desliza la lista hacia abajo.
+              {t('Elige', 'Choose')} <strong>{t('Añadir a pantalla de inicio', 'Add to Home Screen')}</strong> <SquarePlus size={18} aria-hidden />.{' '}
+              {t('Si no lo ves, desliza la lista hacia abajo.', "If you don't see it, scroll down the list.")}
             </li>
-            <li>Toca <strong>Añadir</strong> y abre CommandGlass desde su icono.</li>
+            <li>
+              {t('Toca', 'Tap')} <strong>{t('Añadir', 'Add')}</strong> {t('y abre CommandGlass desde su icono.', 'and open CommandGlass from its icon.')}
+            </li>
           </ol>
         ) : (
           <ol className="install-steps">
             <li>
-              Toca el menú <MoreVertical size={18} aria-label="(los tres puntos)" /> arriba a la derecha.
+              {t('Toca el menú', 'Tap the menu')} <MoreVertical size={18} aria-label={t('(los tres puntos)', '(the three dots)')} />{' '}
+              {t('arriba a la derecha.', 'at the top right.')}
             </li>
-            <li>Elige <strong>Añadir a pantalla de inicio</strong> o <strong>Instalar app</strong>.</li>
-            <li>Confirma y abre CommandGlass desde su icono.</li>
+            <li>
+              {t('Elige', 'Choose')} <strong>{t('Añadir a pantalla de inicio', 'Add to Home screen')}</strong> {t('o', 'or')}{' '}
+              <strong>{t('Instalar app', 'Install app')}</strong>.
+            </li>
+            <li>{t('Confirma y abre CommandGlass desde su icono.', 'Confirm and open CommandGlass from its icon.')}</li>
           </ol>
         )}
         <div className="install-actions">
-          <button className="chip on" onClick={close}>Entendido</button>
+          <button className="chip on" onClick={close}>{t('Entendido', 'Got it')}</button>
         </div>
       </div>
       {p === 'ios' && <div className="install-arrow" aria-hidden>↑</div>}

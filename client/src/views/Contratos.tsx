@@ -11,17 +11,17 @@ import type { Briefing, CommunityContract, Mission, MissionIntel, MissionKind, M
  * El briefing mezcla una guía por tipo de contrato con los pasos reales de la última vez que hiciste ese mismo contrato.
  */
 
-const OUTCOME: Record<Outcome, { label: string; tone: string }> = {
-  completed: { label: 'Completado', tone: 'green' },
-  failed: { label: 'Fallido', tone: 'red' },
-  abandoned: { label: 'Abandonado', tone: 'amber' },
-  open: { label: 'Sin cerrar', tone: 'muted' },
+const OUTCOME: Record<Outcome, { label: { es: string; en: string }; tone: string }> = {
+  completed: { label: { es: 'Completado', en: 'Completed' }, tone: 'green' },
+  failed: { label: { es: 'Fallido', en: 'Failed' }, tone: 'red' },
+  abandoned: { label: { es: 'Abandonado', en: 'Abandoned' }, tone: 'amber' },
+  open: { label: { es: 'Sin cerrar', en: 'Unresolved' }, tone: 'muted' },
 };
 
 const PAGE = 60;
 
 export function Contratos() {
-  const { t: tr } = useLang();
+  const { t } = useLang();
   const { snapshot, liveEvents } = useLive();
   const [data, setData] = useState<MissionsResponse | null>(null);
   const [kind, setKind] = useState<MissionKind | 'all'>('all');
@@ -38,8 +38,8 @@ export function Contratos() {
   const lastMissionEvent = liveEvents.find((e) => e.category === 'mission')?.id ?? 0;
   useEffect(() => {
     if (!lastMissionEvent) return;
-    const t = setTimeout(load, 1200);
-    return () => clearTimeout(t);
+    const timer = setTimeout(load, 1200);
+    return () => clearTimeout(timer);
   }, [lastMissionEvent]);
 
   const activeIds = useMemo(() => new Set(snapshot?.state?.missions.map((m) => m.id) ?? []), [snapshot]);
@@ -56,49 +56,60 @@ export function Contratos() {
   }, [data, kind, outcome, query]);
   useEffect(() => setLimit(PAGE), [kind, outcome, query]);
 
-  if (!data) return <div className="panel"><div className="empty">Cargando contratos…</div></div>;
+  if (!data) return <div className="panel"><div className="empty">{t('Cargando contratos…', 'Loading contracts…')}</div></div>;
 
-  const t = data.totals;
+  const tot = data.totals;
   const maxKind = Math.max(1, ...data.kinds.map((k) => k.total));
 
   return (
     <div className="stack">
-      <section aria-label="En curso">
+      <section aria-label={t('En curso', 'In progress')}>
         {live && activeIds.size > 0 ? (
           <div className="stack">
             {[...activeIds].map((id) => <BriefingCard key={`${id}-${lastMissionEvent}`} id={id} />)}
           </div>
         ) : (
           <div className="panel">
-            <div className="label"><ClipboardList size={14} aria-hidden /> En curso</div>
+            <div className="label"><ClipboardList size={14} aria-hidden /> {t('En curso', 'In progress')}</div>
             <div className="empty">
               {live
-                ? 'Sin contratos activos. Acepta uno en el mobiGlas del juego y aquí tendrás su briefing paso a paso.'
-                : 'Cuando estés jugando, aquí verás el briefing de los contratos que tengas activos.'}
+                ? t(
+                    'Sin contratos activos. Acepta uno en el mobiGlas del juego y aquí tendrás su briefing paso a paso.',
+                    "No active contracts. Accept one in the in-game mobiGlas and you'll get its step-by-step briefing here.",
+                  )
+                : t(
+                    'Cuando estés jugando, aquí verás el briefing de los contratos que tengas activos.',
+                    "While you're playing, you'll see the briefing for your active contracts here.",
+                  )}
             </div>
           </div>
         )}
       </section>
 
       <div className="grid g2">
-        <section className="panel" aria-label="Resumen">
-          <div className="label"><History size={14} aria-hidden /> Tu historial</div>
+        <section className="panel" aria-label={t('Resumen', 'Summary')}>
+          <div className="label"><History size={14} aria-hidden /> {t('Tu historial', 'Your history')}</div>
           <div className="stat-grid">
-            <div className="stat"><div className="v">{n(t.total)}</div><div className="k">aceptados</div></div>
-            <div className="stat good"><div className="v">{n(t.completed)}</div><div className="k">completados</div></div>
-            <div className="stat"><div className="v">{t.successRate === null ? '—' : `${t.successRate} %`}</div><div className="k">de éxito</div></div>
-            <div className={`stat ${t.failed ? 'bad' : ''}`}><div className="v">{n(t.failed)}</div><div className="k">fallidos</div></div>
-            <div className="stat"><div className="v">{n(t.abandoned)}</div><div className="k">abandonados</div></div>
-            <div className="stat"><div className="v">{n(t.total - t.completed - t.failed - t.abandoned)}</div><div className="k">sin cerrar</div></div>
+            <div className="stat"><div className="v">{n(tot.total)}</div><div className="k">{t('aceptados', 'accepted')}</div></div>
+            <div className="stat good"><div className="v">{n(tot.completed)}</div><div className="k">{t('completados', 'completed')}</div></div>
+            <div className="stat"><div className="v">{tot.successRate === null ? '—' : `${tot.successRate} %`}</div><div className="k">{t('de éxito', 'success rate')}</div></div>
+            <div className={`stat ${tot.failed ? 'bad' : ''}`}><div className="v">{n(tot.failed)}</div><div className="k">{t('fallidos', 'failed')}</div></div>
+            <div className="stat"><div className="v">{n(tot.abandoned)}</div><div className="k">{t('abandonados', 'abandoned')}</div></div>
+            <div className="stat"><div className="v">{n(tot.total - tot.completed - tot.failed - tot.abandoned)}</div><div className="k">{t('sin cerrar', 'unresolved')}</div></div>
           </div>
-          <p className="faint kind-note">«Sin cerrar»: el juego se cerró con el contrato a medias y el registro no dice cómo acabó.</p>
+          <p className="faint kind-note">
+            {t(
+              '«Sin cerrar»: el juego se cerró con el contrato a medias y el registro no dice cómo acabó.',
+              '“Unresolved”: the game closed mid-contract and the log doesn’t say how it ended.',
+            )}
+          </p>
         </section>
 
-        <section className="panel" aria-label="Por tipo">
-          <div className="label"><Crosshair size={14} aria-hidden /> Por tipo</div>
+        <section className="panel" aria-label={t('Por tipo', 'By type')}>
+          <div className="label"><Crosshair size={14} aria-hidden /> {t('Por tipo', 'By type')}</div>
           {data.kinds.map((k) => (
             <button key={k.kind} className={`kind-row ${kind === k.kind ? 'on' : ''}`} onClick={() => setKind(kind === k.kind ? 'all' : k.kind)}>
-              <span className="kind-name">{tr(MISSION_KIND[k.kind] ?? { en: k.label, es: k.label })}</span>
+              <span className="kind-name">{t(MISSION_KIND[k.kind] ?? { en: k.label, es: k.label })}</span>
               <span className="kind-bar" aria-hidden>
                 <span className="ok" style={{ width: `${(100 * k.completed) / maxKind}%` }} />
                 <span className="bad" style={{ width: `${(100 * k.failed) / maxKind}%` }} />
@@ -111,50 +122,70 @@ export function Contratos() {
               </span>
             </button>
           ))}
-          <p className="faint kind-note">Verde: completados · rojo: fallidos · ámbar: abandonados. Los minutos son la mediana hasta completar. Toca un tipo para filtrar.</p>
+          <p className="faint kind-note">
+            {t(
+              'Verde: completados · rojo: fallidos · ámbar: abandonados. Los minutos son la mediana hasta completar. Toca un tipo para filtrar.',
+              'Green: completed · red: failed · amber: abandoned. Minutes are the median time to complete. Tap a type to filter.',
+            )}
+          </p>
         </section>
       </div>
 
       {data.factions.length > 0 && (
-        <section className="panel" aria-label="Facciones">
-          <div className="label"><Users size={14} aria-hidden /> Reputación estimada por facción</div>
+        <section className="panel" aria-label={t('Facciones', 'Factions')}>
+          <div className="label"><Users size={14} aria-hidden /> {t('Reputación estimada por facción', 'Estimated Reputation by faction')}</div>
           <div className="faction-grid">
             {data.factions.slice(0, 12).map((f) => (
               <div key={f.faction} className="faction">
                 <div className="faction-name">{f.faction}</div>
                 <div className="faction-rep">{f.reputation ? `+${n(f.reputation)}` : '—'}</div>
-                <div className="faint faction-sub">{f.completed} de {f.total} contratos completados</div>
+                <div className="faint faction-sub">
+                  {t(
+                    `${f.completed} de ${f.total} contratos completados`,
+                    `${f.completed} of ${f.total} ${f.total === 1 ? 'contract' : 'contracts'} completed`,
+                  )}
+                </div>
               </div>
             ))}
           </div>
           <p className="faint kind-note">
-            Suma de la reputación que da cada contrato completado según la wiki, con los valores del parche actual. Es una estimación: el juego no escribe tu reputación real en el registro. Datos de{' '}
+            {t(
+              'Suma de la reputación que da cada contrato completado según la wiki, con los valores del parche actual. Es una estimación: el juego no escribe tu reputación real en el registro. Datos de',
+              'Sum of the Reputation each completed contract awards according to the wiki, using current-patch values. It’s an estimate: the game doesn’t write your actual Reputation to the log. Data from',
+            )}{' '}
             <a href="https://api.star-citizen.wiki" target="_blank" rel="noreferrer">api.star-citizen.wiki</a>.
           </p>
         </section>
       )}
 
-      <section aria-label="Historial">
+      <section aria-label={t('Historial', 'History')}>
         <div className="toolbar">
-          <input className="search" type="search" placeholder="Buscar contrato u objetivo…" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Buscar contratos" />
+          <input
+            className="search"
+            type="search"
+            placeholder={t('Buscar contrato u objetivo…', 'Search contract or objective…')}
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label={t('Buscar contratos', 'Search contracts')}
+          />
           {(['all', 'completed', 'failed', 'abandoned', 'open'] as const).map((o) => (
             <button key={o} className={`chip ${outcome === o ? 'on' : ''}`} onClick={() => setOutcome(o)}>
-              {o === 'all' ? 'Todos' : OUTCOME[o].label}
+              {o === 'all' ? t('Todos', 'All') : t(OUTCOME[o].label)}
             </button>
           ))}
           {kind !== 'all' && (
             <button className="chip on" onClick={() => setKind('all')}>
-              {tr(MISSION_KIND[kind] ?? { en: kind, es: kind })} ✕
+              {t(MISSION_KIND[kind] ?? { en: kind, es: kind })} ✕
             </button>
           )}
         </div>
         <div className="panel mission-list">
-          {shown.length === 0 && <div className="empty">Ningún contrato coincide. Prueba a quitar algún filtro.</div>}
+          {shown.length === 0 && <div className="empty">{t('Ningún contrato coincide. Prueba a quitar algún filtro.', 'No contracts match. Try removing a filter.')}</div>}
           {shown.slice(0, limit).map((m) => (
             <MissionRow key={m.id} m={m} active={activeIds.has(m.id)} open={open === m.id} onToggle={() => setOpen(open === m.id ? null : m.id)} />
           ))}
           {shown.length > limit && (
-            <button className="more" onClick={() => setLimit((l) => l + PAGE)}>Mostrar más ({n(shown.length - limit)})</button>
+            <button className="more" onClick={() => setLimit((l) => l + PAGE)}>{t('Mostrar más', 'Show more')} ({n(shown.length - limit)})</button>
           )}
         </div>
       </section>
@@ -163,24 +194,25 @@ export function Contratos() {
 }
 
 function MissionRow({ m, active, open, onToggle }: { m: Mission & { faction?: string | null }; active: boolean; open: boolean; onToggle: () => void }) {
+  const { t } = useLang();
   const [brief, setBrief] = useState(false);
-  const o = active ? { label: 'En curso', tone: '' } : OUTCOME[m.outcome];
+  const o = active ? { label: t('En curso', 'In progress'), tone: '' } : { label: t(OUTCOME[m.outcome].label), tone: OUTCOME[m.outcome].tone };
   const took = m.acceptedAt && m.endedAt ? duration(m.acceptedAt, m.endedAt) : null;
   return (
     <div className={`mission-row ${open ? 'open' : ''}`}>
       <button className="mission-head" onClick={onToggle} aria-expanded={open}>
         {open ? <ChevronDown size={16} aria-hidden /> : <ChevronRight size={16} aria-hidden />}
-        <span className="mission-title">{m.title ?? 'Contrato sin título'}</span>
+        <span className="mission-title">{m.title ?? t('Contrato sin título', 'Untitled contract')}</span>
         <span className={`badge ${o.tone}`}>{o.label}</span>
         <span className="faint mission-when">{m.acceptedAt ? `${ago(m.acceptedAt)} · ${hhmm(m.acceptedAt)}` : ''}{took ? ` · ${took}` : ''}</span>
       </button>
       {open && (
         <div className="mission-body">
           <div className="faint">{m.acceptedAt ? day(m.acceptedAt) : ''}{m.faction ? ` · ${m.faction}` : ''}{m.contract ? ` · ${m.contract}` : ''}</div>
-          {m.objectives.length ? <Steps objectives={m.objectives} /> : <div className="empty">Sin objetivos registrados.</div>}
+          {m.objectives.length ? <Steps objectives={m.objectives} /> : <div className="empty">{t('Sin objetivos registrados.', 'No objectives recorded.')}</div>}
           <div>
             <button className="chip" onClick={() => setBrief((b) => !b)} aria-expanded={brief}>
-              <ClipboardList size={15} aria-hidden /> {brief ? 'Ocultar briefing' : 'Ver briefing'}
+              <ClipboardList size={15} aria-hidden /> {brief ? t('Ocultar briefing', 'Hide briefing') : t('Ver briefing', 'Show briefing')}
             </button>
           </div>
           {brief && <BriefingCard id={m.id} />}
@@ -191,11 +223,20 @@ function MissionRow({ m, active, open, onToggle }: { m: Mission & { faction?: st
 }
 
 function Steps({ objectives }: { objectives: Mission['objectives'] }) {
+  const { t } = useLang();
   return (
     <ol className="brief-steps">
       {objectives.map((o, i) => (
         <li key={i} className={o.state}>
-          {o.state === 'done' ? <CheckCircle2 size={16} aria-label="Cumplido" /> : o.state === 'active' ? <CircleDot size={16} aria-label="En curso" /> : o.state === 'failed' ? <XCircle size={16} aria-label="Fallido" /> : <Circle size={16} aria-label="Retirado" />}
+          {o.state === 'done' ? (
+            <CheckCircle2 size={16} aria-label={t('Cumplido', 'Complete')} />
+          ) : o.state === 'active' ? (
+            <CircleDot size={16} aria-label={t('En curso', 'In progress')} />
+          ) : o.state === 'failed' ? (
+            <XCircle size={16} aria-label={t('Fallido', 'Failed')} />
+          ) : (
+            <Circle size={16} aria-label={t('Retirado', 'Withdrawn')} />
+          )}
           <span>{o.text}</span>
         </li>
       ))}
@@ -214,46 +255,54 @@ interface MissionDetail {
 
 /** Datos extraídos del juego por StarStrings: reputación, espera, oleadas y blueprints. */
 function CommunityBox({ c, info }: { c: CommunityContract; info: MissionDetail['communityInfo'] }) {
+  const { t } = useLang();
   return (
     <div className="intel community">
       <div className="intel-grid">
-        {c.reputation && <div><span className="k">Reputación</span><span className="v rep">+{c.reputation}</span></div>}
+        {c.reputation && <div><span className="k">{t('Reputación', 'Reputation')}</span><span className="v rep">+{c.reputation}</span></div>}
         {c.cooldown && <div><span className="k">Cooldown</span><span className="v">{c.cooldown}</span></div>}
-        {c.hostiles.length > 0 && <div><span className="k">Oleadas</span><span className="v">{c.hostiles.length}</span></div>}
-        {c.blueprints.length > 0 && <div><span className="k">Blueprints</span><span className="v">{c.blueprints.reduce((a, b) => a + b.items.length, 0)} posibles</span></div>}
+        {c.hostiles.length > 0 && <div><span className="k">{t('Oleadas', 'Waves')}</span><span className="v">{c.hostiles.length}</span></div>}
+        {c.blueprints.length > 0 && (
+          <div>
+            <span className="k">Blueprints</span>
+            <span className="v">{c.blueprints.reduce((a, b) => a + b.items.length, 0)} {t('posibles', 'possible')}</span>
+          </div>
+        )}
       </div>
       {c.hostiles.length > 0 && (
         <>
-          <h3 className="brief-h">Naves que esperar</h3>
+          <h3 className="brief-h">{t('Naves que esperar', 'Ships to expect')}</h3>
           <ul className="brief-list">{c.hostiles.map((h) => <li key={h}>{h}</li>)}</ul>
         </>
       )}
       {c.blueprints.map((b, i) => (
         <div key={i}>
-          <h3 className="brief-h">Blueprints posibles{b.rank ? ` · ${b.rank}` : ''}</h3>
+          <h3 className="brief-h">{t('Blueprints posibles', 'Possible Blueprints')}{b.rank ? ` · ${b.rank}` : ''}</h3>
           <div className="intel-rep">{b.items.map((it) => <span key={it} className="badge violet">{it}</span>)}</div>
         </div>
       ))}
       <p className="faint intel-credit">
-        Datos de <a href="https://github.com/MrKraken/StarStrings" target="_blank" rel="noreferrer">StarStrings</a> (MrKraken), extraídos de los ficheros del juego · {info.channel}
+        {t('Datos de', 'Data from')} <a href="https://github.com/MrKraken/StarStrings" target="_blank" rel="noreferrer">StarStrings</a> (MrKraken),{' '}
+        {t('extraídos de los ficheros del juego', 'extracted from the game files')} · {info.channel}
       </p>
     </div>
   );
 }
 
 function IntelBox({ intel, wiki }: { intel: MissionIntel; wiki: WikiInfo }) {
+  const { t } = useLang();
   const reward = intel.rewardMin ? `${n(intel.rewardMin)}${intel.rewardMax && intel.rewardMax > intel.rewardMin ? `–${n(intel.rewardMax)}` : ''} ${intel.currency === 'UEC' || !intel.currency ? 'aUEC' : intel.currency}` : null;
   const enemies = intel.enemies.max ? (intel.enemies.min && intel.enemies.min !== intel.enemies.max ? `${intel.enemies.min}–${intel.enemies.max}` : String(intel.enemies.max)) : null;
   return (
     <div className="intel">
       <div className="intel-grid">
-        {intel.giver && <div><span className="k">Lo da</span><span className="v">{intel.giver}</span></div>}
-        {intel.faction && intel.faction !== intel.giver && <div><span className="k">Facción</span><span className="v">{intel.faction}</span></div>}
-        {intel.rankRequired && <div><span className="k">Rango necesario</span><span className="v">{intel.rankRequired}</span></div>}
-        {reward && <div><span className="k">Recompensa</span><span className="v">{reward}</span></div>}
-        {intel.systems.length > 0 && <div><span className="k">Sistema</span><span className="v">{intel.systems.join(', ')}</span></div>}
-        {enemies && <div><span className="k">Enemigos</span><span className="v">{enemies}</span></div>}
-        {intel.minutes && <div><span className="k">Tiempo límite</span><span className="v">{intel.minutes} min</span></div>}
+        {intel.giver && <div><span className="k">{t('Lo da', 'Offered by')}</span><span className="v">{intel.giver}</span></div>}
+        {intel.faction && intel.faction !== intel.giver && <div><span className="k">{t('Facción', 'Faction')}</span><span className="v">{intel.faction}</span></div>}
+        {intel.rankRequired && <div><span className="k">{t('Rango necesario', 'Required rank')}</span><span className="v">{intel.rankRequired}</span></div>}
+        {reward && <div><span className="k">{t('Recompensa', 'Reward')}</span><span className="v">{reward}</span></div>}
+        {intel.systems.length > 0 && <div><span className="k">{t('Sistema', intel.systems.length === 1 ? 'System' : 'Systems')}</span><span className="v">{intel.systems.join(', ')}</span></div>}
+        {enemies && <div><span className="k">{t('Enemigos', 'Enemies')}</span><span className="v">{enemies}</span></div>}
+        {intel.minutes && <div><span className="k">{t('Tiempo límite', 'Time limit')}</span><span className="v">{intel.minutes} min</span></div>}
       </div>
       {intel.reputation.length > 0 && (
         <div className="intel-rep">
@@ -263,13 +312,13 @@ function IntelBox({ intel, wiki }: { intel: MissionIntel; wiki: WikiInfo }) {
         </div>
       )}
       <div className="intel-flags">
-        {intel.illegal && <span className="badge red">Ilegal</span>}
-        {intel.shareable && <span className="badge">Compartible con el grupo</span>}
-        {intel.combat && <span className="badge amber">Con combate</span>}
+        {intel.illegal && <span className="badge red">{t('Ilegal', 'Illegal')}</span>}
+        {intel.shareable && <span className="badge">{t('Compartible con el grupo', 'Shareable with party')}</span>}
+        {intel.combat && <span className="badge amber">{t('Con combate', 'Involves combat')}</span>}
       </div>
       <p className="faint intel-credit">
-        Datos de <a href={intel.webUrl ?? 'https://star-citizen.wiki'} target="_blank" rel="noreferrer">api.star-citizen.wiki</a>
-        {wiki.gameVersion ? ` · parche ${wiki.gameVersion.split('-')[0]}` : ''}
+        {t('Datos de', 'Data from')} <a href={intel.webUrl ?? 'https://star-citizen.wiki'} target="_blank" rel="noreferrer">api.star-citizen.wiki</a>
+        {wiki.gameVersion ? ` · ${t('parche', 'patch')} ${wiki.gameVersion.split('-')[0]}` : ''}
       </p>
     </div>
   );
@@ -281,18 +330,36 @@ function BriefingCard({ id }: { id: string }) {
   useEffect(() => {
     getJson<MissionDetail>(`/api/missions/${encodeURIComponent(id)}`).then(setD).catch(() => setD(null));
   }, [id]);
-  if (!d) return <div className="panel"><div className="empty">Preparando briefing…</div></div>;
+  if (!d) return <div className="panel"><div className="empty">{t('Preparando briefing…', 'Preparing briefing…')}</div></div>;
   const { mission: m, briefing: b, intel } = d;
   const current = [...m.objectives].reverse().find((o) => o.state === 'active');
   const doneTexts = new Set(m.objectives.filter((o) => o.state === 'done').map((o) => o.text));
 
+  let accepted = '';
+  if (m.acceptedAt) {
+    const since = duration(m.acceptedAt);
+    const justNow = Date.now() - Date.parse(m.acceptedAt) < 60_000;
+    accepted = t(
+      `Aceptado a las ${hhmm(m.acceptedAt)} · hace ${since}`,
+      `Accepted at ${hhmm(m.acceptedAt)} · ${justNow ? 'just now' : `${since} ago`}`,
+    );
+  }
+  const rec = b.record;
+  const record =
+    rec.total > 0
+      ? t(
+          ` · lo has hecho ${rec.total} ${rec.total === 1 ? 'vez' : 'veces'} (${rec.completed} completado${rec.completed === 1 ? '' : 's'})`,
+          ` · you've done it ${rec.total} ${rec.total === 1 ? 'time' : 'times'} (${rec.completed} completed)`,
+        )
+      : '';
+
   return (
-    <article className="panel brief" aria-label={`Briefing: ${m.title ?? 'contrato'}`}>
+    <article className="panel brief" aria-label={`Briefing: ${m.title ?? t('contrato', 'contract')}`}>
       <div className="label"><ClipboardList size={14} aria-hidden /> Briefing · {t(MISSION_KIND[b.kind] ?? { en: b.label, es: b.label })}</div>
-      <div className="big">{m.title ?? 'Contrato en curso'}</div>
+      <div className="big">{m.title ?? t('Contrato en curso', 'Active contract')}</div>
       <div className="sub">
-        {m.acceptedAt ? `Aceptado a las ${hhmm(m.acceptedAt)} · hace ${duration(m.acceptedAt)}` : ''}
-        {b.record.total > 0 && ` · lo has hecho ${b.record.total} ${b.record.total === 1 ? 'vez' : 'veces'} (${b.record.completed} completado${b.record.completed === 1 ? '' : 's'})`}
+        {accepted}
+        {record}
       </div>
 
       {d.community && <CommunityBox c={d.community} info={d.communityInfo} />}
@@ -302,7 +369,7 @@ function BriefingCard({ id }: { id: string }) {
         <div className="brief-now">
           <CircleDot size={18} aria-hidden />
           <div>
-            <div className="k">Ahora</div>
+            <div className="k">{t('Ahora', 'Now')}</div>
             <div className="v">{current.text}</div>
           </div>
         </div>
@@ -310,7 +377,11 @@ function BriefingCard({ id }: { id: string }) {
 
       <div className="grid g2 brief-grid">
         <div>
-          <h3 className="brief-h">{b.previous ? `Pasos de la última vez (${ago(b.previous.at)})` : 'Cómo suele ir'}</h3>
+          <h3 className="brief-h">
+            {b.previous
+              ? t(`Pasos de la última vez (${ago(b.previous.at)})`, `Steps from last time (${ago(b.previous.at)})`)
+              : t('Cómo suele ir', 'How it usually goes')}
+          </h3>
           {b.previous ? (
             <ol className="brief-steps">
               {b.previous.steps.map((s, i) => {
@@ -318,7 +389,13 @@ function BriefingCard({ id }: { id: string }) {
                 const now = current?.text === s;
                 return (
                   <li key={i} className={done ? 'done' : now ? 'active' : ''}>
-                    {done ? <CheckCircle2 size={16} aria-label="Cumplido" /> : now ? <CircleDot size={16} aria-label="En curso" /> : <Circle size={16} aria-label="Pendiente" />}
+                    {done ? (
+                      <CheckCircle2 size={16} aria-label={t('Cumplido', 'Complete')} />
+                    ) : now ? (
+                      <CircleDot size={16} aria-label={t('En curso', 'In progress')} />
+                    ) : (
+                      <Circle size={16} aria-label={t('Pendiente', 'Pending')} />
+                    )}
                     <span>{s}</span>
                   </li>
                 );
@@ -333,15 +410,15 @@ function BriefingCard({ id }: { id: string }) {
           )}
           {m.objectives.length > 0 && (
             <>
-              <h3 className="brief-h">Lo que llevas en esta</h3>
+              <h3 className="brief-h">{t('Lo que llevas en esta', 'Progress this time')}</h3>
               <Steps objectives={m.objectives} />
             </>
           )}
         </div>
         <div>
-          <h3 className="brief-h"><Package size={14} aria-hidden /> Qué llevar</h3>
+          <h3 className="brief-h"><Package size={14} aria-hidden /> {t('Qué llevar', 'What to bring')}</h3>
           <ul className="brief-list">{b.gear.map((g) => <li key={g}>{g}</li>)}</ul>
-          <h3 className="brief-h"><Lightbulb size={14} aria-hidden /> Consejos</h3>
+          <h3 className="brief-h"><Lightbulb size={14} aria-hidden /> {t('Consejos', 'Tips')}</h3>
           <ul className="brief-list">{b.tips.map((g) => <li key={g}>{g}</li>)}</ul>
         </div>
       </div>

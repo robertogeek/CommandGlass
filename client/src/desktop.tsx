@@ -10,6 +10,8 @@ import { StrictMode, useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import logo from './assets/space-cowboys.png';
 import madeByCommunity from './assets/made-by-the-community.png';
+import { hhmm } from './format.ts';
+import { LangProvider, LangSwitch, useLang } from './lang.tsx';
 
 /**
  * Ventana de la app de escritorio: lo que ven tus compis al abrir CommandGlass en el PC.
@@ -89,6 +91,7 @@ function useDesktopInfo() {
 }
 
 function Desktop() {
+  const { t } = useLang();
   const { info, error } = useDesktopInfo();
   const [copied, setCopied] = useState(false);
   const [pinTip, setPinTip] = useState(() => !readFlag(PIN_TIP_KEY));
@@ -107,7 +110,7 @@ function Desktop() {
   }, []);
   const switchChannel = async (ch: string) => {
     if (!bridge || ch === channels?.current) return;
-    setDirMsg(`Cambiando a ${ch}…`);
+    setDirMsg(t(`Cambiando a ${ch}…`, `Switching to ${ch}…`));
     await bridge.setChannel(ch);
   };
 
@@ -129,7 +132,11 @@ function Desktop() {
     const r = await bridge.chooseGameDir();
     setChoosing(false);
     if (r.canceled) return;
-    setDirMsg(r.ok ? 'Carpeta guardada. Reiniciando CommandGlass…' : (r.message ?? 'No se ha podido usar esa carpeta.'));
+    setDirMsg(
+      r.ok
+        ? t('Carpeta guardada. Reiniciando CommandGlass…', 'Folder saved. Restarting CommandGlass…')
+        : (r.message ?? t('No se ha podido usar esa carpeta.', "Couldn't use that folder.")),
+    );
   };
 
   const toggleLogin = async () => {
@@ -150,36 +157,49 @@ function Desktop() {
         <img className="org-logo" src={logo} alt="Space Cowboys" width={56} height={48} />
         <div>
           <h1>CommandGlass</h1>
-          <p className="faint">Tu mobiGlas para Star Citizen{info ? ` · ${info.version}` : ''}</p>
+          <p className="faint">{t('Tu mobiGlas para Star Citizen', 'Your mobiGlas for Star Citizen')}{info ? ` · ${info.version}` : ''}</p>
         </div>
         <MadeByCommunity />
       </header>
 
       {error && !info && (
         <div className="panel warn desk-alert" role="alert">
-          <TriangleAlert size={18} aria-hidden /> No responde el servidor de CommandGlass. Cierra la app desde la bandeja del sistema y vuelve a abrirla.
+          <TriangleAlert size={18} aria-hidden />{' '}
+          {t(
+            'No responde el servidor de CommandGlass. Cierra la app desde la bandeja del sistema y vuelve a abrirla.',
+            "The CommandGlass server isn't responding. Quit the app from the system tray and open it again.",
+          )}
         </div>
       )}
 
       <main className="desk-grid">
-        <section className="panel desk-qr" aria-label="Emparejar el tablet">
-          <div className="label"><Tablet size={14} aria-hidden /> Empareja tu tablet</div>
+        <section className="panel desk-qr" aria-label={t('Emparejar el tablet', 'Pair the tablet')}>
+          <div className="label"><Tablet size={14} aria-hidden /> {t('Empareja tu tablet', 'Pair your tablet')}</div>
           {info ? (
-            <div className="qr-box" dangerouslySetInnerHTML={{ __html: info.qrSvg }} aria-label="Código QR para abrir CommandGlass en el tablet" role="img" />
+            <div
+              className="qr-box"
+              dangerouslySetInnerHTML={{ __html: info.qrSvg }}
+              aria-label={t('Código QR para abrir CommandGlass en el tablet', 'QR code to open CommandGlass on the tablet')}
+              role="img"
+            />
           ) : (
-            <div className="qr-box qr-loading">Preparando código…</div>
+            <div className="qr-box qr-loading">{t('Preparando código…', 'Preparing code…')}</div>
           )}
           <ol className="desk-steps">
-            <li>Abre la <strong>cámara</strong> del tablet y apunta al código.</li>
-            <li>Toca el aviso para abrir CommandGlass en el navegador.</li>
             <li>
-              En el iPad, toca <strong>Compartir → Añadir a pantalla de inicio</strong>. En Android, <strong>menú ⋮ → Añadir a pantalla de inicio</strong>. La app te lo recuerda la primera vez.
+              {t('Abre la', 'Open the tablet')} <strong>{t('cámara', 'camera')}</strong> {t('del tablet y apunta al código.', 'and point it at the code.')}
+            </li>
+            <li>{t('Toca el aviso para abrir CommandGlass en el navegador.', 'Tap the notification to open CommandGlass in the browser.')}</li>
+            <li>
+              {t('En el iPad, toca', 'On iPad, tap')} <strong>{t('Compartir → Añadir a pantalla de inicio', 'Share → Add to Home Screen')}</strong>
+              {t('. En Android,', '. On Android,')} <strong>{t('menú ⋮ → Añadir a pantalla de inicio', '⋮ menu → Add to Home screen')}</strong>
+              {t('. La app te lo recuerda la primera vez.', '. The app reminds you the first time.')}
             </li>
           </ol>
-          <p className="faint desk-net">El tablet tiene que estar en la misma wifi que este PC.</p>
+          <p className="faint desk-net">{t('El tablet tiene que estar en la misma wifi que este PC.', 'The tablet must be on the same Wi-Fi as this PC.')}</p>
           {info && (
             <button className="chip" onClick={copy}>
-              <Copy size={15} aria-hidden /> {copied ? 'Enlace copiado' : 'Copiar enlace'}
+              <Copy size={15} aria-hidden /> {copied ? t('Enlace copiado', 'Link copied') : t('Copiar enlace', 'Copy link')}
             </button>
           )}
         </section>
@@ -189,24 +209,28 @@ function Desktop() {
             <div className="label"><Radio size={14} aria-hidden /> Star Citizen</div>
             {info?.gameDirFound ? (
               <>
-                <div className="desk-ok"><CheckCircle2 size={18} aria-hidden /> Juego encontrado</div>
+                <div className="desk-ok"><CheckCircle2 size={18} aria-hidden /> {t('Juego encontrado', 'Game found')}</div>
                 <div className="desk-path">{info.gameDir}</div>
                 <div className="sub">
-                  {info.status.active ? 'Partida en directo: leyendo el registro del juego.' : info.status.found ? 'Esperando a que abras el juego.' : 'Aún no hay registro: abre el juego una vez.'}
+                  {info.status.active
+                    ? t('Partida en directo: leyendo el registro del juego.', 'Live session: reading the game log.')
+                    : info.status.found
+                      ? t('Esperando a que abras el juego.', 'Waiting for you to launch the game.')
+                      : t('Aún no hay registro: abre el juego una vez.', 'No log yet: launch the game once.')}
                 </div>
               </>
             ) : info ? (
               <>
-                <div className="desk-bad"><TriangleAlert size={18} aria-hidden /> No encuentro Star Citizen</div>
-                <div className="sub">Indica la carpeta donde está instalado: la que contiene <code>LIVE</code> o la propia <code>LIVE</code>.</div>
+                <div className="desk-bad"><TriangleAlert size={18} aria-hidden /> {t('No encuentro Star Citizen', "Can't find Star Citizen")}</div>
+                <GameDirHint />
               </>
             ) : (
-              <div className="sub">Comprobando…</div>
+              <div className="sub">{t('Comprobando…', 'Checking…')}</div>
             )}
             {channels && channels.available.length > 1 && (
               <div className="kv desk-channel">
-                <span>Versión del juego</span>
-                <div className="segmented" role="group" aria-label="Versión del juego">
+                <span>{t('Versión del juego', 'Game version')}</span>
+                <div className="segmented" role="group" aria-label={t('Versión del juego', 'Game version')}>
                   {channels.available.map((ch) => (
                     <button key={ch} className={`seg ${ch === channels.current ? 'on' : ''}`} onClick={() => switchChannel(ch)} aria-pressed={ch === channels.current}>
                       {ch}
@@ -217,34 +241,38 @@ function Desktop() {
             )}
             {bridge && (
               <button className="chip desk-btn" onClick={chooseDir} disabled={choosing}>
-                <FolderSearch size={15} aria-hidden /> {info?.gameDirFound ? 'Cambiar carpeta…' : 'Elegir carpeta…'}
+                <FolderSearch size={15} aria-hidden /> {info?.gameDirFound ? t('Cambiar carpeta…', 'Change folder…') : t('Elegir carpeta…', 'Choose folder…')}
               </button>
             )}
             {dirMsg && <div className="sub" role="status">{dirMsg}</div>}
           </section>
 
-          <section className="panel" aria-label="Dispositivos">
-            <div className="label"><Tablet size={14} aria-hidden /> Conectados ahora</div>
+          <section className="panel" aria-label={t('Dispositivos', 'Devices')}>
+            <div className="label"><Tablet size={14} aria-hidden /> {t('Conectados ahora', 'Connected now')}</div>
             {devices.length === 0 ? (
-              <div className="sub">Ningún tablet conectado todavía. Escanea el código para empezar.</div>
+              <div className="sub">{t('Ningún tablet conectado todavía. Escanea el código para empezar.', 'No tablet connected yet. Scan the code to get started.')}</div>
             ) : (
               devices.map((d, i) => (
                 <div key={i} className="kv">
                   <span className="desk-ok"><CheckCircle2 size={16} aria-hidden /> {d.agent}</span>
-                  <span className="faint">desde las {new Date(d.since).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
+                  <span className="faint">{t(`desde las ${hhmm(d.since)}`, `since ${hhmm(d.since)}`)}</span>
                 </div>
               ))
             )}
           </section>
 
           {bridge && (
-            <section className="panel" aria-label="Ajustes">
-              <div className="label"><Power size={14} aria-hidden /> Ajustes</div>
+            <section className="panel" aria-label={t('Ajustes', 'Settings')}>
+              <div className="label"><Power size={14} aria-hidden /> {t('Ajustes', 'Settings')}</div>
               <div className="kv">
-                <span>Abrir CommandGlass al iniciar Windows</span>
+                <span>{t('Idioma', 'Language')}</span>
+                <LangSwitch />
+              </div>
+              <div className="kv">
+                <span>{t('Abrir CommandGlass al iniciar Windows', 'Open CommandGlass when Windows starts')}</span>
                 {storeLogin ? (
                   <button className="chip" onClick={() => void bridge.setOpenAtLogin(true)}>
-                    <Power size={15} aria-hidden /> Configurar en Windows
+                    <Power size={15} aria-hidden /> {t('Configurar en Windows', 'Set up in Windows')}
                   </button>
                 ) : (
                   <button
@@ -254,45 +282,69 @@ function Desktop() {
                     onClick={toggleLogin}
                     disabled={atLogin === null}
                   >
-                    {atLogin ? 'Activado' : 'Desactivado'}
+                    {atLogin ? t('Activado', 'On') : t('Desactivado', 'Off')}
                   </button>
                 )}
               </div>
               <div className="kv">
-                <span>Tu historial y ajustes</span>
+                <span>{t('Tu historial y ajustes', 'Your history and settings')}</span>
                 <button className="chip" onClick={() => bridge.openDataDir()}>
-                  <FolderOpen size={15} aria-hidden /> Abrir carpeta
+                  <FolderOpen size={15} aria-hidden /> {t('Abrir carpeta', 'Open folder')}
                 </button>
               </div>
             </section>
           )}
 
           {pinTip && (
-            <section className="panel desk-tip" aria-label="Anclar a la barra de tareas">
-              <button className="desk-close" onClick={() => (setPinTip(false), writeFlag(PIN_TIP_KEY))} aria-label="Cerrar aviso">
+            <section className="panel desk-tip" aria-label={t('Anclar a la barra de tareas', 'Pin to taskbar')}>
+              <button className="desk-close" onClick={() => (setPinTip(false), writeFlag(PIN_TIP_KEY))} aria-label={t('Cerrar aviso', 'Dismiss tip')}>
                 <X size={16} aria-hidden />
               </button>
-              <div className="label"><Pin size={14} aria-hidden /> Tenlo a mano</div>
+              <div className="label"><Pin size={14} aria-hidden /> {t('Tenlo a mano', 'Keep it handy')}</div>
               <div className="sub">
-                Para anclarlo a la barra de tareas: clic derecho en el icono de CommandGlass en la barra → <strong>Anclar a la barra de tareas</strong>.
+                {t(
+                  'Para anclarlo a la barra de tareas: clic derecho en el icono de CommandGlass en la barra →',
+                  'To pin it to the taskbar: right-click the CommandGlass icon on the taskbar →',
+                )}{' '}
+                <strong>{t('Anclar a la barra de tareas', 'Pin to taskbar')}</strong>.
               </div>
             </section>
           )}
 
           {DONATE_URL && (
-            <section className="panel" aria-label="Invitar a un café">
-              <div className="label"><Coffee size={14} aria-hidden /> ¿Te está siendo útil?</div>
-              <div className="sub">CommandGlass es gratis. Si te ayuda en tus partidas, puedes invitar a robertogeek a un café, o a lo que quieras.</div>
+            <section className="panel" aria-label={t('Invitar a un café', 'Buy a coffee')}>
+              <div className="label"><Coffee size={14} aria-hidden /> {t('¿Te está siendo útil?', 'Finding it useful?')}</div>
+              <div className="sub">
+                {t(
+                  'CommandGlass es gratis. Si te ayuda en tus partidas, puedes invitar a robertogeek a un café, o a lo que quieras.',
+                  'CommandGlass is free. If it helps your sessions, you can buy robertogeek a coffee, or whatever you like.',
+                )}
+              </div>
               <a className="chip desk-btn" href={DONATE_URL} target="_blank" rel="noreferrer">
-                <Coffee size={15} aria-hidden /> Invitar con PayPal <ExternalLink size={13} aria-hidden />
+                <Coffee size={15} aria-hidden /> {t('Invitar con PayPal', 'Tip with PayPal')} <ExternalLink size={13} aria-hidden />
               </a>
             </section>
           )}
         </div>
       </main>
 
-      <CommunityFooter>Cerrar esta ventana no apaga CommandGlass: sigue funcionando en la bandeja del sistema, junto al reloj.</CommunityFooter>
+      <CommunityFooter>
+        {t(
+          'Cerrar esta ventana no apaga CommandGlass: sigue funcionando en la bandeja del sistema, junto al reloj.',
+          "Closing this window doesn't shut down CommandGlass: it keeps running in the system tray, next to the clock.",
+        )}
+      </CommunityFooter>
     </div>
+  );
+}
+
+/** Qué carpeta indicar cuando no se encuentra el juego. */
+function GameDirHint() {
+  const { lang } = useLang();
+  return lang === 'es' ? (
+    <div className="sub">Indica la carpeta donde está instalado: la que contiene <code>LIVE</code> o la propia <code>LIVE</code>.</div>
+  ) : (
+    <div className="sub">Choose the folder where it's installed: the one that contains <code>LIVE</code>, or <code>LIVE</code> itself.</div>
   );
 }
 
@@ -324,6 +376,7 @@ function CommunityFooter({ children }: { children?: ReactNode }) {
  * Hasta que el token no esté guardado no aparece el código para emparejar el tablet.
  */
 function Setup({ info, chooseDir, choosing, dirMsg }: { info: DesktopInfo; chooseDir: () => void; choosing: boolean; dirMsg: string | null }) {
+  const { t } = useLang();
   const [token, setToken] = useState('');
   const [state, setState] = useState<{ k: 'idle' | 'saving' | 'saved' | 'error'; msg?: string }>({ k: 'idle' });
 
@@ -336,7 +389,7 @@ function Setup({ info, chooseDir, choosing, dirMsg }: { info: DesktopInfo; choos
         body: JSON.stringify({ token }),
       });
       const body = (await res.json().catch(() => null)) as { error?: string } | null;
-      if (!res.ok) throw new Error(body?.error ?? 'No se ha podido guardar el token.');
+      if (!res.ok) throw new Error(body?.error ?? t('No se ha podido guardar el token.', "Couldn't save the token."));
       // La ventana se refresca sola en unos segundos y pasa al código QR.
       setState({ k: 'saved' });
       setToken('');
@@ -351,52 +404,64 @@ function Setup({ info, chooseDir, choosing, dirMsg }: { info: DesktopInfo; choos
         <img className="org-logo" src={logo} alt="Space Cowboys" width={56} height={48} />
         <div>
           <h1>CommandGlass</h1>
-          <p className="faint">Configuración inicial · {info.version}</p>
+          <p className="faint">{t('Configuración inicial', 'Initial setup')} · {info.version}</p>
         </div>
-        <MadeByCommunity />
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <LangSwitch />
+          <MadeByCommunity />
+        </div>
       </header>
 
       <main className="setup">
-        <section className={`panel setup-step ${info.gameDirFound ? 'done' : 'warn'}`} aria-label="Paso 1: Star Citizen">
+        <section className={`panel setup-step ${info.gameDirFound ? 'done' : 'warn'}`} aria-label={t('Paso 1: Star Citizen', 'Step 1: Star Citizen')}>
           <div className="setup-num" aria-hidden>{info.gameDirFound ? <CheckCircle2 size={18} /> : '1'}</div>
           <div className="setup-body">
             <div className="label"><Radio size={14} aria-hidden /> Star Citizen</div>
             {info.gameDirFound ? (
               <>
-                <div className="desk-ok">Juego encontrado</div>
+                <div className="desk-ok">{t('Juego encontrado', 'Game found')}</div>
                 <div className="desk-path">{info.gameDir}</div>
               </>
             ) : (
               <>
-                <div className="desk-bad"><TriangleAlert size={18} aria-hidden /> No encuentro Star Citizen</div>
-                <div className="sub">Indica la carpeta donde está instalado: la que contiene <code>LIVE</code> o la propia <code>LIVE</code>.</div>
+                <div className="desk-bad"><TriangleAlert size={18} aria-hidden /> {t('No encuentro Star Citizen', "Can't find Star Citizen")}</div>
+                <GameDirHint />
               </>
             )}
             {bridge && (
               <button className="chip desk-btn" onClick={chooseDir} disabled={choosing}>
-                <FolderSearch size={15} aria-hidden /> {info.gameDirFound ? 'Cambiar carpeta…' : 'Elegir carpeta…'}
+                <FolderSearch size={15} aria-hidden /> {info.gameDirFound ? t('Cambiar carpeta…', 'Change folder…') : t('Elegir carpeta…', 'Choose folder…')}
               </button>
             )}
             {dirMsg && <div className="sub" role="status">{dirMsg}</div>}
           </div>
         </section>
 
-        <section className="panel setup-step current" aria-label="Paso 2: token de UEX">
+        <section className="panel setup-step current" aria-label={t('Paso 2: token de UEX', 'Step 2: UEX token')}>
           <div className="setup-num" aria-hidden>2</div>
           <div className="setup-body">
-            <div className="label"><KeyRound size={14} aria-hidden /> Tu token de UEX</div>
+            <div className="label"><KeyRound size={14} aria-hidden /> {t('Tu token de UEX', 'Your UEX token')}</div>
             <div className="sub">
-              CommandGlass usa <strong>UEX</strong> para los precios de mercancías y las rutas de comercio. Cada piloto usa su propio token:
-              es gratis y se guarda solo en este PC.
+              {t('CommandGlass usa', 'CommandGlass uses')} <strong>UEX</strong>{' '}
+              {t(
+                'para los precios de mercancías y las rutas de comercio. Cada piloto usa su propio token: es gratis y se guarda solo en este PC.',
+                "for commodity prices and trade routes. Each pilot uses their own token: it's free and stored only on this PC.",
+              )}
             </div>
             <ol className="desk-steps setup-how">
               <li>
-                Entra en{' '}
+                {t('Entra en', 'Sign in to')}{' '}
                 <a href="https://uexcorp.space" target="_blank" rel="noreferrer">uexcorp.space <ExternalLink size={13} aria-hidden /></a>{' '}
-                con tu cuenta (o créala).
+                {t('con tu cuenta (o créala).', 'with your account (or create one).')}
               </li>
-              <li>Abre <strong>My Apps</strong>, crea una aplicación (el nombre da igual: «CommandGlass») y copia su token.</li>
-              <li>Pégalo aquí.</li>
+              <li>
+                {t('Abre', 'Open')} <strong>My Apps</strong>
+                {t(
+                  ', crea una aplicación (el nombre da igual: «CommandGlass») y copia su token.',
+                  ', create an app (any name works, e.g. "CommandGlass") and copy its token.',
+                )}
+              </li>
+              <li>{t('Pégalo aquí.', 'Paste it here.')}</li>
             </ol>
             <form
               className="setup-form"
@@ -405,7 +470,7 @@ function Setup({ info, chooseDir, choosing, dirMsg }: { info: DesktopInfo; choos
                 void save();
               }}
             >
-              <label className="note-label" htmlFor="setup-token">Token de UEX</label>
+              <label className="note-label" htmlFor="setup-token">{t('Token de UEX', 'UEX token')}</label>
               <div className="toolbar">
                 <input
                   id="setup-token"
@@ -413,7 +478,7 @@ function Setup({ info, chooseDir, choosing, dirMsg }: { info: DesktopInfo; choos
                   type="password"
                   autoComplete="off"
                   spellCheck={false}
-                  placeholder="Pega aquí tu token"
+                  placeholder={t('Pega aquí tu token', 'Paste your token here')}
                   value={token}
                   onChange={(e) => (setToken(e.target.value), setState({ k: 'idle' }))}
                   aria-invalid={state.k === 'error'}
@@ -421,20 +486,24 @@ function Setup({ info, chooseDir, choosing, dirMsg }: { info: DesktopInfo; choos
                   autoFocus
                 />
                 <button className="chip on" type="submit" disabled={!token.trim() || state.k === 'saving' || state.k === 'saved'}>
-                  {state.k === 'saving' ? 'Comprobando con UEX…' : 'Comprobar y guardar'}
+                  {state.k === 'saving' ? t('Comprobando con UEX…', 'Checking with UEX…') : t('Comprobar y guardar', 'Check and save')}
                 </button>
               </div>
               {state.k === 'error' && <div id="setup-token-err" className="pad-msg err" role="alert">{state.msg}</div>}
-              {state.k === 'saved' && <div className="desk-ok" role="status"><CheckCircle2 size={16} aria-hidden /> Token guardado. Abriendo el código del tablet…</div>}
+              {state.k === 'saved' && (
+                <div className="desk-ok" role="status">
+                  <CheckCircle2 size={16} aria-hidden /> {t('Token guardado. Abriendo el código del tablet…', 'Token saved. Opening the tablet code…')}
+                </div>
+              )}
             </form>
           </div>
         </section>
 
-        <section className="panel setup-step locked" aria-label="Paso 3: tablet">
+        <section className="panel setup-step locked" aria-label={t('Paso 3: tablet', 'Step 3: tablet')}>
           <div className="setup-num" aria-hidden>3</div>
           <div className="setup-body">
-            <div className="label"><Tablet size={14} aria-hidden /> Tu tablet</div>
-            <div className="sub">En cuanto guardes el token verás el código para emparejar el tablet.</div>
+            <div className="label"><Tablet size={14} aria-hidden /> {t('Tu tablet', 'Your tablet')}</div>
+            <div className="sub">{t('En cuanto guardes el token verás el código para emparejar el tablet.', "As soon as you save the token, you'll see the code to pair your tablet.")}</div>
           </div>
         </section>
       </main>
@@ -446,6 +515,8 @@ function Setup({ info, chooseDir, choosing, dirMsg }: { info: DesktopInfo; choos
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Desktop />
+    <LangProvider>
+      <Desktop />
+    </LangProvider>
   </StrictMode>,
 );

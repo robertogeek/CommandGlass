@@ -1,3 +1,4 @@
+import { tx } from '../i18n.ts';
 import type { Store } from './db.ts';
 
 /**
@@ -32,15 +33,15 @@ export function shopName(raw: string): string {
 /** Tipo de compra a partir de la clase del objeto. */
 export function purchaseKind(item: string): string {
   const s = item.toLowerCase();
-  if (/_scitem$|^(cool|shld|powr|qdrv|jdrv|radr|mrck|mount|turret|missile|gats|klwe_massdriver)_/.test(s)) return 'Componentes de nave';
-  if (/^(food|drink)_|_food_|_drink_|sachet|mre|burrito|bar_/.test(s)) return 'Comida y bebida';
-  if (/consumable|medgun|medpen|healing|vial|oxypen|detox/.test(s)) return 'Medicina';
-  if (/_mag$|_magazine|ammo/.test(s)) return 'Munición';
-  if (/(rifle|pistol|smg|shotgun|sniper|lmg|glauncher|launcher|gren)/.test(s)) return 'Armas';
-  if (/(armor|helmet|undersuit|backpack|_core_|_arms_|_legs_)/.test(s)) return 'Armadura';
-  if (/carryable|plant_pot|flair|decor/.test(s)) return 'Decoración';
-  if (/(multitool|tractor|mining|salvage|gadget)/.test(s)) return 'Herramientas';
-  return 'Otros';
+  if (/_scitem$|^(cool|shld|powr|qdrv|jdrv|radr|mrck|mount|turret|missile|gats|klwe_massdriver)_/.test(s)) return tx('Componentes de nave', 'Ship components');
+  if (/^(food|drink)_|_food_|_drink_|sachet|mre|burrito|bar_/.test(s)) return tx('Comida y bebida', 'Food & drink');
+  if (/consumable|medgun|medpen|healing|vial|oxypen|detox/.test(s)) return tx('Medicina', 'Medical');
+  if (/_mag$|_magazine|ammo/.test(s)) return tx('Munición', 'Ammo');
+  if (/(rifle|pistol|smg|shotgun|sniper|lmg|glauncher|launcher|gren)/.test(s)) return tx('Armas', 'Weapons');
+  if (/(armor|helmet|undersuit|backpack|_core_|_arms_|_legs_)/.test(s)) return tx('Armadura', 'Armor');
+  if (/carryable|plant_pot|flair|decor/.test(s)) return tx('Decoración', 'Decor');
+  if (/(multitool|tractor|mining|salvage|gadget)/.test(s)) return tx('Herramientas', 'Tools');
+  return tx('Otros', 'Other');
 }
 
 export function loadEconomy(store: Store): { purchases: Purchase[]; rewards: Reward[] } {

@@ -2,14 +2,15 @@ import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 
-// En desarrollo, Vite (5173) reenvía la API al servidor de CommandGlass (8777).
+// En desarrollo, Vite (5173) reenvía la API al servidor de CommandGlass (8777, o CG_API_PORT si la app instalada ya usa ese puerto).
+const api = `http://localhost:${process.env.CG_API_PORT ?? 8777}`;
 export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
     proxy: {
-      '/api': { target: 'http://localhost:8777', changeOrigin: false },
-      '/manifest.webmanifest': 'http://localhost:8777',
+      '/api': { target: api, changeOrigin: false },
+      '/manifest.webmanifest': api,
     },
   },
   build: {

@@ -1,3 +1,4 @@
+import { tx } from '../i18n.ts';
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -234,11 +235,11 @@ export class UexMarket {
           headers: { authorization: `Bearer ${token}`, accept: 'application/json', 'user-agent': 'CommandGlass (herramienta de fans de Star Citizen)' },
           signal: AbortSignal.timeout(30_000),
         });
-        if (res.status === 401 || res.status === 403) throw new Error('UEX no acepta el token: revísalo en uexcorp.space → My Apps');
-        if (res.status === 429) throw new Error('UEX pide esperar un poco (demasiadas consultas)');
-        if (!res.ok) throw new Error(`UEX respondió ${res.status}`);
+        if (res.status === 401 || res.status === 403) throw new Error(tx('UEX no acepta el token: revísalo en uexcorp.space → My Apps', 'UEX rejects the token: check it at uexcorp.space → My Apps'));
+        if (res.status === 429) throw new Error(tx('UEX pide esperar un poco (demasiadas consultas)', 'UEX asks you to wait a bit (too many requests)'));
+        if (!res.ok) throw new Error(tx(`UEX respondió ${res.status}`, `UEX responded ${res.status}`));
         const j = (await res.json()) as { status?: string; data?: unknown[] };
-        if (j.status !== 'ok' || !Array.isArray(j.data)) throw new Error('UEX no ha devuelto datos');
+        if (j.status !== 'ok' || !Array.isArray(j.data)) throw new Error(tx('UEX no ha devuelto datos', 'UEX returned no data'));
         const fresh: Cached<unknown> = { fetchedAt: new Date().toISOString(), data: j.data };
         this.cache.set(resource, fresh);
         writeFileSync(this.file(resource), JSON.stringify(fresh));

@@ -64,4 +64,4 @@ export const MISSION_KIND: Record<string, Term> = {
   otros: { en: 'Other', es: 'Otros' },
 };
 
-export const MEDBED: Term = { en: 'medical bed', es: 'cama médica' };
+export const MEDBED: Term = { en: 'Med Bed', es: 'cama médica' };

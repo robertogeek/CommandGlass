@@ -41,22 +41,31 @@ export function scanKey(name: string): ScanKey | null {
   return null;
 }
 
-/** Nombre legible para la chuleta: "lalt+n" → ["Alt izq.", "N"]. */
-export function keyLabel(name: string): string {
+/** Nombre legible para la chuleta, como en un teclado de ese idioma: "lalt+n" → ["Alt izq.", "N"] / ["Left Alt", "N"]. */
+export function keyLabel(name: string, lang: 'en' | 'es' = 'es'): string {
   const k = ALIASES[name] ?? name.toLowerCase();
-  const LABELS: Record<string, string> = {
+  const COMMON: Record<string, string> = {
+    escape: 'Esc', tab: 'Tab', up: '↑', down: '↓', left: '←', right: '→', insert: 'Insert',
+    lbracket: '[', rbracket: ']', comma: ',', period: '.', slash: '/', backslash: '\\', minus: '-', equals: '=', semicolon: ';', apostrophe: "'",
+    np_add: 'Num +', np_subtract: 'Num -', np_multiply: 'Num *', np_divide: 'Num /', np_period: 'Num .',
+  };
+  const ES: Record<string, string> = {
     lalt: 'Alt izq.', ralt: 'Alt der.', lctrl: 'Ctrl izq.', rctrl: 'Ctrl der.', lshift: 'Mayús izq.', rshift: 'Mayús der.',
-    space: 'Espacio', enter: 'Intro', escape: 'Esc', backspace: 'Retroceso', tab: 'Tab', capslock: 'Bloq Mayús',
-    up: '↑', down: '↓', left: '←', right: '→', pgup: 'RePág', pgdn: 'AvPág', home: 'Inicio', end: 'Fin', insert: 'Insert', delete: 'Supr',
-    lbracket: '[', rbracket: ']', comma: ',', period: '.', slash: '/', backslash: '\\', minus: '-', equals: '=', semicolon: ';', apostrophe: "'", grave: 'º',
-    np_add: 'Num +', np_subtract: 'Num -', np_multiply: 'Num *', np_divide: 'Num /', np_period: 'Num .', np_enter: 'Num Intro',
+    space: 'Espacio', enter: 'Intro', backspace: 'Retroceso', capslock: 'Bloq Mayús',
+    pgup: 'RePág', pgdn: 'AvPág', home: 'Inicio', end: 'Fin', delete: 'Supr', grave: 'º', np_enter: 'Num Intro',
     mouse1: 'Clic izq.', mouse2: 'Clic der.', mouse3: 'Clic central', mwheel_up: 'Rueda ↑', mwheel_down: 'Rueda ↓', maxis_z: 'Rueda',
   };
-  if (LABELS[k]) return LABELS[k]!;
+  const EN: Record<string, string> = {
+    lalt: 'Left Alt', ralt: 'Right Alt', lctrl: 'Left Ctrl', rctrl: 'Right Ctrl', lshift: 'Left Shift', rshift: 'Right Shift',
+    space: 'Space', enter: 'Enter', backspace: 'Backspace', capslock: 'Caps Lock',
+    pgup: 'Page Up', pgdn: 'Page Down', home: 'Home', end: 'End', delete: 'Delete', grave: '`', np_enter: 'Num Enter',
+    mouse1: 'Left Click', mouse2: 'Right Click', mouse3: 'Middle Click', mwheel_up: 'Wheel ↑', mwheel_down: 'Wheel ↓', maxis_z: 'Wheel',
+  };
+  const label = COMMON[k] ?? (lang === 'es' ? ES : EN)[k];
+  if (label) return label;
   if (/^np_\d$/.test(k)) return `Num ${k.slice(3)}`;
   return k.toUpperCase();
 }
-
 export interface ParsedCombo {
   /** Teclas en el orden en que se pulsan: modificadores primero. */
   keys: string[];

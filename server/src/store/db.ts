@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import { tx } from '../i18n.ts';
 import type { GameEvent } from '../parser/types.ts';
 import type { LiveState } from '../state/reducer.ts';
 
@@ -29,7 +30,14 @@ interface EventRow {
   category: string;
   importance: number;
   summary: string;
+  summary_en: string | null;
   data: string;
+}
+
+/** El evento con `summary` en el idioma de la interfaz (los eventos se guardan con el texto en los dos idiomas). */
+export function localizeEvent<T extends GameEvent>(e: T): T {
+  const { summaryEn, ...rest } = e;
+  return { ...rest, summary: tx(e.summary, summaryEn ?? e.summary) } as T;
 }
 
 const SCHEMA = `
@@ -100,6 +108,9 @@ export class Store {
   constructor(path: string) {
     this.db = new DatabaseSync(path);
     this.db.exec(SCHEMA);
+    // Texto de la bitácora en inglés (desde la 0.1.2). Las bases antiguas lo rellenan al reprocesar el historial.
+    const cols = this.db.prepare('PRAGMA table_info(events)').all() as { name: string }[];
+    if (!cols.some((c) => c.name === 'summary_en')) this.db.exec('ALTER TABLE events ADD COLUMN summary_en TEXT');
   }
 
   close(): void {
@@ -139,11 +150,11 @@ export class Store {
 
   insertEvents(sessionId: number, events: GameEvent[]): StoredEvent[] {
     const insEv = this.db.prepare(
-      'INSERT INTO events (session_id, ts, type, category, importance, summary, data) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      'INSERT INTO events (session_id, ts, type, category, importance, summary, summary_en, data) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
     );
     const insMention = this.db.prepare('INSERT INTO mentions (event_id, name, geid, role) VALUES (?, ?, ?, ?)');
     return events.map((e) => {
-      const r = insEv.run(sessionId, e.ts, e.type, e.category, e.importance, e.summary, JSON.stringify(e.data));
+      const r = insEv.run(sessionId, e.ts, e.type, e.category, e.importance, e.summary, e.summaryEn ?? null, JSON.stringify(e.data));
       const id = Number(r.lastInsertRowid);
       for (const m of e.mentions ?? []) insMention.run(id, m.name, m.geid ?? null, m.role);
       return { ...e, id, sessionId };
@@ -214,8 +225,8 @@ export class Store {
       args.push(...q.categories);
     }
     if (q.search) {
-      where.push('summary LIKE ?');
-      args.push(`%${q.search}%`);
+      where.push('(summary LIKE ? OR summary_en LIKE ?)');
+      args.push(`%${q.search}%`, `%${q.search}%`);
     }
     if (q.mention) {
       where.push('id IN (SELECT event_id FROM mentions WHERE name = ? COLLATE NOCASE)');
@@ -267,7 +278,7 @@ function toStored(r: EventRow): StoredEvent {
     type: r.type,
     category: r.category as StoredEvent['category'],
     importance: r.importance as StoredEvent['importance'],
-    summary: r.summary,
+    summary: tx(r.summary, r.summary_en ?? r.summary),
     data: JSON.parse(r.data) as Record<string, unknown>,
   };
 }

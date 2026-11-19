@@ -19,13 +19,18 @@ export interface RuleApi {
 
 export type Rule = (line: LogLine, api: RuleApi) => EventDraft | EventDraft[] | null;
 
-const REASONS: Record<string, string> = {
-  Combat: 'combate',
-  Collision: 'colisión',
-  SelfDestruct: 'autodestrucción',
-  Crash: 'accidente',
-  Hazard: 'peligro ambiental',
-  BoundaryViolation: 'límite del mapa',
+/** El texto de la bitácora se guarda en los dos idiomas; los nombres propios van igual en ambos. */
+const say = (es: string, en: string) => ({ summary: es, summaryEn: en });
+const fmtEs = (v: number) => v.toLocaleString('es-ES');
+const fmtEn = (v: number) => v.toLocaleString('en-US');
+
+export const REASONS: Record<string, { es: string; en: string }> = {
+  Combat: { es: 'combate', en: 'combat' },
+  Collision: { es: 'colisión', en: 'collision' },
+  SelfDestruct: { es: 'autodestrucción', en: 'self-destruct' },
+  Crash: { es: 'accidente', en: 'crash' },
+  Hazard: { es: 'peligro ambiental', en: 'environmental hazard' },
+  BoundaryViolation: { es: 'límite del mapa', en: 'map boundary' },
 };
 
 function playerMention(name: string | undefined, geid: string | undefined, role: string, api: RuleApi): Mention[] {
@@ -44,7 +49,7 @@ const login: Rule = (l, api) => {
     type: 'session.login',
     category: 'system',
     importance: 1,
-    summary: `Sesión iniciada como ${m[3]}`,
+    ...say(`Sesión iniciada como ${m[3]}`, `Signed in as ${m[3]}`),
     data: { geid: m[1], accountId: m[2], name: m[3] },
   };
 };
@@ -52,12 +57,13 @@ const login: Rule = (l, api) => {
 const joinPu: Rule = (l) => {
   const m = /address\[([^\]]+)\] port\[(\d+)\] shard\[([^\]]+)\]/.exec(l.body);
   if (!m) return null;
-  const info = shardInfo(m[3]!);
+  const info = shardInfo(m[3]!, 'es');
+  const infoEn = shardInfo(m[3]!, 'en');
   return {
     type: 'session.shard',
     category: 'system',
     importance: 1,
-    summary: `Entras en el universo · shard ${info.label}`,
+    ...say(`Entras en el universo · shard ${info.label}`, `You enter the universe · shard ${infoEn.label}`),
     data: { address: m[1], port: Number(m[2]), shard: m[3], region: info.region, label: info.label },
   };
 };
@@ -68,7 +74,7 @@ const systemQuit: Rule = (l) => {
     type: 'session.quit',
     category: 'system',
     importance: 1,
-    summary: 'Cierras el juego',
+    ...say('Cierras el juego', 'You quit the game'),
     data: { reason: m?.[1] ?? null },
   };
 };
@@ -80,7 +86,7 @@ const channelDisconnected: Rule = (l) => {
     type: 'session.disconnect',
     category: 'system',
     importance: 0,
-    summary: `Desconexión del servidor (${m?.[2] ?? '?'})`,
+    ...say(`Desconexión del servidor (${m?.[2] ?? '?'})`, `Disconnected from the server (${m?.[2] ?? '?'})`),
     data: { cause: m?.[1] ?? null, reason: m?.[2] ?? null },
   };
 };
@@ -97,7 +103,7 @@ const location: Rule = (l, api) => {
     type: 'travel.location',
     category: 'travel',
     importance: 1,
-    summary: `Llegas a ${info.name}${info.system ? ` (${info.system})` : ''}`,
+    ...say(`Llegas a ${info.name}${info.system ? ` (${info.system})` : ''}`, `You arrive at ${info.name}${info.system ? ` (${info.system})` : ''}`),
     data: { code, ...info },
   };
 };
@@ -111,7 +117,7 @@ const qtTarget: Rule = (l, api) => {
     type: 'travel.qt_target',
     category: 'travel',
     importance: 0,
-    summary: `Fijas destino cuántico: ${qtTargetName(target)}`,
+    ...say(`Fijas destino cuántico: ${qtTargetName(target)}`, `Quantum destination set: ${qtTargetName(target)}`),
     data: { target, targetName: qtTargetName(target), ship: stripEntityId(m[1]!), shipName: shipName(m[1]!) },
   };
 };
@@ -123,7 +129,7 @@ const qtArrived: Rule = (l) => {
     type: 'travel.qt_arrived',
     category: 'travel',
     importance: 1,
-    summary: `Salto cuántico completado con ${shipName(m[1]!)}`,
+    ...say(`Salto cuántico completado con ${shipName(m[1]!)}`, `Quantum jump completed in ${shipName(m[1]!)}`),
     data: { ship: stripEntityId(m[1]!), shipName: shipName(m[1]!), vehicleId: m[2] },
   };
 };
@@ -135,7 +141,7 @@ const clearDriver: Rule = (l, api) => {
     type: 'ship.controls_released',
     category: 'travel',
     importance: 0,
-    summary: `Dejas los mandos de ${shipName(m[2]!)}`,
+    ...say(`Dejas los mandos de ${shipName(m[2]!)}`, `You leave the controls of ${shipName(m[2]!)}`),
     data: { ship: stripEntityId(m[2]!), shipName: shipName(m[2]!), vehicleId: m[3] },
   };
 };
@@ -161,33 +167,36 @@ function vehicleDestroyedEvent(
   },
 ): EventDraft {
   const ship = shipName(d.cls);
-  const reasonEs = REASONS[d.reason] ?? d.reason;
+  const reason = REASONS[d.reason] ?? { es: d.reason, en: d.reason };
+  const reasonEs = reason.es;
   const mine = api.isMe(null, d.ownerGeid) || api.isMe(d.driver, d.driverGeid);
   const byMe = api.isMe(d.killer, d.killerGeid);
   const destroyed = d.toLevel >= 2;
   const state = destroyed ? 'destruida' : 'inutilizada';
-  const killerName = actorName(d.killer);
+  const stateEn = destroyed ? 'destroyed' : 'disabled';
+  const killerName = actorName(d.killer, 'es');
+  const killerEn = actorName(d.killer, 'en');
 
-  let summary: string;
+  let text: { summary: string; summaryEn: string };
   let importance: 0 | 1 | 2 = 1;
   if (mine && byMe) {
-    summary = `Tu ${ship} ${state} · ${reasonEs}`;
+    text = say(`Tu ${ship} ${state} · ${reason.es}`, `Your ${ship} ${stateEn} · ${reason.en}`);
     importance = 2;
   } else if (mine) {
-    summary = `Tu ${ship} ${state} por ${killerName} · ${reasonEs}`;
+    text = say(`Tu ${ship} ${state} por ${killerName} · ${reason.es}`, `Your ${ship} ${stateEn} by ${killerEn} · ${reason.en}`);
     importance = 2;
   } else if (byMe) {
-    summary = `Has ${destroyed ? 'destruido' : 'inutilizado'} ${ship}`;
+    text = say(`Has ${destroyed ? 'destruido' : 'inutilizado'} ${ship}`, `You ${stateEn} ${ship}`);
     importance = 2;
   } else {
-    summary = `${ship} ${state} por ${killerName} · ${reasonEs}`;
+    text = say(`${ship} ${state} por ${killerName} · ${reason.es}`, `${ship} ${stateEn} by ${killerEn} · ${reason.en}`);
   }
 
   return {
     type: 'combat.vehicle_destroyed',
     category: 'combat',
     importance,
-    summary,
+    ...text,
     data: { ...d, ship, killerName, reasonEs, mine, byMe, destroyed },
     mentions: [
       ...playerMention(d.killer, d.killerGeid, mine ? 'nemesis' : 'killer', api),
@@ -247,26 +256,28 @@ const actorDeath: Rule = (l, api) => {
   const weaponName = weapon && weapon !== 'unknown' ? (itemName(weapon) ?? shipName(weapon)) : null;
   const victimNpc = isEntityName(victim!);
 
-  let summary: string;
+  let text: { summary: string; summaryEn: string };
   let importance: 0 | 1 | 2 = 1;
+  const withEs = weaponName ? ` con ${weaponName}` : '';
+  const withEn = weaponName ? ` with ${weaponName}` : '';
   if (victimIsMe && killerIsMe) {
-    summary = `Has muerto (${damageType})`;
+    text = say(`Has muerto (${damageType})`, `You died (${damageType})`);
     importance = 2;
   } else if (victimIsMe) {
-    summary = `Te ha matado ${actorName(killer!)}${weaponName ? ` con ${weaponName}` : ''}`;
+    text = say(`Te ha matado ${actorName(killer!, 'es')}${withEs}`, `Killed by ${actorName(killer!, 'en')}${withEn}`);
     importance = 2;
   } else if (killerIsMe) {
-    summary = `Has abatido a ${actorName(victim!)}${weaponName ? ` con ${weaponName}` : ''}`;
+    text = say(`Has abatido a ${actorName(victim!, 'es')}${withEs}`, `You killed ${actorName(victim!, 'en')}${withEn}`);
     importance = 2;
   } else {
-    summary = `${actorName(victim!)} abatido por ${actorName(killer!)}`;
+    text = say(`${actorName(victim!, 'es')} abatido por ${actorName(killer!, 'es')}`, `${actorName(victim!, 'en')} killed by ${actorName(killer!, 'en')}`);
   }
 
   return {
     type: 'combat.actor_death',
     category: 'combat',
     importance,
-    summary,
+    ...text,
     data: {
       victim, victimGeid, zone, killer, killerGeid, weapon, weaponName, damageType,
       victimIsMe, killerIsMe, victimNpc,
@@ -285,7 +296,7 @@ const corpse: Rule = (l, api) => {
     type: 'health.death',
     category: 'health',
     importance: 2,
-    summary: 'Has muerto',
+    ...say('Has muerto', 'You died'),
     data: {},
   };
 };
@@ -294,13 +305,15 @@ const medBed: Rule = (l, api) => {
   const m = /Actor: (\S+) .*?med bed name: ([^,]+), vehicle name: ([^,]+), head: (\w+) torso: (\w+) leftArm: (\w+) rightArm: (\w+) leftLeg: (\w+) rightLeg: (\w+)/.exec(l.body);
   if (!m || !api.isMe(m[1])) return null;
   const parts: string[] = [];
+  const partsEn: string[] = [];
   const labels = ['cabeza', 'torso', 'brazo izq.', 'brazo der.', 'pierna izq.', 'pierna der.'];
-  for (let i = 0; i < 6; i++) if (m[4 + i] === 'true') parts.push(labels[i]!);
+  const labelsEn = ['head', 'torso', 'left arm', 'right arm', 'left leg', 'right leg'];
+  for (let i = 0; i < 6; i++) if (m[4 + i] === 'true') (parts.push(labels[i]!), partsEn.push(labelsEn[i]!));
   return {
     type: 'health.medbed',
     category: 'health',
     importance: 1,
-    summary: `Curado en cama médica${parts.length ? ` (${parts.join(', ')})` : ''}`,
+    ...say(`Curado en cama médica${parts.length ? ` (${parts.join(', ')})` : ''}`, `Healed in a med bed${partsEn.length ? ` (${partsEn.join(', ')})` : ''}`),
     data: { bed: m[2], vehicle: m[3] === 'none' ? null : m[3], healed: parts },
   };
 };
@@ -314,7 +327,7 @@ const endMission: Rule = (l) => {
     type: 'mission.ended',
     category: 'mission',
     importance: 0,
-    summary: `Misión terminada: ${m[4]}`,
+    ...say(`Misión terminada: ${m[4]}`, `Mission ended: ${m[4]}`),
     data: { missionId: m[1], completion: m[4], reason: m[5] },
   };
 };
@@ -326,7 +339,7 @@ const missionMarker: Rule = (l, api) => {
     type: 'mission.info',
     category: 'mission',
     importance: 0,
-    summary: `Contrato ${m[3]}`,
+    ...say(`Contrato ${m[3]}`, `Contract ${m[3]}`),
     data: { missionId: m[1], generator: m[2], contract: m[3] },
   };
 };
@@ -343,7 +356,7 @@ const shopBuy: Rule = (l) => {
     type: 'economy.buy',
     category: 'economy',
     importance: 1,
-    summary: `Compras ${item}${qty > 1 ? ` ×${qty}` : ''} · ${price.toLocaleString('es-ES')} aUEC`,
+    ...say(`Compras ${item}${qty > 1 ? ` ×${qty}` : ''} · ${fmtEs(price)} aUEC`, `You buy ${item}${qty > 1 ? ` ×${qty}` : ''} · ${fmtEn(price)} aUEC`),
     data: { shop: m[1], price, item: m[3], quantity: qty },
   };
 };
@@ -355,7 +368,7 @@ const carriage: Rule = (l, api) => {
     type: 'social.nearby',
     category: 'social',
     importance: 0,
-    summary: `${m[1]} sube a tu vagón`,
+    ...say(`${m[1]} sube a tu vagón`, `${m[1]} boards your train car`),
     data: { name: m[1], geid: m[2], where: 'tren' },
     mentions: playerMention(m[1], m[2], 'nearby', api),
   };
@@ -372,7 +385,7 @@ const gearEvent = (port: string, cls: string, api: RuleApi, ts: string): EventDr
     type: 'gear.equipped',
     category: 'system',
     importance: 0,
-    summary: `Equipo: ${prettyItem(cls)}`,
+    ...say(`Equipo: ${prettyItem(cls)}`, `Gear: ${prettyItem(cls)}`),
     data: { port, cls },
   };
 };
@@ -398,7 +411,7 @@ const equipItem: Rule = (l, api) => {
 const storeItem: Rule = (l, api) => {
   const m = /by '([^']+)' \[(\d+)\].*?Class\[([^\]]+)\]/.exec(l.body);
   if (!m || !api.isMe(m[1], m[2])) return null;
-  return { type: 'gear.stored', category: 'system', importance: 0, summary: `Guardas ${prettyItem(m[3]!)}`, data: { cls: m[3] } };
+  return { type: 'gear.stored', category: 'system', importance: 0, ...say(`Guardas ${prettyItem(m[3]!)}`, `You store ${prettyItem(m[3]!)}`), data: { cls: m[3] } };
 };
 
 const vehicleList: Rule = (l, api) => {
@@ -408,7 +421,7 @@ const vehicleList: Rule = (l, api) => {
     type: 'ship.fleet',
     category: 'travel',
     importance: 0,
-    summary: `Tu hangar tiene ${m[2]} vehículos`,
+    ...say(`Tu hangar tiene ${m[2]} vehículos`, `Your hangar has ${m[2]} vehicles`),
     data: { total: Number(m[2]), entitlements: Number(m[1]) },
   };
 };
@@ -417,7 +430,7 @@ const partyAccept: Rule = () => ({
   type: 'social.party_invite_accepted',
   category: 'social',
   importance: 0,
-  summary: 'Aceptas una invitación de grupo',
+  ...say('Aceptas una invitación de grupo', 'You accept a party invite'),
   data: {},
 });
 
@@ -441,120 +454,138 @@ export function classifyNotification(
     type: string,
     category: EventDraft['category'],
     importance: EventDraft['importance'],
-    summary: string,
+    text: [es: string, en: string],
     data: Record<string, unknown> = {},
     mentions?: Mention[],
-  ): EventDraft => ({ type, category, importance, summary, data: { text: title, detail: detail || undefined, missionId: mission, ...data }, mentions });
+  ): EventDraft => ({ type, category, importance, ...say(text[0], text[1]), data: { text: title, detail: detail || undefined, missionId: mission, ...data }, mentions });
 
   // Zonas
   if ((m = /^Entered (.+) Jurisdiction$/.exec(title))) {
     const name = m[1]!;
     const lawless = name === 'Ungoverned';
-    return ev('zone.jurisdiction', 'travel', 1, lawless ? 'Entras en espacio sin ley' : `Jurisdicción: ${name}`, { name, lawless });
+    return ev('zone.jurisdiction', 'travel', 1, lawless ? ['Entras en espacio sin ley', 'You enter ungoverned space'] : [`Jurisdicción: ${name}`, `Jurisdiction: ${name}`], { name, lawless });
   }
-  if (/^Entered Monitored Space$/.test(title)) return ev('zone.monitored', 'travel', 0, 'Entras en espacio vigilado', { on: true });
-  if (/^Exited Monitored Space$/.test(title)) return ev('zone.monitored', 'travel', 0, 'Sales del espacio vigilado', { on: false });
-  if (/^Entering Armistice Zone/.test(title)) return ev('zone.armistice', 'travel', 0, 'Entras en zona de armisticio', { on: true });
-  if (/^Leaving Armistice Zone/.test(title)) return ev('zone.armistice', 'travel', 0, 'Sales de la zona de armisticio', { on: false });
-  if (/^Entering Private Property/.test(title)) return ev('zone.private', 'travel', 0, 'Entras en propiedad privada', { on: true });
-  if (/^Leaving Private Property/.test(title)) return ev('zone.private', 'travel', 0, 'Sales de propiedad privada', { on: false });
-  if (/^Entering Restricted Area/.test(title)) return ev('zone.restricted', 'travel', 1, 'Entras en zona restringida', { on: true });
-  if (/^Leaving Restricted Area/.test(title)) return ev('zone.restricted', 'travel', 0, 'Sales de zona restringida', { on: false });
+  if (/^Entered Monitored Space$/.test(title)) return ev('zone.monitored', 'travel', 0, ['Entras en espacio vigilado', 'You enter monitored space'], { on: true });
+  if (/^Exited Monitored Space$/.test(title)) return ev('zone.monitored', 'travel', 0, ['Sales del espacio vigilado', 'You leave monitored space'], { on: false });
+  if (/^Entering Armistice Zone/.test(title)) return ev('zone.armistice', 'travel', 0, ['Entras en zona de armisticio', 'You enter an armistice zone'], { on: true });
+  if (/^Leaving Armistice Zone/.test(title)) return ev('zone.armistice', 'travel', 0, ['Sales de la zona de armisticio', 'You leave the armistice zone'], { on: false });
+  if (/^Entering Private Property/.test(title)) return ev('zone.private', 'travel', 0, ['Entras en propiedad privada', 'You enter private property'], { on: true });
+  if (/^Leaving Private Property/.test(title)) return ev('zone.private', 'travel', 0, ['Sales de propiedad privada', 'You leave private property'], { on: false });
+  if (/^Entering Restricted Area/.test(title)) return ev('zone.restricted', 'travel', 1, ['Entras en zona restringida', 'You enter a restricted area'], { on: true });
+  if (/^Leaving Restricted Area/.test(title)) return ev('zone.restricted', 'travel', 0, ['Sales de zona restringida', 'You leave the restricted area'], { on: false });
 
   // Contratos y objetivos
-  if ((m = /^Contract Accepted:\s*(.+)$/.exec(title))) return ev('mission.accepted', 'mission', 1, `Contrato aceptado: ${m[1]}`, { title: m[1] });
-  if ((m = /^Contract Complete:\s*(.+)$/.exec(title))) return ev('mission.completed', 'mission', 2, `Contrato completado: ${m[1]}`, { title: m[1] });
-  if ((m = /^Contract Failed:\s*(.+)$/.exec(title))) return ev('mission.failed', 'mission', 2, `Contrato fallido: ${m[1]}`, { title: m[1] });
-  if ((m = /^Contract Abandoned:\s*(.+)$/.exec(title))) return ev('mission.abandoned', 'mission', 1, `Contrato abandonado: ${m[1]}`, { title: m[1] });
-  if ((m = /^Contract (Shared|Available):\s*(.+)$/.exec(title))) return ev('mission.offered', 'mission', 0, `Contrato ${m[1] === 'Shared' ? 'compartido' : 'disponible'}: ${m[2]}`, { title: m[2] });
-  if ((m = /^New Objective:\s*(.+)$/.exec(title))) return ev('mission.objective', 'mission', 1, `Nuevo objetivo: ${m[1]}`, { objective: m[1] });
-  if ((m = /^Objective Complete:\s*(.+)$/.exec(title))) return ev('mission.objective_done', 'mission', 1, `Objetivo cumplido: ${m[1]}`, { objective: m[1] });
-  if ((m = /^Objective (Withdrawn|Failed):\s*(.+)$/.exec(title))) return ev('mission.objective_failed', 'mission', m[1] === 'Failed' ? 1 : 0, `Objetivo ${m[1] === 'Failed' ? 'fallido' : 'retirado'}: ${m[2]}`, { objective: m[2] });
-  if ((m = /^Journal Entry Added:\s*(.+)$/.exec(title))) return ev('mission.journal', 'mission', 0, `Entrada en el diario: ${m[1]}`, { title: m[1] });
+  if ((m = /^Contract Accepted:\s*(.+)$/.exec(title))) return ev('mission.accepted', 'mission', 1, [`Contrato aceptado: ${m[1]}`, `Contract accepted: ${m[1]}`], { title: m[1] });
+  if ((m = /^Contract Complete:\s*(.+)$/.exec(title))) return ev('mission.completed', 'mission', 2, [`Contrato completado: ${m[1]}`, `Contract complete: ${m[1]}`], { title: m[1] });
+  if ((m = /^Contract Failed:\s*(.+)$/.exec(title))) return ev('mission.failed', 'mission', 2, [`Contrato fallido: ${m[1]}`, `Contract failed: ${m[1]}`], { title: m[1] });
+  if ((m = /^Contract Abandoned:\s*(.+)$/.exec(title))) return ev('mission.abandoned', 'mission', 1, [`Contrato abandonado: ${m[1]}`, `Contract abandoned: ${m[1]}`], { title: m[1] });
+  if ((m = /^Contract (Shared|Available):\s*(.+)$/.exec(title))) {
+    const shared = m[1] === 'Shared';
+    return ev('mission.offered', 'mission', 0, [`Contrato ${shared ? 'compartido' : 'disponible'}: ${m[2]}`, `Contract ${shared ? 'shared' : 'available'}: ${m[2]}`], { title: m[2] });
+  }
+  if ((m = /^New Objective:\s*(.+)$/.exec(title))) return ev('mission.objective', 'mission', 1, [`Nuevo objetivo: ${m[1]}`, `New objective: ${m[1]}`], { objective: m[1] });
+  if ((m = /^Objective Complete:\s*(.+)$/.exec(title))) return ev('mission.objective_done', 'mission', 1, [`Objetivo cumplido: ${m[1]}`, `Objective complete: ${m[1]}`], { objective: m[1] });
+  if ((m = /^Objective (Withdrawn|Failed):\s*(.+)$/.exec(title))) {
+    const failed = m[1] === 'Failed';
+    return ev('mission.objective_failed', 'mission', failed ? 1 : 0, [`Objetivo ${failed ? 'fallido' : 'retirado'}: ${m[2]}`, `Objective ${failed ? 'failed' : 'withdrawn'}: ${m[2]}`], { objective: m[2] });
+  }
+  if ((m = /^Journal Entry Added:\s*(.+)$/.exec(title))) return ev('mission.journal', 'mission', 0, [`Entrada en el diario: ${m[1]}`, `Journal entry added: ${m[1]}`], { title: m[1] });
 
   // Economía
   if ((m = /^Awarded ([\d.,]+) aUEC/.exec(title))) {
     const amount = Number(m[1]!.replace(/[.,]/g, ''));
-    return ev('economy.reward', 'economy', 2, `Recompensa: ${amount.toLocaleString('es-ES')} aUEC`, { amount });
+    return ev('economy.reward', 'economy', 2, [`Recompensa: ${fmtEs(amount)} aUEC`, `Reward: ${fmtEn(amount)} aUEC`], { amount });
   }
-  if ((m = /^You've Earned: (\d+) Rewards?/.exec(title))) return ev('economy.reward_items', 'economy', 1, `Has ganado ${m[1]} recompensas`, { count: Number(m[1]) });
-  if (/^Transaction Complete/.test(title)) return ev('economy.transaction', 'economy', 0, 'Transacción completada');
+  if ((m = /^You've Earned: (\d+) Rewards?/.exec(title))) {
+    const n = Number(m[1]);
+    return ev('economy.reward_items', 'economy', 1, [`Has ganado ${n} ${n === 1 ? 'recompensa' : 'recompensas'}`, `You earned ${n} ${n === 1 ? 'reward' : 'rewards'}`], { count: n });
+  }
+  if (/^Transaction Complete/.test(title)) return ev('economy.transaction', 'economy', 0, ['Transacción completada', 'Transaction complete']);
 
   // Naves (canales de comunicación de la nave)
   if ((m = /^You have joined channel '(.+) : (.+)'\.?$/.exec(title))) {
     const [ship, owner] = [m[1]!, m[2]!];
     const own = api.isMe(owner);
-    return ev('ship.boarded', 'travel', 1, own ? `Subes a tu ${ship}` : `Subes a la ${ship} de ${owner}`, { ship, owner, own }, playerMention(owner, undefined, 'host', api));
+    return ev('ship.boarded', 'travel', 1, own ? [`Subes a tu ${ship}`, `You board your ${ship}`] : [`Subes a la ${ship} de ${owner}`, `You board ${owner}'s ${ship}`], { ship, owner, own }, playerMention(owner, undefined, 'host', api));
   }
   if ((m = /^You have left the channel '(.+) : (.+)'\.?$/.exec(title))) {
-    return ev('ship.left', 'travel', 0, `Bajas de ${m[1]}`, { ship: m[1], owner: m[2] });
+    return ev('ship.left', 'travel', 0, [`Bajas de ${m[1]}`, `You leave ${m[1]}`], { ship: m[1], owner: m[2] });
   }
   if (/^New Member Joined$/.test(title) && (m = /^(\S+) has joined the channel '(.+) : (.+)'/.exec(detail))) {
-    return ev('social.crew_joined', 'social', 1, `${m[1]} sube a ${api.isMe(m[3]) ? 'tu' : 'la'} ${m[2]}`, { name: m[1], ship: m[2], owner: m[3] }, playerMention(m[1], undefined, 'crew', api));
+    const mine = api.isMe(m[3]);
+    return ev('social.crew_joined', 'social', 1, [`${m[1]} sube a ${mine ? 'tu' : 'la'} ${m[2]}`, `${m[1]} boards ${mine ? 'your' : 'the'} ${m[2]}`], { name: m[1], ship: m[2], owner: m[3] }, playerMention(m[1], undefined, 'crew', api));
   }
   if (/^Member Left$/.test(title) && (m = /^(\S+) has left the channel '(.+) : (.+)'/.exec(detail))) {
-    return ev('social.crew_left', 'social', 0, `${m[1]} baja de ${m[2]}`, { name: m[1], ship: m[2], owner: m[3] });
+    return ev('social.crew_left', 'social', 0, [`${m[1]} baja de ${m[2]}`, `${m[1]} leaves ${m[2]}`], { name: m[1], ship: m[2], owner: m[3] });
   }
 
   // Grupo
-  if (/^You have joined$/.test(title) && /^party/.test(detail)) return ev('social.party_joined', 'social', 1, 'Te unes a un grupo');
-  if (/^Party Disbanded$/.test(title)) return ev('social.party_disbanded', 'social', 1, 'El grupo se ha disuelto');
-  if (/^New Party Leader$/.test(title)) return ev('social.party_leader', 'social', 0, `Nuevo líder de grupo${detail ? `: ${detail}` : ''}`);
-  if (/^Party Launch$/.test(title)) return ev('social.party_launch', 'social', 0, 'Lanzamiento de grupo');
+  if (/^You have joined$/.test(title) && /^party/.test(detail)) return ev('social.party_joined', 'social', 1, ['Te unes a un grupo', 'You join a party']);
+  if (/^Party Disbanded$/.test(title)) return ev('social.party_disbanded', 'social', 1, ['El grupo se ha disuelto', 'The party has disbanded']);
+  if (/^New Party Leader$/.test(title)) return ev('social.party_leader', 'social', 0, [`Nuevo líder de grupo${detail ? `: ${detail}` : ''}`, `New party leader${detail ? `: ${detail}` : ''}`]);
+  if (/^Party Launch$/.test(title)) return ev('social.party_launch', 'social', 0, ['Lanzamiento de grupo', 'Party launch']);
   if ((m = /^Quantum Travel Calibration (Started|Complete) By (.+)$/.exec(title))) {
     const who = m[2]!;
-    return ev('social.party_qt', 'social', 0, `${api.isMe(who) ? 'Calibras' : `${who} calibra`} el salto cuántico del grupo`, { name: who, phase: m[1] }, playerMention(who, undefined, 'party', api));
+    const me = api.isMe(who);
+    return ev('social.party_qt', 'social', 0, [`${me ? 'Calibras' : `${who} calibra`} el salto cuántico del grupo`, `${me ? 'You calibrate' : `${who} calibrates`} the party's quantum jump`], { name: who, phase: m[1] }, playerMention(who, undefined, 'party', api));
   }
 
-  if (/^You have created$/.test(title) && /^party/.test(detail)) return ev('social.party_created', 'social', 1, 'Creas un grupo');
+  if (/^You have created$/.test(title) && /^party/.test(detail)) return ev('social.party_created', 'social', 1, ['Creas un grupo', 'You create a party']);
   if (/^Party$/.test(title) && (m = /^(\S+) (connected|disconnected)\.?$/.exec(detail))) {
     const on = m[2] === 'connected';
-    return ev('social.party_presence', 'social', 0, `${m[1]} se ha ${on ? 'conectado' : 'desconectado'}`, { name: m[1], online: on }, playerMention(m[1], undefined, 'party', api));
+    return ev('social.party_presence', 'social', 0, [`${m[1]} se ha ${on ? 'conectado' : 'desconectado'}`, `${m[1]} ${on ? 'connected' : 'disconnected'}`], { name: m[1], online: on }, playerMention(m[1], undefined, 'party', api));
   }
   if (/^New Member Joined$/.test(title) && (m = /^(\S+) has joined the party/.exec(detail))) {
-    return ev('social.party_member_joined', 'social', 1, `${m[1]} se une al grupo`, { name: m[1] }, playerMention(m[1], undefined, 'party', api));
+    return ev('social.party_member_joined', 'social', 1, [`${m[1]} se une al grupo`, `${m[1]} joins the party`], { name: m[1] }, playerMention(m[1], undefined, 'party', api));
   }
   if (/^Member Left$/.test(title) && (m = /^(\S+) has left the party/.exec(detail))) {
-    return ev('social.party_member_left', 'social', 0, `${m[1]} deja el grupo`, { name: m[1] });
+    return ev('social.party_member_left', 'social', 0, [`${m[1]} deja el grupo`, `${m[1]} leaves the party`], { name: m[1] });
   }
   if (/^Party Invite Received/.test(detail)) {
-    return ev('social.party_invite', 'social', 1, `${title} te invita a su grupo`, { name: title }, playerMention(title, undefined, 'party', api));
+    return ev('social.party_invite', 'social', 1, [`${title} te invita a su grupo`, `${title} invites you to their party`], { name: title }, playerMention(title, undefined, 'party', api));
   }
   if (/^Friend Added$/.test(title) && detail) {
-    return ev('social.friend_added', 'social', 1, `Nuevo amigo: ${detail}`, { name: detail }, playerMention(detail, undefined, 'friend', api));
+    return ev('social.friend_added', 'social', 1, [`Nuevo amigo: ${detail}`, `New friend: ${detail}`], { name: detail }, playerMention(detail, undefined, 'friend', api));
   }
   if ((m = /^(\S+) has started to QT to your current location/.exec(title))) {
-    return ev('social.party_qt_to_you', 'social', 0, `${m[1]} viene hacia ti en salto cuántico`, { name: m[1] }, playerMention(m[1], undefined, 'party', api));
+    return ev('social.party_qt_to_you', 'social', 0, [`${m[1]} viene hacia ti en salto cuántico`, `${m[1]} is quantum traveling to you`], { name: m[1] }, playerMention(m[1], undefined, 'party', api));
   }
 
   // Salud
   if ((m = /^(Minor|Moderate|Severe) Injury Detected - (.+?) - Tier (\d) Treatment Required/.exec(title))) {
     const sev: Record<string, string> = { Minor: 'leve', Moderate: 'moderada', Severe: 'grave' };
-    return ev('health.injury', 'health', m[1] === 'Severe' ? 2 : 1, `Herida ${sev[m[1]!]}: ${m[2]} (requiere tratamiento nivel ${m[3]})`, { severity: m[1], part: m[2], tier: Number(m[3]) });
+    return ev(
+      'health.injury', 'health', m[1] === 'Severe' ? 2 : 1,
+      [`Herida ${sev[m[1]!]}: ${m[2]} (requiere tratamiento nivel ${m[3]})`, `${m[1]} injury: ${m[2]} (Tier ${m[3]} treatment required)`],
+      { severity: m[1], part: m[2], tier: Number(m[3]) },
+    );
   }
-  if (/^Standby, Local Emergency Services Are En Route/.test(title)) return ev('health.downed', 'health', 2, 'Incapacitado: los servicios de emergencia están en camino');
+  if (/^Standby, Local Emergency Services Are En Route/.test(title)) return ev('health.downed', 'health', 2, ['Incapacitado: los servicios de emergencia están en camino', 'Incapacitated: emergency services are en route']);
 
   // Ley
   if ((m = /^Crime Committed: (.+)$/.exec(title))) {
-    return ev('law.crime', 'combat', 2, `Delito cometido: ${m[1]}${detail ? ` (${detail.replace(/^against /, 'contra ')})` : ''}`, { crime: m[1], against: detail.replace(/^against /, '') || null });
+    const against = detail.replace(/^against /, '');
+    return ev('law.crime', 'combat', 2, [`Delito cometido: ${m[1]}${detail ? ` (contra ${against})` : ''}`, `Crime committed: ${m[1]}${detail ? ` (against ${against})` : ''}`], { crime: m[1], against: against || null });
   }
-  if (/^Restricted Area$/.test(title) && /relocated/.test(detail)) return ev('zone.relocated', 'travel', 1, 'Te han sacado de una zona restringida');
+  if (/^Restricted Area$/.test(title) && /relocated/.test(detail)) return ev('zone.relocated', 'travel', 1, ['Te han sacado de una zona restringida', 'You were relocated out of a restricted area']);
 
   // Economía (otros)
   if ((m = /^(?:(\d+)|A) Refinery Work Orders? ha(?:s|ve) been Completed at (.+)$/.exec(title))) {
-    return ev('economy.refinery', 'economy', 1, `Refinería lista en ${m[2]}${m[1] ? ` (${m[1]} órdenes)` : ''}`, { orders: Number(m[1] ?? 1), station: m[2] });
+    return ev('economy.refinery', 'economy', 1, [`Refinería lista en ${m[2]}${m[1] ? ` (${m[1]} órdenes)` : ''}`, `Refinery ready at ${m[2]}${m[1] ? ` (${m[1]} orders)` : ''}`], { orders: Number(m[1] ?? 1), station: m[2] });
   }
 
   // Blueprints
   if ((m = /^Received Blueprint:\s*(.+)$/.exec(title))) {
-    return ev('blueprint.received', 'economy', 2, `Blueprint conseguida: ${m[1]}`, { name: m[1] });
+    return ev('blueprint.received', 'economy', 2, [`Blueprint conseguida: ${m[1]}`, `Blueprint received: ${m[1]}`], { name: m[1] });
   }
 
   // Hangar
-  if (/^Hangar Request Completed/.test(title)) return ev('ship.hangar_ready', 'travel', 1, 'Hangar asignado');
-  if (/^Joined hangar queue/.test(title)) return ev('ship.hangar_queue', 'travel', 0, 'En cola para un hangar');
+  if (/^Hangar Request Completed/.test(title)) return ev('ship.hangar_ready', 'travel', 1, ['Hangar asignado', 'Hangar assigned']);
+  if (/^Joined hangar queue/.test(title)) return ev('ship.hangar_queue', 'travel', 0, ['En cola para un hangar', 'In the hangar queue']);
 
-  return ev('notification', 'system', 0, detail ? `${title}: ${detail}` : title);
+  // Notificación sin regla: el texto del juego tal cual (está en el idioma del juego).
+  const raw = detail ? `${title}: ${detail}` : title;
+  return ev('notification', 'system', 0, [raw, raw]);
 }
 
 // ---------------------------------------------------------------- tabla de reglas

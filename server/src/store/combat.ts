@@ -1,3 +1,6 @@
+import { tx } from '../i18n.ts';
+import { actorName } from '../parser/names.ts';
+import { REASONS } from '../parser/rules.ts';
 import type { Store } from './db.ts';
 
 /** Combate y ley a partir del registro: naves perdidas y destruidas, causas, némesis y delitos. */
@@ -7,6 +10,7 @@ interface Row {
   ts: string;
   type: string;
   summary: string;
+  summary_en: string | null;
   data: string;
 }
 
@@ -45,16 +49,19 @@ export function foldCombat(rows: Row[]): CombatSummary {
   let kills2025 = 0;
   let lastDeath = 0;
 
-  for (const r of rows) {
+  for (const row of rows) {
+    // El texto de la bitácora, en el idioma de la interfaz.
+    const r = { ...row, summary: tx(row.summary, row.summary_en ?? row.summary) };
     const d = JSON.parse(r.data) as Record<string, unknown>;
     switch (r.type) {
       case 'combat.vehicle_destroyed': {
         if (!d.destroyed) break;
         if (d.mine) {
           // Quién: un jugador por su nombre, los NPC agrupados, y tú mismo (colisiones, autodestrucción).
-          const killer = d.byMe ? 'Tú mismo' : String(d.killerName ?? d.killer ?? 'desconocido');
+          const killer = d.byMe ? tx('Tú mismo', 'Yourself') : d.killer ? actorName(String(d.killer)) : String(d.killerName ?? tx('desconocido', 'unknown'));
           lostBy.push(/^NPC \(/.test(killer) ? 'NPC' : killer);
-          lostReasons.push(String(d.reasonEs ?? d.reason ?? '—'));
+          const reason = REASONS[String(d.reason)];
+          lostReasons.push(reason ? tx(reason.es, reason.en) : String(d.reasonEs ?? d.reason ?? '—'));
           lostShips.push(String(d.ship ?? '—'));
           feed.push({ id: r.id, ts: r.ts, type: r.type, summary: r.summary, tone: 'bad' });
         } else if (d.byMe) {
@@ -65,7 +72,7 @@ export function foldCombat(rows: Row[]): CombatSummary {
       }
       case 'combat.actor_death':
         if (d.victimIsMe) {
-          deathCauses.push(d.killerIsMe ? `Tú mismo (${d.damageType ?? '?'})` : String(d.damageType ?? '?'));
+          deathCauses.push(d.killerIsMe ? `${tx('Tú mismo', 'Yourself')} (${d.damageType ?? '?'})` : String(d.damageType ?? '?'));
           feed.push({ id: r.id, ts: r.ts, type: r.type, summary: r.summary, tone: 'bad' });
         } else if (d.killerIsMe) {
           kills2025++;
@@ -110,7 +117,7 @@ export function foldCombat(rows: Row[]): CombatSummary {
 export function loadCombat(store: Store): CombatSummary {
   const rows = store.db
     .prepare(
-      `SELECT id, ts, type, summary, data FROM events
+      `SELECT id, ts, type, summary, summary_en, data FROM events
        WHERE type IN ('combat.vehicle_destroyed', 'combat.actor_death', 'health.death', 'law.crime', 'economy.refinery') ORDER BY id`,
     )
     .all() as unknown as Row[];

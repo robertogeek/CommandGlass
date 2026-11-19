@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { CATEGORY, EventRow } from '../components/EventRow.tsx';
 import { day, duration, sameDay } from '../format.ts';
+import { useLang } from '../lang.tsx';
 import { getJson, mergeEvents, useLive } from '../live.tsx';
 import type { Category, GameEvent, SessionSummary } from '../types.ts';
 
@@ -19,14 +20,15 @@ export function Bitacora() {
   const [loading, setLoading] = useState(false);
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const baseline = useRef(0);
+  const { t } = useLang();
 
   useEffect(() => {
     getJson<SessionSummary[]>('/api/sessions?limit=200').then(setSessions);
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(query.trim()), 300);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebounced(query.trim()), 300);
+    return () => clearTimeout(timer);
   }, [query]);
 
   const params = useMemo(() => {
@@ -85,9 +87,9 @@ export function Bitacora() {
   return (
     <div>
       <div className="toolbar">
-        <select className="select" value={session} onChange={(e) => setSession(e.target.value)} aria-label="Sesión">
-          <option value="current">Esta sesión</option>
-          <option value="all">Todo el historial</option>
+        <select className="select" value={session} onChange={(e) => setSession(e.target.value)} aria-label={t('Sesión', 'Session')}>
+          <option value="current">{t('Esta sesión', 'This session')}</option>
+          <option value="all">{t('Todo el historial', 'Full history')}</option>
           {sessions.map((s) => (
             <option key={s.id} value={String(s.id)}>
               {s.started_at ? `${day(s.started_at)} · ${duration(s.started_at, s.ended_at)}` : s.key}
@@ -97,10 +99,10 @@ export function Bitacora() {
         <input
           className="search"
           type="search"
-          placeholder="Buscar: Levski, Constellation, nombre de jugador…"
+          placeholder={t('Buscar: Levski, Constellation, nombre de jugador…', 'Search: Levski, Constellation, player name…')}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          aria-label="Buscar en la bitácora"
+          aria-label={t('Buscar en la bitácora', 'Search the logbook')}
         />
       </div>
       <div className="toolbar">
@@ -108,18 +110,23 @@ export function Bitacora() {
           const Icon = CATEGORY[c].icon;
           return (
             <button key={c} className={`chip ${cats.includes(c) ? 'on' : ''}`} onClick={() => toggleCat(c)}>
-              <Icon size={15} className={`c-${c}`} aria-hidden /> {CATEGORY[c].label}
+              <Icon size={15} className={`c-${c}`} aria-hidden /> {t(CATEGORY[c].label)}
             </button>
           );
         })}
         <button className={`chip ${details ? 'on' : ''}`} onClick={() => setDetails((d) => !d)}>
-          {details ? 'Ocultar detalles' : 'Ver detalles'}
+          {details ? t('Ocultar detalles', 'Hide details') : t('Ver detalles', 'Show details')}
         </button>
       </div>
 
       <div className="panel">
         {shown.length === 0 && !loading && (
-          <div className="empty">No hay eventos con estos filtros. Prueba a quitar alguno o a buscar en todo el historial.</div>
+          <div className="empty">
+            {t(
+              'No hay eventos con estos filtros. Prueba a quitar alguno o a buscar en todo el historial.',
+              'No events match these filters. Try removing some or searching the full history.',
+            )}
+          </div>
         )}
         {shown.map((e, i) => {
           const prev = shown[i - 1];
@@ -135,7 +142,7 @@ export function Bitacora() {
 
       {!done && shown.length > 0 && (
         <button className="more" onClick={loadMore} disabled={loading}>
-          {loading ? 'Cargando…' : 'Cargar más'}
+          {loading ? t('Cargando…', 'Loading…') : t('Cargar más', 'Load more')}
         </button>
       )}
     </div>

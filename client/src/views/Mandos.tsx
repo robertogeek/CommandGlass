@@ -3,7 +3,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useLang } from '../lang.tsx';
+import { locale, tr, useLang } from '../lang.tsx';
 import { getJson, useLive } from '../live.tsx';
 import type { BindingMap, BoundAction, ControlsResponse, SendResult } from '../types.ts';
 
@@ -23,7 +23,7 @@ interface PadButton {
 
 interface Panel {
   id: string;
-  title: string;
+  title: { es: string; en: string };
   icon: LucideIcon;
   context: Context;
   buttons: PadButton[];
@@ -31,7 +31,7 @@ interface Panel {
 
 const PANELS: Panel[] = [
   {
-    id: 'vuelo', title: 'Vuelo', icon: Rocket, context: 'ship',
+    id: 'vuelo', title: { es: 'Vuelo', en: 'Flight' }, icon: Rocket, context: 'ship',
     buttons: [
       { id: 'spaceship_general.v_flightready' },
       { id: 'spaceship_power.v_power_toggle' },
@@ -48,7 +48,7 @@ const PANELS: Panel[] = [
     ],
   },
   {
-    id: 'energia', title: 'Energía y escudos', icon: Zap, context: 'ship',
+    id: 'energia', title: { es: 'Energía y escudos', en: 'Power & Shields' }, icon: Zap, context: 'ship',
     buttons: [
       { id: 'spaceship_power.v_power_toggle_thrusters' },
       { id: 'spaceship_power.v_power_toggle_shields' },
@@ -63,7 +63,7 @@ const PANELS: Panel[] = [
     ],
   },
   {
-    id: 'combate', title: 'Combate', icon: Crosshair, context: 'ship',
+    id: 'combate', title: { es: 'Combate', en: 'Combat' }, icon: Crosshair, context: 'ship',
     buttons: [
       { id: 'spaceship_defensive.v_weapon_countermeasure_decoy_launch' },
       { id: 'spaceship_defensive.v_weapon_countermeasure_noise_launch' },
@@ -76,7 +76,7 @@ const PANELS: Panel[] = [
     ],
   },
   {
-    id: 'industria', title: 'Minería y recuperación', icon: Pickaxe, context: 'ship',
+    id: 'industria', title: { es: 'Minería y recuperación', en: 'Mining & Salvage' }, icon: Pickaxe, context: 'ship',
     buttons: [
       { id: 'seat_general.v_cycle_industrial_mode' },
       { id: 'spaceship_mining.v_mining_use_consumable1' },
@@ -88,7 +88,7 @@ const PANELS: Panel[] = [
     ],
   },
   {
-    id: 'pie', title: 'A pie', icon: User, context: 'foot',
+    id: 'pie', title: { es: 'A pie', en: 'On Foot' }, icon: User, context: 'foot',
     buttons: [
       { id: 'player.toggle_flashlight' },
       { id: 'player.toggleAttachHelmet' },
@@ -105,7 +105,7 @@ const PANELS: Panel[] = [
     ],
   },
   {
-    id: 'mobiglas', title: 'mobiGlas y comunicación', icon: MessageSquare, context: 'any',
+    id: 'mobiglas', title: { es: 'mobiGlas y comunicación', en: 'mobiGlas & Comms' }, icon: MessageSquare, context: 'any',
     buttons: [
       { id: 'spaceship_hud.mobiglas' },
       { id: 'spaceship_hud.v_starmap' },
@@ -116,7 +116,7 @@ const PANELS: Panel[] = [
     ],
   },
   {
-    id: 'emergencia', title: 'Emergencia', icon: Siren, context: 'any',
+    id: 'emergencia', title: { es: 'Emergencia', en: 'Emergency' }, icon: Siren, context: 'any',
     buttons: [
       { id: 'player.downedRevivalRequest' },
       { id: 'seat_general.v_emergency_exit', danger: true },
@@ -141,10 +141,10 @@ export function Mandos() {
   const [tab, setTab] = useState<Tab>('pad');
   const focus = useFocus();
 
-  const { lang } = useLang();
+  const { lang, t } = useLang();
   useEffect(() => {
     getJson<ControlsResponse>('/api/controls').then(setData).catch(() =>
-      setData({ available: false, error: 'No se ha podido cargar la lista de controles.', catalog: null }),
+      setData({ available: false, error: tr('No se ha podido cargar la lista de controles.', "Couldn't load the list of controls."), catalog: null }),
     );
   }, [lang]);
 
@@ -170,16 +170,16 @@ export function Mandos() {
   return (
     <div className="mandos">
       <div className="toolbar">
-        <div className="segmented" role="tablist" aria-label="Vista">
+        <div className="segmented" role="tablist" aria-label={t('Vista', 'View')}>
           <button role="tab" aria-selected={tab === 'pad'} className={`seg ${tab === 'pad' ? 'on' : ''}`} onClick={() => setTab('pad')}>
-            <Gamepad2 size={16} aria-hidden /> Botonera
+            <Gamepad2 size={16} aria-hidden /> {t('Botonera', 'Button Pad')}
           </button>
           <button role="tab" aria-selected={tab === 'sheet'} className={`seg ${tab === 'sheet' ? 'on' : ''}`} onClick={() => setTab('sheet')}>
-            <Keyboard size={16} aria-hidden /> Chuleta de controles
+            <Keyboard size={16} aria-hidden /> {t('Chuleta de controles', 'Controls Cheat Sheet')}
           </button>
         </div>
         <FocusPill focus={focus} available={data?.available ?? true} />
-        <span className="pill">{inShip ? `En nave${snapshot?.state?.ship ? ` · ${snapshot.state.ship.name}` : ''}` : 'A pie'}</span>
+        <span className="pill">{inShip ? `${t('En nave', 'In ship')}${snapshot?.state?.ship ? ` · ${snapshot.state.ship.name}` : ''}` : t('A pie', 'On foot')}</span>
       </div>
 
       {data?.error && <div className="panel warn"><div className="sub">{data.error}</div></div>}
@@ -188,22 +188,25 @@ export function Mandos() {
         <div className="stack">
           {downed && (
             <div className="panel warn">
-              <div className="label"><HeartPulse size={14} aria-hidden /> Estás incapacitado</div>
+              <div className="label"><HeartPulse size={14} aria-hidden /> {t('Estás incapacitado', "You're incapacitated")}</div>
               <div className="pad-grid">
                 <PadKey button={{ id: 'player.downedRevivalRequest' }} action={byId.get('player.downedRevivalRequest')} />
               </div>
             </div>
           )}
           {panels.map((p) => (
-            <section key={p.id} className={`panel ${p.id === 'emergencia' ? 'danger-zone' : ''}`} aria-label={p.title}>
-              <div className="label"><p.icon size={14} aria-hidden /> {p.title}</div>
+            <section key={p.id} className={`panel ${p.id === 'emergencia' ? 'danger-zone' : ''}`} aria-label={t(p.title)}>
+              <div className="label"><p.icon size={14} aria-hidden /> {t(p.title)}</div>
               <div className="pad-grid">
                 {p.buttons.map((b) => <PadKey key={b.id} button={b} action={byId.get(b.id)} />)}
               </div>
             </section>
           ))}
           <p className="faint pad-note">
-            Las teclas son las de tus controles del juego. Para que lleguen, la ventana de Star Citizen tiene que estar en primer plano en el PC.
+            {t(
+              'Las teclas son las de tus controles del juego. Para que lleguen, la ventana de Star Citizen tiene que estar en primer plano en el PC.',
+              'These are your in-game keybindings. For them to reach the game, the Star Citizen window must be in the foreground on the PC.',
+            )}
           </p>
         </div>
       )}
@@ -225,11 +228,12 @@ async function sendAction(id: string, confirm: boolean): Promise<SendResult> {
     });
     return (await res.json()) as SendResult;
   } catch {
-    return { ok: false, reason: 'error', message: 'Sin conexión con el PC. Comprueba que CommandGlass sigue abierto.' };
+    return { ok: false, reason: 'error', message: tr('Sin conexión con el PC. Comprueba que CommandGlass sigue abierto.', 'No connection to the PC. Make sure CommandGlass is still running.') };
   }
 }
 
 function PadKey({ button, action }: { button: PadButton; action: BoundAction | undefined }) {
+  const { t } = useLang();
   const [state, setState] = useState<'idle' | 'armed' | 'sending' | 'ok' | 'error'>('idle');
   const [message, setMessage] = useState<string | null>(null);
   const timer = useRef<number | undefined>(undefined);
@@ -245,18 +249,18 @@ function PadKey({ button, action }: { button: PadButton; action: BoundAction | u
 
   const disabled = !action || !action.sendable;
   const reason = !action
-    ? 'Esta acción no existe en esta versión del juego.'
+    ? t('Esta acción no existe en esta versión del juego.', "This action doesn't exist in this version of the game.")
     : !action.keys
-      ? 'Sin tecla: asígnale una en Opciones → Controles del juego.'
+      ? t('Sin tecla: asígnale una en Opciones → Controles del juego.', 'No key bound: assign one in the game under Options → Keybindings.')
       : !action.sendable
-        ? 'Usa el ratón: la botonera solo envía teclado.'
+        ? t('Usa el ratón: la botonera solo envía teclado.', 'Mouse only: the button pad can only send keyboard input.')
         : null;
 
   const onPress = async () => {
     if (disabled || state === 'sending') return;
     if (button.danger && state !== 'armed') {
       setState('armed');
-      setMessage('Toca otra vez para confirmar');
+      setMessage(t('Toca otra vez para confirmar', 'Tap again to confirm'));
       reset(3000);
       return;
     }
@@ -280,10 +284,14 @@ function PadKey({ button, action }: { button: PadButton; action: BoundAction | u
       disabled={disabled}
       title={action ? `${action.label}${action.description ? ` — ${action.description}` : ''}` : undefined}
     >
-      <span className="pad-label">{state === 'armed' ? '¿Seguro?' : action?.label ?? button.id.split('.').pop()}</span>
+      <span className="pad-label">{state === 'armed' ? t('¿Seguro?', 'Are you sure?') : action?.label ?? button.id.split('.').pop()}</span>
       <span className="pad-keys">
-        {action?.keyLabels.length ? action.keyLabels.map((k) => <kbd key={k}>{k}</kbd>) : <span className="faint">sin tecla</span>}
-        {action && action.plan.holdMs > 300 && <span className="faint hold-hint">mantiene {(action.plan.holdMs / 1000).toFixed(1).replace('.', ',')} s</span>}
+        {action?.keyLabels.length ? action.keyLabels.map((k) => <kbd key={k}>{k}</kbd>) : <span className="faint">{t('sin tecla', 'unbound')}</span>}
+        {action && action.plan.holdMs > 300 && (
+          <span className="faint hold-hint">
+            {t('mantiene', 'holds')} {new Intl.NumberFormat(locale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(action.plan.holdMs / 1000)} s
+          </span>
+        )}
       </span>
       {(message || (disabled && reason)) && (
         <span className={`pad-msg ${state === 'error' ? 'err' : ''}`} role={state === 'error' ? 'alert' : undefined}>
@@ -321,18 +329,20 @@ function useFocus(): Focus {
 }
 
 function FocusPill({ focus, available }: { focus: Focus; available: boolean }) {
-  if (!available) return <span className="pill"><span className="dot off" /> Envío de teclas no disponible</span>;
-  if (focus.focused === null) return <span className="pill"><span className="dot" /> Comprobando el juego…</span>;
+  const { t } = useLang();
+  if (!available) return <span className="pill"><span className="dot off" /> {t('Envío de teclas no disponible', 'Key sending unavailable')}</span>;
+  if (focus.focused === null) return <span className="pill"><span className="dot" /> {t('Comprobando el juego…', 'Checking the game…')}</span>;
   return focus.focused ? (
-    <span className="pill"><span className="dot live" /> Juego en primer plano</span>
+    <span className="pill"><span className="dot live" /> {t('Juego en primer plano', 'Game in foreground')}</span>
   ) : (
-    <span className="pill amber-pill"><AlertTriangle size={14} aria-hidden /> El juego no está en primer plano</span>
+    <span className="pill amber-pill"><AlertTriangle size={14} aria-hidden /> {t('El juego no está en primer plano', 'Game is not in the foreground')}</span>
   );
 }
 
 // ---------------------------------------------------------------- chuleta
 
 function CheatSheet({ maps }: { maps: BindingMap[] }) {
+  const { t } = useLang();
   const [query, setQuery] = useState('');
   const [onlyBound, setOnlyBound] = useState(true);
   const [onlyMine, setOnlyMine] = useState(false);
@@ -364,17 +374,17 @@ function CheatSheet({ maps }: { maps: BindingMap[] }) {
           <input
             className="search"
             type="search"
-            placeholder="Buscar acción o tecla: aterrizaje, Alt, F1…"
+            placeholder={t('Buscar acción o tecla: aterrizaje, Alt, F1…', 'Search action or key: landing, Alt, F1…')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Buscar en la chuleta"
+            aria-label={t('Buscar en la chuleta', 'Search the cheat sheet')}
           />
         </label>
-        <button className={`chip ${onlyBound ? 'on' : ''}`} onClick={() => setOnlyBound((v) => !v)}>Solo con tecla</button>
-        <button className={`chip ${onlyMine ? 'on' : ''}`} onClick={() => setOnlyMine((v) => !v)}>Cambiadas por ti</button>
-        <span className="faint">{total} acciones</span>
+        <button className={`chip ${onlyBound ? 'on' : ''}`} onClick={() => setOnlyBound((v) => !v)}>{t('Solo con tecla', 'Bound only')}</button>
+        <button className={`chip ${onlyMine ? 'on' : ''}`} onClick={() => setOnlyMine((v) => !v)}>{t('Cambiadas por ti', 'Changed by you')}</button>
+        <span className="faint">{total} {t('acciones', total === 1 ? 'action' : 'actions')}</span>
       </div>
-      {groups.length === 0 && <div className="panel"><div className="empty">Nada coincide con la búsqueda. Prueba con otra palabra o quita los filtros.</div></div>}
+      {groups.length === 0 && <div className="panel"><div className="empty">{t('Nada coincide con la búsqueda. Prueba con otra palabra o quita los filtros.', 'Nothing matches your search. Try another word or clear the filters.')}</div></div>}
       {groups.map((g) => (
         <section key={g.name} className="panel" aria-label={g.label}>
           <div className="label">{g.label}</div>
@@ -382,7 +392,7 @@ function CheatSheet({ maps }: { maps: BindingMap[] }) {
             <div key={a.id} className="kv sheet-row">
               <span>
                 {a.label}
-                {a.custom && <span className="badge violet sheet-badge">{a.keys ? 'Tuya' : 'Quitada por ti'}</span>}
+                {a.custom && <span className="badge violet sheet-badge">{a.keys ? t('Tuya', 'Custom') : t('Quitada por ti', 'Removed by you')}</span>}
               </span>
               <span className="pad-keys">
                 {a.keyLabels.length ? a.keyLabels.map((k) => <kbd key={k}>{k}</kbd>) : <span className="faint">—</span>}

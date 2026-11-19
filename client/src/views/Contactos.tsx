@@ -2,24 +2,27 @@ import { ArrowLeft, Rocket, ShieldAlert, ShieldCheck, Shield, Swords, Users } fr
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { EventRow } from '../components/EventRow.tsx';
 import { ago, day, duration, n, sameDay, shortDay } from '../format.ts';
+import { useLang, type Translate } from '../lang.tsx';
 import { getJson, mergeEvents, postJson, useLive } from '../live.tsx';
 import type { Contact, ContactDetail, GameEvent, Mark } from '../types.ts';
 
 type Filter = 'session' | 'all' | 'mates' | 'rivals' | 'met';
 type Sort = 'recent' | 'often' | 'sessions';
 
-const FILTERS: { id: Filter; label: string }[] = [
-  { id: 'session', label: 'Esta sesión' },
-  { id: 'all', label: 'Todos' },
-  { id: 'mates', label: 'Compañeros' },
-  { id: 'rivals', label: 'Rivales' },
-  { id: 'met', label: 'Encuentros' },
+type Text = { es: string; en: string };
+
+const FILTERS: { id: Filter; label: Text }[] = [
+  { id: 'session', label: { es: 'Esta sesión', en: 'This session' } },
+  { id: 'all', label: { es: 'Todos', en: 'All' } },
+  { id: 'mates', label: { es: 'Compañeros', en: 'Teammates' } },
+  { id: 'rivals', label: { es: 'Rivales', en: 'Rivals' } },
+  { id: 'met', label: { es: 'Encuentros', en: 'Encounters' } },
 ];
 
-const MARKS: { id: Mark; label: string; icon: typeof Shield }[] = [
-  { id: 'ally', label: 'Aliado', icon: ShieldCheck },
-  { id: 'neutral', label: 'Neutral', icon: Shield },
-  { id: 'hostile', label: 'Hostil', icon: ShieldAlert },
+const MARKS: { id: Mark; label: Text; icon: typeof Shield }[] = [
+  { id: 'ally', label: { es: 'Aliado', en: 'Ally' }, icon: ShieldCheck },
+  { id: 'neutral', label: { es: 'Neutral', en: 'Neutral' }, icon: Shield },
+  { id: 'hostile', label: { es: 'Hostil', en: 'Hostile' }, icon: ShieldAlert },
 ];
 
 const PAGE = 150;
@@ -34,17 +37,27 @@ interface Tag {
   tone: '' | 'green' | 'amber' | 'red' | 'violet' | 'muted';
 }
 
-function tagsFor(c: Contact, live: boolean): Tag[] {
-  const t: Tag[] = [];
-  if (live && c.presence?.aboard) t.push({ label: 'A bordo contigo', tone: 'green' });
-  if (live && c.presence?.inParty) t.push({ label: c.presence.online ? 'En tu grupo' : 'Grupo · desconectado', tone: c.presence.online ? 'green' : 'muted' });
-  if (c.counts.nemesis) t.push({ label: `Te ha eliminado ×${c.counts.nemesis}`, tone: 'red' });
-  if (c.counts.victim) t.push({ label: `Eliminado por ti ×${c.counts.victim}`, tone: 'amber' });
-  if (c.counts.friend) t.push({ label: 'Amigo', tone: 'violet' });
-  if (c.counts.groupSessions) t.push({ label: `En grupo · ${c.counts.groupSessions} ${c.counts.groupSessions === 1 ? 'sesión' : 'sesiones'}`, tone: '' });
-  if (c.counts.combat) t.push({ label: 'Visto en combate', tone: 'muted' });
-  if (!t.length && c.counts.nearby) t.push({ label: 'Visto cerca', tone: 'muted' });
-  return t;
+function tagsFor(c: Contact, live: boolean, t: Translate): Tag[] {
+  const tags: Tag[] = [];
+  if (live && c.presence?.aboard) tags.push({ label: t('A bordo contigo', 'Aboard with you'), tone: 'green' });
+  if (live && c.presence?.inParty)
+    tags.push({
+      label: c.presence.online ? t('En tu grupo', 'In your party') : t('Grupo · desconectado', 'Party · offline'),
+      tone: c.presence.online ? 'green' : 'muted',
+    });
+  if (c.counts.nemesis) tags.push({ label: t(`Te ha eliminado ×${c.counts.nemesis}`, `Killed you ×${c.counts.nemesis}`), tone: 'red' });
+  if (c.counts.victim) tags.push({ label: t(`Eliminado por ti ×${c.counts.victim}`, `Killed by you ×${c.counts.victim}`), tone: 'amber' });
+  if (c.counts.friend) tags.push({ label: t('Amigo', 'Friend'), tone: 'violet' });
+  if (c.counts.groupSessions) {
+    const g = c.counts.groupSessions;
+    tags.push({
+      label: t(`En grupo · ${g} ${g === 1 ? 'sesión' : 'sesiones'}`, `Party · ${g} ${g === 1 ? 'session' : 'sessions'}`),
+      tone: '',
+    });
+  }
+  if (c.counts.combat) tags.push({ label: t('Visto en combate', 'Seen in combat'), tone: 'muted' });
+  if (!tags.length && c.counts.nearby) tags.push({ label: t('Visto cerca', 'Seen nearby'), tone: 'muted' });
+  return tags;
 }
 
 /** Nombre seleccionado en el hash: "#contactos/Nombre". */
@@ -63,6 +76,7 @@ function useSelected(): [string | null, (name: string | null) => void] {
 }
 
 export function Contactos() {
+  const { t } = useLang();
   const { snapshot, liveEvents } = useLive();
   const live = Boolean(snapshot?.status.active && !snapshot.state?.endedAt);
   const [contacts, setContacts] = useState<Contact[] | null>(null);
@@ -84,8 +98,8 @@ export function Contactos() {
     const fresh = liveEvents.filter((e) => e.id > lastLiveId.current);
     lastLiveId.current = Math.max(lastLiveId.current, newest);
     if (!fresh.some((e) => e.mentions?.length || e.category === 'social')) return;
-    const t = setTimeout(load, 1500);
-    return () => clearTimeout(t);
+    const timer = setTimeout(load, 1500);
+    return () => clearTimeout(timer);
   }, [liveEvents]);
 
   const sessionCount = useMemo(() => contacts?.filter(isHere).length ?? 0, [contacts]);
@@ -134,43 +148,46 @@ export function Contactos() {
 
   return (
     <div className={`contacts ${selected ? 'has-selection' : ''}`}>
-      <section className="contacts-list" aria-label="Lista de contactos">
+      <section className="contacts-list" aria-label={t('Lista de contactos', 'Contact list')}>
         <div className="toolbar">
           <input
             className="search"
             type="search"
-            placeholder="Buscar jugador o nota…"
+            placeholder={t('Buscar jugador o nota…', 'Search player or note…')}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            aria-label="Buscar contactos"
+            aria-label={t('Buscar contactos', 'Search contacts')}
           />
           <select
             className="select"
             value={sort}
             onChange={(e) => setSort(e.target.value as Sort)}
-            aria-label="Ordenar"
+            aria-label={t('Ordenar', 'Sort')}
             disabled={activeFilter === 'session'}
           >
-            <option value="recent">Recientes</option>
-            <option value="often">Más encuentros</option>
-            <option value="sessions">Más sesiones</option>
+            <option value="recent">{t('Recientes', 'Recent')}</option>
+            <option value="often">{t('Más encuentros', 'Most encounters')}</option>
+            <option value="sessions">{t('Más sesiones', 'Most sessions')}</option>
           </select>
         </div>
         <div className="toolbar">
           {FILTERS.map((f) => (
             <button key={f.id} className={`chip ${activeFilter === f.id ? 'on' : ''}`} onClick={() => setFilter(f.id)}>
-              {f.label} <span className="chip-n">{n(counts[f.id])}</span>
+              {t(f.label)} <span className="chip-n">{n(counts[f.id])}</span>
             </button>
           ))}
         </div>
 
         <div className="panel contact-rows">
-          {contacts === null && <div className="empty">Cargando contactos…</div>}
+          {contacts === null && <div className="empty">{t('Cargando contactos…', 'Loading contacts…')}</div>}
           {contacts !== null && shown.length === 0 && (
             <div className="empty">
               {activeFilter === 'session'
-                ? 'Aún no te has cruzado con nadie en esta sesión. Aquí aparecerán tu grupo, tu tripulación y quien te dispare.'
-                : 'Nadie coincide con la búsqueda. Prueba con otro nombre o con otro filtro.'}
+                ? t(
+                    'Aún no te has cruzado con nadie en esta sesión. Aquí aparecerán tu grupo, tu tripulación y quien te dispare.',
+                    "You haven't run into anyone this session yet. Your party, your crew and anyone who shoots at you will show up here.",
+                  )
+                : t('Nadie coincide con la búsqueda. Prueba con otro nombre o con otro filtro.', 'Nobody matches your search. Try another name or filter.')}
             </div>
           )}
           {shown.slice(0, limit).map((c) => (
@@ -178,19 +195,24 @@ export function Contactos() {
           ))}
           {shown.length > limit && (
             <button className="more" onClick={() => setLimit((l) => l + PAGE)}>
-              Mostrar más ({n(shown.length - limit)})
+              {t('Mostrar más', 'Show more')} ({n(shown.length - limit)})
             </button>
           )}
         </div>
       </section>
 
-      <section className="contacts-detail" aria-label="Ficha del contacto">
+      <section className="contacts-detail" aria-label={t('Ficha del contacto', 'Contact details')}>
         {selected ? (
           <ContactCard key={selected} name={selected} live={live} onBack={() => select(null)} onSaved={onSaved} />
         ) : (
           <div className="contacts-placeholder">
             <Users size={40} strokeWidth={1.4} className="accent" aria-hidden />
-            <p>Elige un jugador para ver vuestro historial: sesiones juntos, naves compartidas y combates.</p>
+            <p>
+              {t(
+                'Elige un jugador para ver vuestro historial: sesiones juntos, naves compartidas y combates.',
+                'Pick a player to see your history together: shared sessions, shared ships and combat.',
+              )}
+            </p>
           </div>
         )}
       </section>
@@ -199,23 +221,24 @@ export function Contactos() {
 }
 
 function ContactRow({ c, live, on, onClick }: { c: Contact; live: boolean; on: boolean; onClick: () => void }) {
-  const tags = tagsFor(c, live).slice(0, 3);
+  const { t } = useLang();
+  const tags = tagsFor(c, live, t).slice(0, 3);
   const dot = live && c.presence ? (c.presence.aboard || c.presence.online ? 'live' : '') : null;
   return (
     <button className={`contact-row ${on ? 'on' : ''} ${c.mark ? `mark-${c.mark}` : ''}`} onClick={onClick} aria-current={on ? 'true' : undefined}>
       <span className="contact-name">
         {dot !== null && <span className={`dot ${dot}`} aria-hidden />}
         <span className="nm">{c.name}</span>
-        {c.mark === 'hostile' && <ShieldAlert size={15} className="c-combat" aria-label="Hostil" />}
-        {c.mark === 'ally' && <ShieldCheck size={15} className="c-economy" aria-label="Aliado" />}
+        {c.mark === 'hostile' && <ShieldAlert size={15} className="c-combat" aria-label={t('Hostil', 'Hostile')} />}
+        {c.mark === 'ally' && <ShieldCheck size={15} className="c-economy" aria-label={t('Aliado', 'Ally')} />}
       </span>
       <span className="contact-meta">
-        {c.sessions} {c.sessions === 1 ? 'sesión' : 'sesiones'} · {ago(c.lastSeen)}
+        {c.sessions} {c.sessions === 1 ? t('sesión', 'session') : t('sesiones', 'sessions')} · {ago(c.lastSeen)}
       </span>
       {tags.length > 0 && (
         <span className="contact-tags">
-          {tags.map((t) => (
-            <span key={t.label} className={`badge ${t.tone}`}>{t.label}</span>
+          {tags.map((tag) => (
+            <span key={tag.label} className={`badge ${tag.tone}`}>{tag.label}</span>
           ))}
         </span>
       )}
@@ -234,6 +257,7 @@ function ContactCard({
   onBack: () => void;
   onSaved: (name: string, mark: Mark | null, note: string | null) => void;
 }) {
+  const { t } = useLang();
   const { liveEvents } = useLive();
   const [detail, setDetail] = useState<ContactDetail | null | 'missing'>(null);
   const [events, setEvents] = useState<GameEvent[]>([]);
@@ -268,28 +292,33 @@ function ContactCard({
     return (
       <div className="panel">
         <BackButton onBack={onBack} />
-        <div className="empty">No hay registros de {name}. Puede que el nombre haya cambiado o que el historial se haya reprocesado.</div>
+        <div className="empty">
+          {t(
+            `No hay registros de ${name}. Puede que el nombre haya cambiado o que el historial se haya reprocesado.`,
+            `No records for ${name}. The name may have changed, or the history may have been reprocessed.`,
+          )}
+        </div>
       </div>
     );
   }
-  if (!detail) return <div className="panel"><div className="empty">Cargando ficha…</div></div>;
+  if (!detail) return <div className="panel"><div className="empty">{t('Cargando ficha…', 'Loading details…')}</div></div>;
 
   const c = detail;
-  const tags = tagsFor(c, live);
+  const tags = tagsFor(c, live, t);
 
   return (
     <div className="stack">
       <div className={`panel ${c.mark === 'hostile' ? 'hostile' : ''}`}>
         <BackButton onBack={onBack} />
-        <div className="label"><Users size={14} aria-hidden /> Contacto</div>
+        <div className="label"><Users size={14} aria-hidden /> {t('Contacto', 'Contact')}</div>
         <div className="big">{c.name}</div>
         <div className="sub">
-          Primera vez {shortDay(c.firstSeen)} · última {ago(c.lastSeen)}
+          {t(`Primera vez ${shortDay(c.firstSeen)} · última ${ago(c.lastSeen)}`, `First seen ${shortDay(c.firstSeen)} · last ${ago(c.lastSeen)}`)}
           {c.geid && <span className="faint"> · GEID {c.geid}</span>}
         </div>
         {tags.length > 0 && (
           <div className="contact-tags" style={{ marginTop: 10 }}>
-            {tags.map((t) => <span key={t.label} className={`badge ${t.tone}`}>{t.label}</span>)}
+            {tags.map((tag) => <span key={tag.label} className={`badge ${tag.tone}`}>{tag.label}</span>)}
           </div>
         )}
         <NoteEditor
@@ -303,30 +332,30 @@ function ContactCard({
 
       <div className="grid g2">
         <div className="panel">
-          <div className="label"><Users size={14} aria-hidden /> Juntos</div>
+          <div className="label"><Users size={14} aria-hidden /> {t('Juntos', 'Together')}</div>
           <div className="stat-grid">
-            <div className="stat"><div className="v">{n(c.sessions)}</div><div className="k">sesiones coincidiendo</div></div>
-            <div className="stat"><div className="v">{n(c.counts.groupSessions)}</div><div className="k">en grupo o nave</div></div>
-            <div className="stat"><div className="v">{n(c.events)}</div><div className="k">encuentros</div></div>
+            <div className="stat"><div className="v">{n(c.sessions)}</div><div className="k">{t('sesiones coincidiendo', c.sessions === 1 ? 'shared session' : 'shared sessions')}</div></div>
+            <div className="stat"><div className="v">{n(c.counts.groupSessions)}</div><div className="k">{t('en grupo o nave', 'in party or ship')}</div></div>
+            <div className="stat"><div className="v">{n(c.events)}</div><div className="k">{t('encuentros', c.events === 1 ? 'encounter' : 'encounters')}</div></div>
           </div>
         </div>
         <div className={`panel ${c.counts.nemesis ? 'warn' : ''}`}>
-          <div className="label"><Swords size={14} aria-hidden /> Combate</div>
+          <div className="label"><Swords size={14} aria-hidden /> {t('Combate', 'Combat')}</div>
           <div className="stat-grid">
-            <div className={`stat ${c.counts.nemesis ? 'bad' : ''}`}><div className="v">{n(c.counts.nemesis)}</div><div className="k">te ha eliminado</div></div>
-            <div className={`stat ${c.counts.victim ? 'good' : ''}`}><div className="v">{n(c.counts.victim)}</div><div className="k">eliminado por ti</div></div>
-            <div className="stat"><div className="v">{n(c.counts.combat)}</div><div className="k">combates ajenos</div></div>
+            <div className={`stat ${c.counts.nemesis ? 'bad' : ''}`}><div className="v">{n(c.counts.nemesis)}</div><div className="k">{t('te ha eliminado', 'killed you')}</div></div>
+            <div className={`stat ${c.counts.victim ? 'good' : ''}`}><div className="v">{n(c.counts.victim)}</div><div className="k">{t('eliminado por ti', 'killed by you')}</div></div>
+            <div className="stat"><div className="v">{n(c.counts.combat)}</div><div className="k">{t('combates ajenos', c.counts.combat === 1 ? 'other fight' : 'other fights')}</div></div>
           </div>
         </div>
       </div>
 
       {c.ships.length > 0 && (
         <div className="panel">
-          <div className="label"><Rocket size={14} aria-hidden /> Naves compartidas</div>
+          <div className="label"><Rocket size={14} aria-hidden /> {t('Naves compartidas', 'Shared ships')}</div>
           {c.ships.map((s) => (
             <div key={`${s.own}-${s.ship}-${s.owner}`} className="kv">
-              <span>{s.own ? `Tu ${s.ship}` : `${s.ship} de ${s.owner}`}</span>
-              <span className="faint">{s.own ? 'subió a bordo' : 'subiste tú'} ×{s.times} · {ago(s.last)}</span>
+              <span>{s.own ? t(`Tu ${s.ship}`, `Your ${s.ship}`) : t(`${s.ship} de ${s.owner}`, `${s.owner}'s ${s.ship}`)}</span>
+              <span className="faint">{s.own ? t('subió a bordo', 'came aboard') : t('subiste tú', 'you boarded')} ×{s.times} · {ago(s.last)}</span>
             </div>
           ))}
         </div>
@@ -334,12 +363,12 @@ function ContactCard({
 
       {c.recentSessions.length > 0 && (
         <div className="panel">
-          <div className="label">Últimas sesiones en las que coincidisteis</div>
+          <div className="label">{t('Últimas sesiones en las que coincidisteis', 'Recent sessions together')}</div>
           {c.recentSessions.map((s) => (
             <div key={s.id} className="kv">
-              <span>{s.startedAt ? day(s.startedAt) : `Sesión ${s.id}`}</span>
+              <span>{s.startedAt ? day(s.startedAt) : t(`Sesión ${s.id}`, `Session ${s.id}`)}</span>
               <span className="faint">
-                {s.startedAt ? duration(s.startedAt, s.endedAt) : ''} · {s.events} {s.events === 1 ? 'evento' : 'eventos'}
+                {s.startedAt ? duration(s.startedAt, s.endedAt) : ''} · {s.events} {s.events === 1 ? t('evento', 'event') : t('eventos', 'events')}
               </span>
             </div>
           ))}
@@ -347,8 +376,8 @@ function ContactCard({
       )}
 
       <div className="panel">
-        <div className="label">Historial con {c.name}</div>
-        {timeline.length === 0 && !loading && <div className="empty">Sin eventos.</div>}
+        <div className="label">{t(`Historial con ${c.name}`, `History with ${c.name}`)}</div>
+        {timeline.length === 0 && !loading && <div className="empty">{t('Sin eventos.', 'No events.')}</div>}
         {timeline.map((e, i) => {
           const prev = timeline[i - 1];
           return (
@@ -360,7 +389,7 @@ function ContactCard({
         })}
         {!done && timeline.length > 0 && (
           <button className="more" onClick={() => loadEvents(events[events.length - 1]?.id)} disabled={loading}>
-            {loading ? 'Cargando…' : 'Cargar más'}
+            {loading ? t('Cargando…', 'Loading…') : t('Cargar más', 'Load more')}
           </button>
         )}
       </div>
@@ -369,14 +398,16 @@ function ContactCard({
 }
 
 function BackButton({ onBack }: { onBack: () => void }) {
+  const { t } = useLang();
   return (
     <button className="back" onClick={onBack}>
-      <ArrowLeft size={18} aria-hidden /> Contactos
+      <ArrowLeft size={18} aria-hidden /> {t('Contactos', 'Contacts')}
     </button>
   );
 }
 
 function NoteEditor({ contact, onSaved }: { contact: Contact; onSaved: (mark: Mark | null, note: string | null) => void }) {
+  const { t } = useLang();
   const [mark, setMark] = useState<Mark | null>(contact.mark);
   const [note, setNote] = useState(contact.note ?? '');
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -402,19 +433,19 @@ function NoteEditor({ contact, onSaved }: { contact: Contact; onSaved: (mark: Ma
 
   return (
     <div className="note-editor">
-      <div className="segmented" role="group" aria-label="Marca">
+      <div className="segmented" role="group" aria-label={t('Marca', 'Tag')}>
         {MARKS.map((m) => (
           <button key={m.id} className={`seg ${mark === m.id ? `on ${m.id}` : ''}`} onClick={() => pickMark(m.id)} aria-pressed={mark === m.id}>
-            <m.icon size={16} aria-hidden /> {m.label}
+            <m.icon size={16} aria-hidden /> {t(m.label)}
           </button>
         ))}
       </div>
-      <label className="note-label" htmlFor="contact-note">Tu nota</label>
+      <label className="note-label" htmlFor="contact-note">{t('Tu nota', 'Your note')}</label>
       <textarea
         id="contact-note"
         className="note"
         rows={2}
-        placeholder="Por ejemplo: pirata en Pyro, vuela una Corsair"
+        placeholder={t('Por ejemplo: pirata en Pyro, vuela una Corsair', 'For example: pirate in Pyro, flies a Corsair')}
         value={note}
         onChange={(e) => {
           setNote(e.target.value);
@@ -426,9 +457,9 @@ function NoteEditor({ contact, onSaved }: { contact: Contact; onSaved: (mark: Ma
         maxLength={2000}
       />
       <div className="note-status" aria-live="polite">
-        {status === 'saving' && 'Guardando…'}
-        {status === 'saved' && 'Guardado'}
-        {status === 'error' && 'No se ha podido guardar. Comprueba la conexión con el PC y vuelve a intentarlo.'}
+        {status === 'saving' && t('Guardando…', 'Saving…')}
+        {status === 'saved' && t('Guardado', 'Saved')}
+        {status === 'error' && t('No se ha podido guardar. Comprueba la conexión con el PC y vuelve a intentarlo.', "Couldn't save. Check the connection to the PC and try again.")}
       </div>
     </div>
   );

@@ -40,6 +40,26 @@ let restarts = 0;
 let trayHintShown = false;
 const startHidden = process.argv.includes('--hidden');
 
+// Idioma de la bandeja y los diálogos: el mismo ajuste que la interfaz (lo guarda el servidor); hasta saberlo, el de Windows.
+let uiLang: 'en' | 'es' = 'en';
+const T = (es: string, en: string) => (uiLang === 'es' ? es : en);
+let refreshTray: () => void = () => {};
+
+/** Lee el idioma guardado en el servidor y, si ha cambiado, rehace el menú de la bandeja. */
+async function syncLang() {
+  if (!serverReady) return;
+  try {
+    const r = await fetch(`http://localhost:${PORT}/api/settings`);
+    const l = ((await r.json()) as { lang?: string }).lang;
+    if ((l === 'en' || l === 'es') && l !== uiLang) {
+      uiLang = l;
+      refreshTray();
+    }
+  } catch {
+    /* servidor aún no disponible */
+  }
+}
+
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
@@ -48,6 +68,7 @@ if (!app.requestSingleInstanceLock()) {
 }
 
 function boot() {
+  uiLang = app.getLocale().toLowerCase().startsWith('es') ? 'es' : 'en';
   Menu.setApplicationMenu(null);
   mkdirSync(paths.data, { recursive: true });
   mkdirSync(dirname(logFile), { recursive: true });
@@ -55,6 +76,7 @@ function boot() {
   registerIpc();
   startServer();
   if (!startHidden) showWindow();
+  setInterval(() => void syncLang(), 20_000);
 }
 
 // ---------------------------------------------------------------- servidor
@@ -110,6 +132,7 @@ function startServer() {
     CG_CLIENT_DIST: paths.client,
     CG_VERSION: versionLabel(),
     PORT: String(PORT),
+    CG_LOCALE: app.getLocale(),
   };
   const installDir = readInstallGameDir();
   if (installDir) env.CG_INSTALL_GAME_DIR = installDir;
@@ -132,8 +155,9 @@ function startServer() {
       serverReady = true;
       restarts = 0;
       loadUi();
+      void syncLang();
     } else if (m?.type === 'error') {
-      showError(m.message ?? 'No se ha podido arrancar el servidor.');
+      showError(m.message ?? T('No se ha podido arrancar el servidor.', 'The server could not start.'));
     }
   });
   child.on('exit', (code) => {
@@ -146,7 +170,7 @@ function startServer() {
       restarts++;
       setTimeout(startServer, 1500);
     } else {
-      showError(`El servidor de CommandGlass se ha detenido (código ${code}). Revisa ${logFile}.`);
+      showError(T(`El servidor de CommandGlass se ha detenido (código ${code}). Revisa ${logFile}.`, `The CommandGlass server stopped (code ${code}). Check ${logFile}.`));
     }
   });
 }
@@ -156,7 +180,7 @@ function restartServer() {
   server = null;
   old?.kill();
   setTimeout(startServer, 600);
-  if (win) win.loadURL(loadingPage('Reiniciando CommandGlass…'));
+  if (win) win.loadURL(loadingPage(T('Reiniciando CommandGlass…', 'Restarting CommandGlass…')));
 }
 
 function readInstallGameDir(): string | null {
@@ -220,7 +244,7 @@ function showWindow() {
         trayHintShown = true;
         tray.displayBalloon({
           title: APP_NAME,
-          content: 'Sigue funcionando aquí, en la bandeja. Ábrelo desde este icono o desde el menú Inicio.',
+          content: T('Sigue funcionando aquí, en la bandeja. Ábrelo desde este icono o desde el menú Inicio.', 'It keeps running here in the tray. Open it from this icon or from the Start menu.'),
           iconType: 'info',
         });
       }
@@ -234,7 +258,7 @@ function showWindow() {
     win.webContents.on('will-navigate', (e, url) => {
       if (!url.startsWith(`http://localhost:${PORT}/`) && !url.startsWith('data:')) e.preventDefault();
     });
-    win.loadURL(serverReady ? uiUrl() : loadingPage('Arrancando CommandGlass…'));
+    win.loadURL(serverReady ? uiUrl() : loadingPage(T('Arrancando CommandGlass…', 'Starting CommandGlass…')));
   } else {
     if (win.isMinimized()) win.restore();
     win.show();
@@ -252,7 +276,7 @@ function showError(message: string) {
 }
 
 function loadingPage(text: string, error = false): string {
-  const html = `<!doctype html><meta charset="utf-8"><title>${APP_NAME}</title>
+  const html = `<!doctype html><html lang="${uiLang}"><meta charset="utf-8"><title>${APP_NAME}</title>
 <style>body{margin:0;height:100vh;display:grid;place-items:center;background:#04070b;color:${error ? '#f5c26b' : '#cdd7e0'};font:16px 'Segoe UI',system-ui,sans-serif;text-align:center;padding:0 32px}
 h1{font:700 22px 'Segoe UI',system-ui;letter-spacing:.12em;text-transform:uppercase;color:#e3eaf0;margin:0 0 10px}</style>
 <div><h1>${APP_NAME}</h1><p>${escapeHtml(text)}</p></div>`;
@@ -269,24 +293,24 @@ function createTray() {
   const image = nativeImage.createFromPath(paths.icon).resize({ width: 16, height: 16 });
   tray = new Tray(image);
   tray.setToolTip(APP_NAME);
-  const refresh = () =>
+  const refresh = (refreshTray = () =>
     tray?.setContextMenu(
       Menu.buildFromTemplate([
-        { label: 'Abrir CommandGlass', click: () => showWindow() },
-        { label: 'Abrir en el navegador', click: () => void shell.openExternal(`http://localhost:${PORT}/`) },
+        { label: T('Abrir CommandGlass', 'Open CommandGlass'), click: () => showWindow() },
+        { label: T('Abrir en el navegador', 'Open in browser'), click: () => void shell.openExternal(`http://localhost:${PORT}/`) },
         { type: 'separator' },
         isStore
-          ? { label: 'Abrir al iniciar Windows…', click: () => openStartupSettings() }
+          ? { label: T('Abrir al iniciar Windows…', 'Open at Windows startup…'), click: () => openStartupSettings() }
           : {
-              label: 'Abrir al iniciar Windows',
+              label: T('Abrir al iniciar Windows', 'Open at Windows startup'),
               type: 'checkbox',
               checked: getOpenAtLogin(),
               click: (item) => (setOpenAtLogin(item.checked), refresh()),
             },
         { type: 'separator' },
-        { label: 'Salir', click: () => quit() },
+        { label: T('Salir', 'Quit'), click: () => quit() },
       ]),
-    );
+    ));
   refresh();
   tray.on('click', () => showWindow());
 }
@@ -345,10 +369,10 @@ function fromOurPage(e: Electron.IpcMainInvokeEvent): boolean {
 
 function registerIpc() {
   ipcMain.handle('cg:choose-game-dir', async (e) => {
-    if (!fromOurPage(e) || !win) return { ok: false, message: 'No permitido.' };
+    if (!fromOurPage(e) || !win) return { ok: false, message: T('No permitido.', 'Not allowed.') };
     const r = await dialog.showOpenDialog(win, {
-      title: 'Elige la carpeta de Star Citizen',
-      buttonLabel: 'Usar esta carpeta',
+      title: T('Elige la carpeta de Star Citizen', 'Choose the Star Citizen folder'),
+      buttonLabel: T('Usar esta carpeta', 'Use this folder'),
       properties: ['openDirectory'],
       defaultPath: 'C:\\Program Files\\Roberts Space Industries',
     });
@@ -357,7 +381,10 @@ function registerIpc() {
     if (!dir) {
       return {
         ok: false,
-        message: 'En esa carpeta no está Star Citizen. Elige la carpeta StarCitizen o su subcarpeta LIVE (la que contiene Data.p4k).',
+        message: T(
+          'En esa carpeta no está Star Citizen. Elige la carpeta StarCitizen o su subcarpeta LIVE (la que contiene Data.p4k).',
+          'Star Citizen is not in that folder. Choose the StarCitizen folder or its LIVE subfolder (the one with Data.p4k).',
+        ),
       };
     }
     saveGameDir(dir);

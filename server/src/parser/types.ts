@@ -41,6 +41,8 @@ export interface GameEvent {
   importance: Importance;
   /** Texto corto en castellano para la bitácora. */
   summary: string;
+  /** El mismo texto en inglés. Al leer de la base de datos, `summary` ya viene en el idioma de la interfaz. */
+  summaryEn?: string;
   data: Record<string, unknown>;
   mentions?: Mention[];
 }

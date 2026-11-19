@@ -11,7 +11,8 @@ import { briefingFor, factionStats, kindStats, loadMissions } from '../store/mis
 import type { WikiMissions } from '../game/wiki.ts';
 import type { CommunityContracts } from '../game/starstrings.ts';
 import { UexMarket, bestRoutes, terminalsAt, vehicleByName } from '../game/uex.ts';
-import { COMPONENT_LABEL, type ComponentType, type WikiCatalog } from '../game/catalog.ts';
+import { COMPONENT_LABEL, STAT_LABEL, type ComponentType, type WikiCatalog } from '../game/catalog.ts';
+import { defaultLang, getLang, pick, setLang, tx } from '../i18n.ts';
 import { itemName } from '../parser/names.ts';
 import { loadShips, nameIndex } from '../store/hangar.ts';
 import { JUMPS, MOON_OF, SYSTEMS, loadPlaces, placeInfo } from '../store/places.ts';
@@ -21,7 +22,8 @@ import { alertsFor } from '../alerts.ts';
 import { loadCombat } from '../store/combat.ts';
 import { buildSessionSummary, summaryText } from '../store/sessionSummary.ts';
 import { hostileNames } from '../store/contacts.ts';
-import type { Store, StoredEvent } from '../store/db.ts';
+import { localizeEvent, type Store, type StoredEvent } from '../store/db.ts';
+import { shardInfo } from '../parser/names.ts';
 import type { LiveState } from '../state/reducer.ts';
 
 const MIME: Record<string, string> = {
@@ -63,7 +65,12 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
     for (const res of clients.keys()) res.write(payload);
   };
 
-  tailer.on('events', (events: StoredEvent[], state: LiveState) => {
+  // Idioma de la interfaz guardado; si no hay, el de Windows.
+  const saved = getSetting<string>(store, 'lang');
+  setLang(saved === 'es' || saved === 'en' ? saved : defaultLang());
+
+  tailer.on('events', (raw: StoredEvent[], state: LiveState) => {
+    const events = raw.map(localizeEvent);
     broadcast('events', events);
     broadcast('state', snapshot(state));
     // Solo lo reciente: al ponerse al día tras arrancar no deben saltar avisos antiguos.
@@ -82,12 +89,13 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
 
   function snapshot(state: LiveState | null) {
     if (!state) return { state, status: tailer.status(), channel };
+    const shard = state.shard ? { ...state.shard, label: shardInfo(state.shard.id).label } : null;
     const missions = state.missions.map((m) => {
       const i = wiki.lookup(m.contract, m.title);
       const c = community.lookup(m.contract, m.title);
       // Reputación: la de StarStrings (extraída del juego en este build) y, si no, la de la wiki.
       const reputation = c?.reputationValue
-        ? [{ faction: i?.faction ?? i?.giver ?? 'reputación', amount: c.reputationValue, scope: null }]
+        ? [{ faction: i?.faction ?? i?.giver ?? tx('reputación', 'reputation'), amount: c.reputationValue, scope: null }]
         : (i?.reputation ?? []);
       return {
         ...m,
@@ -107,13 +115,13 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
           : null,
       };
     });
-    return { state: { ...state, missions }, status: tailer.status(), channel };
+    return { state: { ...state, shard, missions }, status: tailer.status(), channel };
   }
 
   const pairUrl = `${lanUrl}/?k=${config.pairKey}`;
 
-  /** Idioma de los nombres del juego (el que usas en Star Citizen). Por defecto, inglés. */
-  const gameLang = (): GameLang => (getSetting<GameLang>(store, 'lang') === 'es' ? 'es' : 'en');
+  /** Idioma de la interfaz y de los nombres del juego (el que usas en Star Citizen). */
+  const gameLang = (): GameLang => getLang();
 
   const server = createServer(async (req, res) => {
     try {
@@ -128,30 +136,30 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         } catch {
           /* origen no válido */
         }
-        if (!sameHost) return json(res, 403, { error: 'Origen no permitido' });
+        if (!sameHost) return json(res, 403, { error: tx('Origen no permitido', 'Origin not allowed') });
       }
 
       if (!authorize(req, res, url, config.pairKey)) {
-        if (path.startsWith('/api/')) return json(res, 401, { error: 'Empareja este dispositivo desde el PC' });
+        if (path.startsWith('/api/')) return json(res, 401, { error: tx('Empareja este dispositivo desde el PC', 'Pair this device from the PC') });
         return html(res, 401, unauthorizedPage());
       }
 
       if (path === '/pair') {
-        if (!isLoopback(req)) return html(res, 403, '<p>Abre esta página en el PC.</p>');
+        if (!isLoopback(req)) return html(res, 403, tx('<p>Abre esta página en el PC.</p>', '<p>Open this page on the PC.</p>'));
         const svg = await QRCode.toString(pairUrl, { type: 'svg', margin: 1, width: 320 });
         return html(res, 200, pairPage(svg, pairUrl));
       }
 
       // Ventana de la app de escritorio: QR, estado y carpeta del juego. Solo en este PC (muestra la clave).
       if (path === '/escritorio') {
-        if (!isLoopback(req)) return html(res, 403, '<p>Abre esta página en el PC.</p>');
+        if (!isLoopback(req)) return html(res, 403, tx('<p>Abre esta página en el PC.</p>', '<p>Open this page on the PC.</p>'));
         const file = join(CLIENT_DIST, 'desktop.html');
-        if (!existsSync(file)) return html(res, 503, '<p>Falta compilar la interfaz: ejecuta <code>npm run build</code>.</p>');
+        if (!existsSync(file)) return html(res, 503, tx('<p>Falta compilar la interfaz: ejecuta <code>npm run build</code>.</p>', '<p>The interface is not built yet: run <code>npm run build</code>.</p>'));
         return send(res, 200, MIME['.html']!, readFileSync(file), { 'Cache-Control': 'no-cache' });
       }
 
       if (path === '/api/desktop') {
-        if (!isLoopback(req)) return json(res, 403, { error: 'Solo desde este PC' });
+        if (!isLoopback(req)) return json(res, 403, { error: tx('Solo desde este PC', 'Only from this PC') });
         const qrSvg = await QRCode.toString(pairUrl, { type: 'svg', margin: 1, width: 300, color: { dark: '#000000', light: '#ffffff' } });
         const devices = [...clients.values()].filter((c) => c.remote);
         return json(res, 200, {
@@ -224,7 +232,7 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
       if (missionRoute) {
         const all = loadMissions(store);
         const mission = all.find((m) => m.id === decodeURIComponent(missionRoute[1]!));
-        if (!mission) return json(res, 404, { error: 'No encuentro ese contrato' });
+        if (!mission) return json(res, 404, { error: tx('No encuentro ese contrato', 'Contract not found') });
         return json(res, 200, {
           mission,
           briefing: briefingFor(mission, all),
@@ -242,7 +250,7 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         // "last": la última sesión con actividad (la que está en curso, si estás jugando).
         const id = summaryRoute[1] === 'last' ? (store.listSessions(1)[0]?.id ?? null) : Number(summaryRoute[1]);
         const summary = id !== null ? buildSessionSummary(store, id, community) : null;
-        if (!summary) return json(res, 404, { error: 'No encuentro esa sesión' });
+        if (!summary) return json(res, 404, { error: tx('No encuentro esa sesión', 'Session not found') });
         return json(res, 200, { summary, text: summaryText(summary) });
       }
 
@@ -266,7 +274,7 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         if (!req.headers['content-type']?.startsWith('application/json')) return json(res, 415, { error: 'Se esperaba JSON' });
         const body = (await readJson(req)) as { amount?: unknown } | null;
         const amount = typeof body?.amount === 'number' && Number.isFinite(body.amount) && body.amount >= 0 ? Math.round(body.amount) : null;
-        if (amount === null) return json(res, 400, { error: 'Indica un saldo válido en aUEC' });
+        if (amount === null) return json(res, 400, { error: tx('Indica un saldo válido en aUEC', 'Enter a valid aUEC balance') });
         setSetting(store, 'wallet', { amount, at: new Date().toISOString() });
         return json(res, 200, { ok: true });
       }
@@ -306,14 +314,14 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         if (!req.headers['content-type']?.startsWith('application/json')) return json(res, 415, { error: 'Se esperaba JSON' });
         const body = (await readJson(req)) as { token?: unknown } | null;
         const token = typeof body?.token === 'string' ? body.token.trim() : null;
-        if (!token || !/^[A-Za-z0-9]{20,128}$/.test(token)) return json(res, 400, { error: 'Pega el token tal cual lo da UEX: solo letras y números.' });
+        if (!token || !/^[A-Za-z0-9]{20,128}$/.test(token)) return json(res, 400, { error: tx('Pega el token tal cual lo da UEX: solo letras y números.', 'Paste the token exactly as UEX gives it: letters and numbers only.') });
         let ok = false;
         try {
           ok = await UexMarket.check(token);
         } catch {
-          return json(res, 502, { error: 'No se ha podido contactar con UEX. Comprueba la conexión a Internet y vuelve a probar.' });
+          return json(res, 502, { error: tx('No se ha podido contactar con UEX. Comprueba la conexión a Internet y vuelve a probar.', 'Could not reach UEX. Check your internet connection and try again.') });
         }
-        if (!ok) return json(res, 400, { error: 'UEX no reconoce ese token. Cópialo otra vez desde uexcorp.space → My Apps.' });
+        if (!ok) return json(res, 400, { error: tx('UEX no reconoce ese token. Cópialo otra vez desde uexcorp.space → My Apps.', 'UEX does not recognize that token. Copy it again from uexcorp.space → My Apps.') });
         setSetting(store, 'uexToken', token);
         uex.forget();
         return json(res, 200, { ok: true, configured: true });
@@ -431,7 +439,7 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
       const shipRoute = /^\/api\/hangar\/ship\/([^/]+)$/.exec(path);
       if (shipRoute) {
         const spec = await catalog.ship(decodeURIComponent(shipRoute[1]!));
-        if (!spec) return json(res, 404, { error: 'La wiki no tiene ficha de esta nave' });
+        if (!spec) return json(res, 404, { error: tx('La wiki no tiene ficha de esta nave', 'The wiki has no page for this ship') });
         // Alternativas para cada componente principal que lleva de serie, por tamaño.
         const slots = new Map<string, { type: ComponentType; size: number; stock: string[] }>();
         for (const s of spec.stock) {
@@ -444,10 +452,10 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         const upgrades = await Promise.all(
           [...slots.values()].map(async (s) => ({
             type: s.type,
-            label: COMPONENT_LABEL[s.type],
+            label: pick(COMPONENT_LABEL[s.type]),
             size: s.size,
             stock: s.stock,
-            options: (await catalog.upgrades(s.type, s.size)).slice(0, 8),
+            options: (await catalog.upgrades(s.type, s.size)).slice(0, 8).map((o) => ({ ...o, statLabel: pick(STAT_LABEL[s.type]) })),
           })),
         );
         return json(res, 200, { spec, upgrades });
@@ -461,8 +469,9 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         if (req.method === 'POST') {
           if (!req.headers['content-type']?.startsWith('application/json')) return json(res, 415, { error: 'Se esperaba JSON' });
           const body = (await readJson(req)) as { lang?: unknown } | null;
-          if (body?.lang !== 'en' && body?.lang !== 'es') return json(res, 400, { error: 'Idioma no válido' });
+          if (body?.lang !== 'en' && body?.lang !== 'es') return json(res, 400, { error: tx('Idioma no válido', 'Invalid language') });
           setSetting(store, 'lang', body.lang);
+          setLang(body.lang);
         }
         return json(res, 200, { lang: gameLang() });
       }
@@ -489,18 +498,18 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         // Soltar siempre se permite, aunque la acción haya desaparecido del catálogo.
         if (phase === 'up') return json(res, 200, await keys.up(id));
         const action = bindings.find(id);
-        if (!action) return json(res, 404, { ok: false, reason: 'unbound', message: 'Esa acción no existe en tus controles.' });
+        if (!action) return json(res, 404, { ok: false, reason: 'unbound', message: tx('Esa acción no existe en tus controles.', 'That action does not exist in your controls.') });
         if (!action.keys || !action.sendable) {
           return json(res, 200, {
             ok: false,
             reason: 'unbound',
             message: action.keys
-              ? 'Esta acción usa el ratón o un eje: la botonera solo puede enviar teclado.'
-              : 'Esta acción no tiene tecla asignada. Asígnale una en Opciones → Controles del juego.',
+              ? tx('Esta acción usa el ratón o un eje: la botonera solo puede enviar teclado.', 'This action uses the mouse or an axis: the button pad can only send keyboard input.')
+              : tx('Esta acción no tiene tecla asignada. Asígnale una en Opciones → Controles del juego.', 'This action has no key bound. Bind one in the game under Options → Keybindings.'),
           });
         }
         if (DANGEROUS.has(action.name) && body?.confirm !== true) {
-          return json(res, 409, { ok: false, reason: 'confirm', message: 'Confirma la acción antes de enviarla.' });
+          return json(res, 409, { ok: false, reason: 'confirm', message: tx('Confirma la acción antes de enviarla.', 'Confirm the action before sending it.') });
         }
         const result = phase === 'down' ? await keys.down(id, action.keys) : await keys.tap(action.keys, action.plan);
         return json(res, 200, result);
@@ -516,11 +525,11 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
             return json(res, 415, { error: 'Se esperaba JSON' });
           }
           const body = (await readJson(req)) as { mark?: unknown; note?: unknown } | null;
-          if (!body) return json(res, 400, { error: 'JSON no válido' });
+          if (!body) return json(res, 400, { error: tx('JSON no válido', 'Invalid JSON') });
           return json(res, 200, setContactNote(store, name, body.mark, body.note));
         }
         const contact = getContact(store, name, tailer.status().sessionId);
-        return contact ? json(res, 200, contact) : json(res, 404, { error: 'No hay registros de este jugador' });
+        return contact ? json(res, 200, contact) : json(res, 404, { error: tx('No hay registros de este jugador', 'No records for this player') });
       }
 
       if (path === '/api/stream') {
@@ -535,12 +544,12 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         return;
       }
 
-      if (path.startsWith('/api/')) return json(res, 404, { error: 'No existe' });
+      if (path.startsWith('/api/')) return json(res, 404, { error: tx('No existe', 'Not found') });
 
       return serveStatic(res, path);
     } catch (err) {
       console.error('[http]', err);
-      if (!res.headersSent) json(res, 500, { error: 'Error interno' });
+      if (!res.headersSent) json(res, 500, { error: tx('Error interno', 'Internal error') });
     }
   });
 
@@ -584,10 +593,10 @@ function deviceName(ua: string | undefined): string {
   const s = ua ?? '';
   if (/iPhone/.test(s)) return 'iPhone';
   if (/iPad/.test(s)) return 'iPad';
-  if (/Android/.test(s)) return /Mobile/.test(s) ? 'Móvil Android' : 'Tablet Android';
+  if (/Android/.test(s)) return /Mobile/.test(s) ? tx('Móvil Android', 'Android phone') : tx('Tablet Android', 'Android tablet');
   // Safari de iPadOS se presenta como un Mac: desde la red local, casi seguro que es el iPad.
   if (/Macintosh/.test(s) && /Safari/.test(s) && !/Chrome|Edg|Firefox/.test(s)) return 'iPad';
-  return 'Navegador';
+  return tx('Navegador', 'Browser');
 }
 
 function readJson(req: IncomingMessage, limit = 16_384): Promise<unknown> {
@@ -619,7 +628,7 @@ function html(res: ServerResponse, status: number, body: string) {
 
 function serveStatic(res: ServerResponse, path: string) {
   if (!existsSync(join(CLIENT_DIST, 'index.html'))) {
-    return html(res, 503, '<div><h1>CommandGlass</h1><p>Falta compilar la interfaz: ejecuta <code>npm run build</code>.</p></div>');
+    return html(res, 503, `<div><h1>CommandGlass</h1><p>${tx('Falta compilar la interfaz: ejecuta <code>npm run build</code>.', 'The interface is not built yet: run <code>npm run build</code>.')}</p></div>`);
   }
   const safe = normalize(decodeURIComponent(path)).replace(/^([/\\])+/, '');
   let file = join(CLIENT_DIST, safe);
@@ -636,7 +645,7 @@ function manifest(key: string) {
   return {
     name: 'CommandGlass',
     short_name: 'CommandGlass',
-    description: 'Tu mobiGlas inteligente para Star Citizen',
+    description: tx('Tu mobiGlas inteligente para Star Citizen', 'Your smart mobiGlas for Star Citizen'),
     start_url: `/?k=${key}`,
     scope: '/',
     display: 'standalone',
@@ -651,14 +660,18 @@ function manifest(key: string) {
 }
 
 function unauthorizedPage(): string {
-  return `<div><h1>CommandGlass</h1><p>Este dispositivo aún no está emparejado.</p>
-<p>En el PC abre <code>http://localhost:8777/pair</code> y escanea el código QR con el iPad.</p></div>`;
+  return tx(
+    `<div><h1>CommandGlass</h1><p>Este dispositivo aún no está emparejado.</p>
+<p>En el PC abre <code>http://localhost:8777/pair</code> y escanea el código QR con el iPad.</p></div>`,
+    `<div><h1>CommandGlass</h1><p>This device is not paired yet.</p>
+<p>On the PC open <code>http://localhost:8777/pair</code> and scan the QR code with your iPad.</p></div>`,
+  );
 }
 
 function pairPage(svg: string, url: string): string {
-  return `<div><h1>Empareja tu iPad</h1>
-<p>Escanea este código con la cámara del iPad y ábrelo en Safari.</p>
+  return `<div><h1>${tx('Empareja tu iPad', 'Pair your iPad')}</h1>
+<p>${tx('Escanea este código con la cámara del iPad y ábrelo en Safari.', 'Scan this code with the iPad camera and open it in Safari.')}</p>
 <div style="background:#fff;padding:16px;border-radius:12px;display:inline-block">${svg}</div>
 <p style="font-size:13px;opacity:.7">${url}</p>
-<p>Después, en Safari: <b>Compartir → Añadir a pantalla de inicio</b>.</p></div>`;
+<p>${tx('Después, en Safari: <b>Compartir → Añadir a pantalla de inicio</b>.', 'Then, in Safari: <b>Share → Add to Home Screen</b>.')}</p></div>`;
 }

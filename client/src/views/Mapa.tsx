@@ -1,6 +1,7 @@
 import { MapPin, Navigation, Route } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { ago, hhmm, n } from '../format.ts';
+import { useLang } from '../lang.tsx';
 import { getJson, useLive } from '../live.tsx';
 
 /**
@@ -34,6 +35,7 @@ const SIZE = 600;
 const C = SIZE / 2;
 
 export function Mapa() {
+  const { t } = useLang();
   const { snapshot } = useLive();
   const [data, setData] = useState<MapResponse | null>(null);
   const [system, setSystem] = useState<string | null>(null);
@@ -48,8 +50,8 @@ export function Mapa() {
   }, [liveCode]);
 
   const sysPlaces = useMemo(() => (data?.places ?? []).filter((p) => p.system === system), [data, system]);
-  if (!data) return <div className="panel"><div className="empty">Cargando mapa…</div></div>;
-  if (!data.places.length) return <div className="panel"><div className="empty">Aún no hay viajes registrados. En cuanto llegues a una estación o ciudad, aparecerá aquí.</div></div>;
+  if (!data) return <div className="panel"><div className="empty">{t('Cargando mapa…', 'Loading map…')}</div></div>;
+  if (!data.places.length) return <div className="panel"><div className="empty">{t('Aún no hay viajes registrados. En cuanto llegues a una estación o ciudad, aparecerá aquí.', "No trips recorded yet. As soon as you reach a station or city, it'll show up here.")}</div></div>;
 
   const planets = data.systems[system ?? ''] ?? [];
   const visitsBy = (pl: string) => sysPlaces.filter((p) => p.planet === pl).reduce((a, p) => a + p.visits, 0);
@@ -68,12 +70,12 @@ export function Mapa() {
             </button>
           );
         })}
-        {cur && <span className="pill"><MapPin size={14} aria-hidden /> Ahora: {cur.name}{cur.system ? ` · ${cur.system}` : ''}</span>}
+        {cur && <span className="pill"><MapPin size={14} aria-hidden /> {t('Ahora', 'Now')}: {cur.name}{cur.system ? ` · ${cur.system}` : ''}</span>}
       </div>
 
       <div className="map-layout">
-        <section className="panel map-panel" aria-label={`Sistema ${system}`}>
-          <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="orbit-map" role="img" aria-label={`Esquema del sistema ${system}`}>
+        <section className="panel map-panel" aria-label={t(`Sistema ${system}`, `${system} system`)}>
+          <svg viewBox={`0 0 ${SIZE} ${SIZE}`} className="orbit-map" role="img" aria-label={t(`Esquema del sistema ${system}`, `${system} system diagram`)}>
             <defs>
               <radialGradient id="star" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stopColor="#fff6d8" />
@@ -95,7 +97,7 @@ export function Mapa() {
               return (
                 <g key={pl}>
                   <circle cx={C} cy={C} r={r} className="orbit-ring" />
-                  <g className={`planet ${v ? 'visited' : ''} ${planet === pl ? 'on' : ''}`} onClick={() => setPlanet(planet === pl ? null : pl)} role="button" tabIndex={0} aria-label={`${pl}: ${v} visitas`}
+                  <g className={`planet ${v ? 'visited' : ''} ${planet === pl ? 'on' : ''}`} onClick={() => setPlanet(planet === pl ? null : pl)} role="button" tabIndex={0} aria-label={`${pl}: ${v} ${t('visitas', v === 1 ? 'visit' : 'visits')}`}
                     onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && setPlanet(planet === pl ? null : pl)}>
                     <circle cx={x} cy={y} r={pr + 14} className="hit" />
                     <circle cx={x} cy={y} r={pr} className="body" />
@@ -106,7 +108,7 @@ export function Mapa() {
                     })}
                     {here && <circle cx={x} cy={y} r={pr + 6} className="here" />}
                     <text x={x} y={y + pr + 24} textAnchor="middle" className="orbit-label">{pl}</text>
-                    {v > 0 && <text x={x} y={y + pr + 38} textAnchor="middle" className="orbit-count">{v} visitas</text>}
+                    {v > 0 && <text x={x} y={y + pr + 38} textAnchor="middle" className="orbit-count">{v} {t('visitas', v === 1 ? 'visit' : 'visits')}</text>}
                   </g>
                 </g>
               );
@@ -120,18 +122,18 @@ export function Mapa() {
               return (
                 <g key={p.code} className="space-place">
                   <rect x={x - 5} y={y - 5} width={10} height={10} transform={`rotate(45 ${x} ${y})`} className={`diamond ${here ? 'here-fill' : ''}`} />
-                  <title>{`${p.name}: ${p.visits} visitas`}</title>
+                  <title>{`${p.name}: ${p.visits} ${t('visitas', p.visits === 1 ? 'visit' : 'visits')}`}</title>
                 </g>
               );
             })}
           </svg>
-          <p className="faint kind-note">Toca un planeta para ver sus sitios. El tamaño indica cuántas veces has estado. Los rombos del borde son estaciones de salto y sitios en el espacio.</p>
+          <p className="faint kind-note">{t('Toca un planeta para ver sus sitios. El tamaño indica cuántas veces has estado. Los rombos del borde son estaciones de salto y sitios en el espacio.', "Tap a planet to see its places. Size shows how often you've been there. The diamonds on the edge are jump points and places in space.")}</p>
         </section>
 
         <div className="stack">
-          <section className="panel" aria-label="Lugares">
-            <div className="label"><MapPin size={14} aria-hidden /> {planet ? `${planet} y sus lunas` : `Sitios en ${system}`}</div>
-            {listed.length === 0 && <div className="empty">Aún no has estado en ningún sitio de {planet ?? system}.</div>}
+          <section className="panel" aria-label={t('Lugares', 'Places')}>
+            <div className="label"><MapPin size={14} aria-hidden /> {planet ? t(`${planet} y sus lunas`, `${planet} and its moons`) : t(`Sitios en ${system}`, `Places in ${system}`)}</div>
+            {listed.length === 0 && <div className="empty">{t(`Aún no has estado en ningún sitio de ${planet ?? system}.`, `You haven't been anywhere in ${planet ?? system} yet.`)}</div>}
             {listed.slice(0, 40).map((p) => (
               <div key={p.code} className={`kv ${cur?.code === p.code ? 'here-row' : ''}`}>
                 <span>
@@ -144,10 +146,10 @@ export function Mapa() {
             ))}
           </section>
 
-          <section className="panel" aria-label="Ruta">
-            <div className="label"><Route size={14} aria-hidden /> Tu última ruta</div>
+          <section className="panel" aria-label={t('Ruta', 'Route')}>
+            <div className="label"><Route size={14} aria-hidden /> {t('Tu última ruta', 'Your last route')}</div>
             {data.route.length === 0 ? (
-              <div className="empty">Sin viajes en la última sesión.</div>
+              <div className="empty">{t('Sin viajes en la última sesión.', 'No travel in your last session.')}</div>
             ) : (
               <ol className="route">
                 {compress(data.route).map((s, i) => (
@@ -161,8 +163,8 @@ export function Mapa() {
             )}
           </section>
 
-          <section className="panel" aria-label="Saltos entre sistemas">
-            <div className="label"><Navigation size={14} aria-hidden /> Saltos entre sistemas</div>
+          <section className="panel" aria-label={t('Saltos entre sistemas', 'Jumps between systems')}>
+            <div className="label"><Navigation size={14} aria-hidden /> {t('Saltos entre sistemas', 'Jumps between systems')}</div>
             <JumpGraph data={data} />
           </section>
         </div>
@@ -183,6 +185,7 @@ function compress<T extends { code: string }>(route: T[]): T[] {
 }
 
 function JumpGraph({ data }: { data: MapResponse }) {
+  const { t } = useLang();
   const order = ['Magnus', 'Stanton', 'Pyro', 'Nyx', 'Castra'];
   const visited = new Set(data.places.map((p) => p.system));
   const jumpVisits = (a: string, b: string) =>
@@ -191,7 +194,7 @@ function JumpGraph({ data }: { data: MapResponse }) {
   const step = W / (order.length - 1);
   const x = (s: string) => 20 + order.indexOf(s) * ((W - 40) / (order.length - 1));
   return (
-    <svg viewBox={`0 0 ${W} 90`} className="jump-graph" role="img" aria-label="Saltos entre sistemas">
+    <svg viewBox={`0 0 ${W} 90`} className="jump-graph" role="img" aria-label={t('Saltos entre sistemas', 'Jumps between systems')}>
       {data.jumps.map(([a, b]) => {
         const v = jumpVisits(a, b);
         return (
@@ -207,7 +210,7 @@ function JumpGraph({ data }: { data: MapResponse }) {
           <text x={x(s)} y={66} textAnchor="middle" className="orbit-label">{s}</text>
         </g>
       ))}
-      <desc>{`Paso entre nodos: ${Math.round(step)}`}</desc>
+      <desc>{t(`Paso entre nodos: ${Math.round(step)}`, `Node spacing: ${Math.round(step)}`)}</desc>
     </svg>
   );
 }

@@ -1,3 +1,4 @@
+import { pick } from '../i18n.ts';
 import type { LiveState } from '../state/reducer.ts';
 import type { Store } from './db.ts';
 import { loadEconomy } from './economy.ts';
@@ -58,7 +59,7 @@ export function buildWrapped(store: Store, year: number, resolve: (display: stri
 
   const missions = loadMissions(store).filter((m) => inYear(m.acceptedAt));
   const kinds = new Map<string, number>();
-  for (const m of missions) if (m.outcome === 'completed') kinds.set(KIND_LABEL[m.kind], (kinds.get(KIND_LABEL[m.kind]) ?? 0) + 1);
+  for (const m of missions) if (m.outcome === 'completed') kinds.set(pick(KIND_LABEL[m.kind]), (kinds.get(pick(KIND_LABEL[m.kind])) ?? 0) + 1);
 
   const shipRows = store.db
     .prepare(`SELECT session_id, ts, type, data FROM events WHERE type IN ('ship.boarded', 'travel.qt_arrived', 'combat.vehicle_destroyed') AND ts LIKE ? ORDER BY id`)

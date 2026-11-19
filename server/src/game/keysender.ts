@@ -1,3 +1,4 @@
+import { tx } from '../i18n.ts';
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -136,7 +137,7 @@ export class KeySender {
   // ------------------------------------------------------------ internos
 
   private async run(tokens: string[], requireFocus = true): Promise<SendResult> {
-    if (!this.available) return { ok: false, reason: 'unavailable', message: 'El envío de teclas solo funciona con el servidor en Windows.' };
+    if (!this.available) return { ok: false, reason: 'unavailable', message: tx('El envío de teclas solo funciona con el servidor en Windows.', 'Sending keys only works when the server runs on Windows.') };
     try {
       const line = await this.request(`send ${requireFocus ? 1 : 0} ${tokens.join(' ')}`);
       const [, status, fg] = line.split(' ');
@@ -144,13 +145,13 @@ export class KeySender {
         return {
           ok: false,
           reason: 'not-focused',
-          message: 'Star Citizen no está en primer plano en el PC: haz clic en la ventana del juego y vuelve a intentarlo.',
+          message: tx('Star Citizen no está en primer plano en el PC: haz clic en la ventana del juego y vuelve a intentarlo.', 'Star Citizen is not in the foreground on the PC: click the game window and try again.'),
           foreground: fg,
         };
       }
       return { ok: true };
     } catch (err) {
-      return { ok: false, reason: 'error', message: `No se ha podido enviar la tecla (${(err as Error).message}).` };
+      return { ok: false, reason: 'error', message: tx(`No se ha podido enviar la tecla (${(err as Error).message}).`, `Could not send the key (${(err as Error).message}).`) };
     }
   }
 
@@ -160,7 +161,7 @@ export class KeySender {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(id);
-        reject(new Error('el ayudante de teclado no responde'));
+        reject(new Error(tx('el ayudante de teclado no responde', 'the keyboard helper is not responding')));
       }, 5_000);
       this.pending.set(id, (line) => {
         clearTimeout(timer);
@@ -195,7 +196,7 @@ export class KeySender {
         }
         for (const [, cb] of this.pending) cb('0 error');
         this.pending.clear();
-        reject(new Error(`el ayudante de teclado se cerró (código ${code})`));
+        reject(new Error(tx(`el ayudante de teclado se cerró (código ${code})`, `the keyboard helper exited (code ${code})`)));
       });
     });
     return this.ready;

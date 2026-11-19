@@ -3,6 +3,8 @@
  * Es una primera aproximación: más adelante se cruzará con la API de star-citizen.wiki.
  */
 
+import { getLang, type Lang } from '../i18n.ts';
+
 const MANUFACTURERS: Record<string, string> = {
   AEGS: 'Aegis',
   ANVL: 'Anvil',
@@ -80,18 +82,19 @@ export function itemName(cls: string): string | null {
   return v && !v.startsWith('@') && !/^PH\b|placeholder/i.test(v) ? v : null;
 }
 
-/** Nombre de un actor del log: jugador tal cual, NPC/entidad humanizado. */
-export function actorName(name: string): string {
-  if (!name || name === 'unknown') return 'desconocido';
+/** Nombre de un actor del log: jugador tal cual, NPC/entidad humanizado. Los nombres propios no cambian con el idioma. */
+export function actorName(name: string, lang: Lang = getLang()): string {
+  const t = (es: string, en: string) => (lang === 'es' ? es : en);
+  if (!name || name === 'unknown') return t('desconocido', 'unknown');
   if (/^PU_/.test(name)) {
     const n = stripEntityId(name)
       .replace(/^PU_/, '')
       .replace(/[-_]+/g, ' ');
     return `NPC (${n})`;
   }
-  if (/^Hazard[_-]/.test(name)) return 'un peligro del entorno';
-  if (/^PlanetKillVolume/.test(name)) return 'el límite del planeta';
-  if (/^StreamingSOC_/.test(name)) return 'un objeto del escenario';
+  if (/^Hazard[_-]/.test(name)) return t('un peligro del entorno', 'an environmental hazard');
+  if (/^PlanetKillVolume/.test(name)) return t('el límite del planeta', 'the planet boundary');
+  if (/^StreamingSOC_/.test(name)) return t('un objeto del escenario', 'a scenery object');
   if (isEntityName(name)) return shipName(name);
   return name;
 }
@@ -291,16 +294,17 @@ function cap(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
-/** "pub_euw1b_13165946_220" -> {region:"euw1b", label:"EU oeste · 220"} */
-export function shardInfo(shard: string): { region: string | null; label: string } {
+/** "pub_euw1b_13165946_220" -> {region:"euw1b", label:"Europa oeste · 220" / "EU West · 220"} */
+export function shardInfo(shard: string, lang: Lang = getLang()): { region: string | null; label: string } {
   // Servidores de LIVE (pub_) y de pruebas (ptu_, eptu_, tech_).
   const m = /^(?:pub|ptu|eptu|tech)_([a-z]+\d*[a-z]?)_\d+_(\d+)$/.exec(shard);
   if (!m) return { region: null, label: shard };
   const region = m[1]!;
-  const area = region.startsWith('euw') ? 'Europa oeste'
-    : region.startsWith('use') ? 'EE. UU. este'
-    : region.startsWith('usw') ? 'EE. UU. oeste'
-    : region.startsWith('apse') ? 'Asia-Pacífico'
+  const es = lang === 'es';
+  const area = region.startsWith('euw') ? (es ? 'Europa oeste' : 'EU West')
+    : region.startsWith('use') ? (es ? 'EE. UU. este' : 'US East')
+    : region.startsWith('usw') ? (es ? 'EE. UU. oeste' : 'US West')
+    : region.startsWith('apse') ? (es ? 'Asia-Pacífico' : 'Asia-Pacific')
     : region;
   return { region, label: `${area} · ${m[2]}` };
 }
