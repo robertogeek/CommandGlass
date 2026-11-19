@@ -83,7 +83,21 @@ a.chip { text-decoration: none; }
 }
 .desk-close:hover { color: var(--text); background: var(--cell-hi); }
 
-.desk-foot { margin-top: auto; font-size: 13px; text-align: center; }
+.desk-foot {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--seam, #17232f);
+  font-size: 13px;
+  color: var(--muted);
+}
+.desk-foot-text { flex: 1; min-width: 0; }
+.desk-foot-text p { margin: 0; }
+.desk-foot-text p + p { margin-top: 4px; }
+.desk-legal { font-size: 12px; line-height: 1.45; }
+.desk-mbtc { flex: none; width: 56px; height: 56px; margin-left: auto; opacity: 0.85; }
 
 /* Configuración inicial */
 .setup { display: grid; gap: var(--gap); max-width: 760px; width: 100%; margin: 0 auto; }

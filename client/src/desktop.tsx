@@ -6,9 +6,10 @@ import '@fontsource/saira-semi-condensed/500.css';
 import './styles.css';
 import './desktop.css';
 import { CheckCircle2, Coffee, Copy, ExternalLink, FolderOpen, FolderSearch, KeyRound, Pin, Power, Radio, Tablet, TriangleAlert, X } from 'lucide-react';
-import { StrictMode, useEffect, useState } from 'react';
+import { StrictMode, useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import logo from './assets/space-cowboys.png';
+import madeByCommunity from './assets/made-by-the-community.png';
 
 /**
  * Ventana de la app de escritorio: lo que ven tus compis al abrir CommandGlass en el PC.
@@ -151,6 +152,7 @@ function Desktop() {
           <h1>CommandGlass</h1>
           <p className="faint">Tu mobiGlas para Star Citizen{info ? ` · ${info.version}` : ''}</p>
         </div>
+        <MadeByCommunity />
       </header>
 
       {error && !info && (
@@ -289,10 +291,31 @@ function Desktop() {
         </div>
       </main>
 
-      <footer className="desk-foot faint">
-        Cerrar esta ventana no apaga CommandGlass: sigue funcionando en la bandeja del sistema, junto al reloj.
-      </footer>
+      <CommunityFooter>Cerrar esta ventana no apaga CommandGlass: sigue funcionando en la bandeja del sistema, junto al reloj.</CommunityFooter>
     </div>
+  );
+}
+
+/** Logo «Made by the Community» de CIG, en la esquina superior derecha para que siempre se vea. */
+function MadeByCommunity() {
+  return <img className="desk-mbtc" src={madeByCommunity} alt="Made by the Community" width={56} height={56} />;
+}
+
+/**
+ * Pie con los avisos que pide CIG en su Fankit and Fandom FAQ
+ * (support.robertsspaceindustries.com/hc/en-us/articles/360006895793). Los textos van tal cual los da CIG.
+ */
+function CommunityFooter({ children }: { children?: ReactNode }) {
+  return (
+    <footer className="desk-foot">
+      <div className="desk-foot-text">
+        {children && <p>{children}</p>}
+        <p className="desk-legal">
+          This is an unofficial Star Citizen fan project, not affiliated with the Cloud Imperium group of companies.
+          Star Citizen®, Roberts Space Industries® and Cloud Imperium® are registered trademarks of Cloud Imperium Rights LLC.
+        </p>
+      </div>
+    </footer>
   );
 }
 
@@ -330,6 +353,7 @@ function Setup({ info, chooseDir, choosing, dirMsg }: { info: DesktopInfo; choos
           <h1>CommandGlass</h1>
           <p className="faint">Configuración inicial · {info.version}</p>
         </div>
+        <MadeByCommunity />
       </header>
 
       <main className="setup">
@@ -414,6 +438,8 @@ function Setup({ info, chooseDir, choosing, dirMsg }: { info: DesktopInfo; choos
           </div>
         </section>
       </main>
+
+      <CommunityFooter />
     </div>
   );
 }
