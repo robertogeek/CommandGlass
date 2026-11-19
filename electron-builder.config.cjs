@@ -61,13 +61,13 @@ module.exports = {
     include: 'desktop/build/installer.nsh',
   },
   // Paquete para la Microsoft Store (`npm run dist:store`). La Store lo firma al publicarlo: aquí no se firma.
-  // La identidad sale de Partner Center (Administración de productos → Identidad del producto):
-  //   CG_APPX_IDENTITY (Package/Identity/Name), CG_APPX_PUBLISHER (CN=…), CG_APPX_PUBLISHER_NAME.
-  // Sin ellas se usa una identidad de prueba, válida para instalarlo en tu PC con el modo de desarrollador.
+  // Identidad reservada en Partner Center (Administración de productos → Identidad del producto); no es secreta.
+  // Store ID 9MX5DG0F5P0T · Package Family Name Robertogeek.CommandGlass_2j3dhx9tjwb8m.
+  // CG_APPX_IDENTITY, CG_APPX_PUBLISHER y CG_APPX_PUBLISHER_NAME la sustituyen si hiciera falta.
   appx: {
-    identityName: process.env.CG_APPX_IDENTITY || 'SpaceCowboys.CommandGlass',
-    publisher: process.env.CG_APPX_PUBLISHER || 'CN=CommandGlass Dev',
-    publisherDisplayName: process.env.CG_APPX_PUBLISHER_NAME || 'Space Cowboys',
+    identityName: process.env.CG_APPX_IDENTITY || 'Robertogeek.CommandGlass',
+    publisher: process.env.CG_APPX_PUBLISHER || 'CN=9EF8BF77-F65D-4B45-98CA-94F1BEB120C9',
+    publisherDisplayName: process.env.CG_APPX_PUBLISHER_NAME || 'Robertogeek',
     displayName: 'CommandGlass',
     applicationId: 'CommandGlass',
     backgroundColor: '#04070b',

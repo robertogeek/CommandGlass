@@ -6,40 +6,32 @@ La Store firma el paquete al publicarlo. Así Windows no muestra el aviso de Sma
 
 1. Entra en [storedeveloper.microsoft.com](https://storedeveloper.microsoft.com) con tu cuenta Microsoft y elige **Individual**.
 2. Verifica tu identidad: documento oficial y una foto. Suele tardar entre unas horas y un par de días.
-3. Rellena los datos de editor. El **nombre para mostrar del editor** sale en la ficha de la app; puede ser «Space Cowboys».
+3. Rellena los datos de editor. El **nombre para mostrar del editor** sale en la ficha de la app (ahora es «Robertogeek»).
 
 ## 2. Reservar la app
 
-1. En [Partner Center](https://partner.microsoft.com/dashboard/apps-and-games/overview): **Aplicaciones y juegos → Nueva aplicación → Aplicación MSIX o PWA**.
-2. Reserva el nombre **CommandGlass**. Si está cogido, elige otro y cámbialo también en `productName` (`package.json`) y en `displayName` (`electron-builder.config.cjs`).
-3. Abre **Administración de productos → Identidad del producto**. Apunta tres valores:
-   - `Package/Identity/Name`, por ejemplo `12345SpaceCowboys.CommandGlass`.
-   - `Package/Identity/Publisher`, del tipo `CN=XXXXXXXX-XXXX-…`.
-   - `Package/Properties/PublisherDisplayName`.
+Hecho: el nombre **CommandGlass** está reservado. La identidad del producto ya está en `electron-builder.config.cjs`:
+
+| Campo | Valor |
+|---|---|
+| `Package/Identity/Name` | `Robertogeek.CommandGlass` |
+| `Package/Identity/Publisher` | `CN=9EF8BF77-F65D-4B45-98CA-94F1BEB120C9` |
+| `PublisherDisplayName` | `Robertogeek` |
+| Package Family Name | `Robertogeek.CommandGlass_2j3dhx9tjwb8m` |
+| Store ID | `9MX5DG0F5P0T` |
+| Ficha | <https://apps.microsoft.com/detail/9MX5DG0F5P0T> |
 
 ## 3. Construir el paquete
 
-**En GitHub (recomendado).** Ve a **Settings → Secrets and variables → Actions → Variables** y crea estas variables. No son secretas: forman parte de la ficha pública.
-
-| Variable | Valor |
-|---|---|
-| `APPX_IDENTITY` | `Package/Identity/Name` |
-| `APPX_PUBLISHER` | `Package/Identity/Publisher` |
-| `APPX_PUBLISHER_NAME` | `PublisherDisplayName` |
-
-Después lanza **Actions → Microsoft Store → Run workflow**. El `.appx` queda en los artefactos de la ejecución.
+**En GitHub (recomendado).** Lanza **Actions → Microsoft Store → Run workflow**. El `.appx` queda en los artefactos de la ejecución.
 
 **En tu PC.** Necesitas el SDK de Windows (ya lo tienes: 10.0.26100):
 
 ```powershell
-$env:CG_APPX_IDENTITY = '12345SpaceCowboys.CommandGlass'
-$env:CG_APPX_PUBLISHER = 'CN=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX'
-$env:CG_APPX_PUBLISHER_NAME = 'Space Cowboys'
-$env:ELECTRON_BUILDER_WINDOWS_KITS_PATH = 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64'
-npm run dist:store
+$env:ELECTRON_BUILDER_WINDOWS_KITS_PATH = 'C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64'; npm run dist:store
 ```
 
-El resultado es `release\commandglass_v.<versión>.appx`. Sin las variables `CG_APPX_*` sale con una identidad de prueba que Partner Center no acepta.
+El resultado es `release\commandglass_v.<versión>.appx`.
 
 **Versión.** La Store usa cuatro números: `0.1.0-beta` se convierte en `0.1.0.0`. El último debe ser 0, y cada envío necesita una versión mayor que el anterior, así que sube `version` en `package.json` antes de cada envío.
 
@@ -71,11 +63,11 @@ El resultado es `release\commandglass_v.<versión>.appx`. Sin las variables `CG_
 
 Windows solo instala paquetes firmados. Para probar el `.appx` en tu PC antes de la Store:
 
-1. Firma el paquete con un certificado de prueba. Su sujeto debe ser exactamente el `Publisher` del paquete (`CN=CommandGlass Dev` si lo construiste sin variables).
+1. Firma el paquete con un certificado de prueba. Su sujeto debe ser exactamente el `Publisher` del paquete.
 2. Añade ese certificado a *Personas de confianza* del equipo. Hace falta ser administrador.
 
 ```powershell
-$cert = New-SelfSignedCertificate -Type Custom -Subject 'CN=CommandGlass Dev' -KeyUsage DigitalSignature -CertStoreLocation Cert:\CurrentUser\My -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}')
+$cert = New-SelfSignedCertificate -Type Custom -Subject 'CN=9EF8BF77-F65D-4B45-98CA-94F1BEB120C9' -KeyUsage DigitalSignature -CertStoreLocation Cert:\CurrentUser\My -TextExtension @('2.5.29.37={text}1.3.6.1.5.5.7.3.3', '2.5.29.19={text}')
 ```
 
 ```powershell

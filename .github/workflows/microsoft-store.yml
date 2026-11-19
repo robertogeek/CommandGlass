@@ -3,11 +3,7 @@
 # - Automático: al subir una etiqueta de versión (v*), igual que el instalador.
 # El .appx queda como artefacto de la ejecución; se sube a mano en Partner Center (ver docs/microsoft-store.md).
 #
-# Identidad del producto (Partner Center → tu app → Administración de productos → Identidad del producto).
-# No son secretas: van en Settings → Secrets and variables → Actions → pestaña Variables.
-#   APPX_IDENTITY        Package/Identity/Name        (por ejemplo 12345SpaceCowboys.CommandGlass)
-#   APPX_PUBLISHER       Package/Identity/Publisher   (CN=XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX)
-#   APPX_PUBLISHER_NAME  Package/Properties/PublisherDisplayName
+# La identidad del producto de Partner Center ya está en electron-builder.config.cjs.
 name: Microsoft Store
 
 on:
@@ -43,13 +39,6 @@ jobs:
           npm test
           npm run typecheck
 
-      - name: Comprobar la identidad
-        shell: pwsh
-        run: |
-          if (-not '${{ vars.APPX_IDENTITY }}' -or -not '${{ vars.APPX_PUBLISHER }}') {
-            Write-Output '::warning::Faltan las variables APPX_IDENTITY y APPX_PUBLISHER: el paquete sale con una identidad de prueba y Partner Center lo rechazará.'
-          }
-
       # makeappx y makepri del SDK de Windows que trae el runner (el paquete de herramientas antiguo de electron-builder falla en algunos equipos).
       - name: SDK de Windows
         shell: pwsh
@@ -63,9 +52,6 @@ jobs:
       - name: Construir paquete
         run: npm run dist:store
         env:
-          CG_APPX_IDENTITY: ${{ vars.APPX_IDENTITY }}
-          CG_APPX_PUBLISHER: ${{ vars.APPX_PUBLISHER }}
-          CG_APPX_PUBLISHER_NAME: ${{ vars.APPX_PUBLISHER_NAME }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
 
       - uses: actions/upload-artifact@v7
