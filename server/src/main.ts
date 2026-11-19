@@ -7,6 +7,7 @@ import { KeySender } from './game/keysender.ts';
 import { WikiMissions } from './game/wiki.ts';
 import { WikiCatalog } from './game/catalog.ts';
 import { CommunityContracts } from './game/starstrings.ts';
+import { GameStarmap } from './game/starmap.ts';
 import { loadGameNames } from './game/gamenames.ts';
 import { setGameNames } from './parser/names.ts';
 import { importBackups } from './ingest/importer.ts';
@@ -57,7 +58,10 @@ const community = new CommunityContracts(DATA_DIR, config.gameDir);
 void community.refresh();
 // Precios de mercancías de UEX: solo si el usuario ha puesto su token (se guarda en sus ajustes locales).
 const uex = new UexMarket(DATA_DIR, () => getSetting<string>(store, 'uexToken'));
-const { server, pairUrl } = startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community, uex });
+// Starmap del juego (posiciones reales de cada parche), extraído por la Star Citizen Wiki.
+const starmap = new GameStarmap(DATA_DIR);
+void starmap.refresh();
+const { server, pairUrl } = startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community, uex, starmap });
 
 // Dentro de la app de escritorio el servidor corre como proceso hijo de Electron: se le avisa al arrancar o al fallar.
 const parent = (process as unknown as { parentPort?: { postMessage(m: unknown): void } }).parentPort;

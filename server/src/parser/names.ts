@@ -148,7 +148,22 @@ export function setGameNames(names: Map<string, string> | null): void {
   GAME_NAMES = names;
 }
 
-const RR_STANTON: Record<string, string> = { HUR: 'Stanton1', CRU: 'Stanton2', ARC: 'Stanton3', MIC: 'Stanton4' };
+/**
+ * Puertas de salto cuyo código en el registro conserva un destino antiguo: RR_JP_StantonMagnus es la puerta
+ * de Stanton hacia Nyx ("Nyx Gateway") y RR_JP_NyxCastra la de Nyx hacia Stanton ("Stanton Gateway").
+ * En el historial se salta siempre de una a otra y se sigue hacia Levski; el starmap del juego no tiene
+ * puertas a Magnus ni a Castra.
+ */
+const JP_ALIAS: Record<string, string> = { StantonMagnus: 'Nyx', NyxCastra: 'Stanton' };
+
+/** "RR_JP_StantonPyro" → {from:"Stanton", to:"Pyro"}. */
+export function jumpGate(code: string): { from: string; to: string } | null {
+  const m = /^RR_JP_([A-Z][a-z]+)([A-Z][a-z]+)$/.exec(code);
+  if (!m) return null;
+  return { from: m[1]!, to: JP_ALIAS[`${m[1]}${m[2]}`] ?? m[2]! };
+}
+
+const RR_STANTON: Record<string, string> ={ HUR: 'Stanton1', CRU: 'Stanton2', ARC: 'Stanton3', MIC: 'Stanton4' };
 
 /** Claves de global.ini que pueden corresponder a un código de ubicación del registro. */
 export function nameKeys(code: string): string[] {
@@ -161,8 +176,8 @@ export function nameKeys(code: string): string[] {
     if (sys && point.toUpperCase() === 'LEO') keys.push(`${sys}_Transfer`, `${sys}_Transfer_Seraphim`, `${sys}_Station`);
     if (sys && /^L\d$/i.test(point)) keys.push(`${sys}_${point.toUpperCase()}`);
   }
-  const jp = /^RR_JP_([A-Z][a-z]+)([A-Z][a-z]+)$/.exec(code);
-  if (jp) keys.push(`${jp[1]}_${jp[2]}_JPStation`);
+  const jp = jumpGate(code);
+  if (jp) keys.push(`${jp.from}_${jp.to}_JPStation`);
   if (/Delve_Facility/i.test(code)) keys.push(code.replace(/Delve_Facility/i, 'Delving_Facility'));
   const olp = /^Outpost_OLP_(\w+?\d+[a-z]?)_(\w+)$/.exec(code);
   if (olp) keys.push(`${olp[1]}_${olp[2]}`);
@@ -202,8 +217,8 @@ function fallbackLocationInfo(code: string): { name: string; system: string | nu
     const point = parts[2] ?? '';
     // Respaldo sin traducir: en el juego la estación de A hacia B se llama "B Gateway".
     if (body === 'JP') {
-      const [from, to] = point.split(/(?<=[a-z])(?=[A-Z])/);
-      return { name: to ? `${to} Gateway` : point, system: from ?? null, body: null };
+      const jp = jumpGate(code);
+      return { name: jp ? `${jp.to} Gateway` : point, system: jp?.from ?? null, body: null };
     }
     const bodyName = RR_BODIES[body] ?? body;
     const system = body.startsWith('P') ? 'Pyro' : 'Stanton';

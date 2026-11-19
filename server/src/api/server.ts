@@ -15,7 +15,8 @@ import { COMPONENT_LABEL, STAT_LABEL, type ComponentType, type WikiCatalog } fro
 import { defaultLang, getLang, pick, setLang, tx } from '../i18n.ts';
 import { itemName } from '../parser/names.ts';
 import { loadShips, nameIndex } from '../store/hangar.ts';
-import { JUMPS, MOON_OF, SYSTEMS, loadPlaces, placeInfo } from '../store/places.ts';
+import { jumpVisits, loadPlaces, placeInfo, placeLocator } from '../store/places.ts';
+import type { GameStarmap } from '../game/starmap.ts';
 import { getSetting, loadEconomy, setSetting, walletEstimate, type Purchase } from '../store/economy.ts';
 import { buildWrapped } from '../store/wrapped.ts';
 import { alertsFor } from '../alerts.ts';
@@ -51,12 +52,13 @@ export interface ServerDeps {
   catalog: WikiCatalog;
   community: CommunityContracts;
   uex: UexMarket;
+  starmap: GameStarmap;
 }
 
 /** Acciones que no se envían sin una confirmación explícita desde la interfaz. */
 const DANGEROUS = new Set(['v_self_destruct', 'v_eject', 'force_respawn', 'v_emergency_exit']);
 
-export function startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community, uex }: ServerDeps) {
+export function startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community, uex, starmap }: ServerDeps) {
   // Conexiones en directo abiertas; "remote" = desde otro dispositivo (el iPad), no desde este PC.
   const clients = new Map<ServerResponse, { remote: boolean; since: string; agent: string }>();
 
@@ -407,14 +409,28 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
       if (path === '/api/map') {
         const { places, route, routeSessionId } = loadPlaces(store);
         const cur = tailer.state?.location ?? null;
+        const map = starmap.get();
+        const locate = placeLocator(map);
+        const located = places.map((p) => ({ ...p, ...locate(p) }));
+        const current = cur ? { code: cur.code, name: cur.name, ...placeInfo(cur.code, cur.system, cur.body), since: cur.since } : null;
+        // Se manda lo visible en el starmap del juego y, de lo oculto, solo donde has estado.
+        const visitedIds = new Set(located.map((p) => p.at).filter(Boolean));
+        const systems = (map?.systems ?? []).map((s) => ({ ...s, bodies: s.bodies.filter((b) => !b.hidden || visitedIds.has(b.id)) }));
+        // Sistemas donde has estado aunque no estén en los datos (sin datos descargados todavía).
+        for (const p of places) if (p.system && !systems.some((s) => s.name === p.system)) systems.push({ name: p.system, bodies: [], belts: [] });
+        const used = jumpVisits(places);
+        const pairs = new Map((map?.jumps ?? []).map((j) => [[...j].sort().join('|'), j]));
+        for (const k of used.keys()) if (!pairs.has(k)) pairs.set(k, k.split('|') as [string, string]);
+        const lastBuild = store.db.prepare(`SELECT build FROM sessions WHERE build IS NOT NULL ORDER BY id DESC LIMIT 1`).get() as { build: string } | undefined;
         return json(res, 200, {
-          places,
-          route,
+          starmap: { ...starmap.info },
+          gameBuild: lastBuild?.build ?? null,
+          systems,
+          jumps: [...pairs.entries()].map(([k, [a, b]]) => ({ a, b, visits: used.get(k) ?? 0 })),
+          places: located,
+          route: route.map((r) => ({ ...r, ...locate(r) })),
           routeSessionId,
-          current: cur ? { code: cur.code, name: cur.name, ...placeInfo(cur.code, cur.system, cur.body), since: cur.since } : null,
-          systems: SYSTEMS,
-          moons: MOON_OF,
-          jumps: JUMPS,
+          current: current ? { ...current, ...locate(current) } : null,
         });
       }
 
