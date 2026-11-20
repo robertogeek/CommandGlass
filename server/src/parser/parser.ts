@@ -1,3 +1,4 @@
+import { hudTranslator } from './hudlang.ts';
 import { splitLine } from './line.ts';
 import { RULES, classifyNotification, type RuleApi } from './rules.ts';
 import type { GameEvent, LogLine, ParserContext } from './types.ts';
@@ -77,7 +78,12 @@ export class LogParser {
   private notification(ts: string, body: string): GameEvent[] {
     const m = NOTIF_RE.exec(body);
     if (!m) return [];
-    const ev = classifyNotification(m[1]!, m[3] ?? null, this.api);
+    const text = m[1]!;
+    const missionId = m[3] ?? null;
+    // Juego en otro idioma: se reconoce en inglés; si aun así no hay regla, el aviso se guarda tal cual se vio.
+    const english = hudTranslator()?.toEnglish(text) ?? null;
+    let ev = classifyNotification(english ?? text, missionId, this.api);
+    if (english !== null && ev.type === 'notification') ev = classifyNotification(text, missionId, this.api);
     return [{ ...ev, ts }];
   }
 

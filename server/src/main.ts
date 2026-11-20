@@ -11,6 +11,8 @@ import { GameStarmap } from './game/starmap.ts';
 import { setupLog } from './log.ts';
 import { loadGameNames } from './game/gamenames.ts';
 import { setGameNames } from './parser/names.ts';
+import { gameLanguageSignature, loadHudStrings } from './game/gamelang.ts';
+import { HudTranslator, setHudTranslator } from './parser/hudlang.ts';
 import { importBackups } from './ingest/importer.ts';
 import { LiveTailer } from './ingest/tailer.ts';
 import { Store } from './store/db.ts';
@@ -33,12 +35,33 @@ try {
   console.warn(`Nombres del juego: no disponibles (${(err as Error).message})`);
 }
 
+// Juego en otro idioma (traducción oficial o de la comunidad): sus avisos se reconocen igual.
+let langSig = '';
+function applyGameLanguage(): void {
+  const sig = gameLanguageSignature(config.gameDir);
+  if (sig === langSig) return;
+  langSig = sig;
+  try {
+    const strings = loadHudStrings(config.gameDir, DATA_DIR);
+    const t = strings ? new HudTranslator(strings) : null;
+    setHudTranslator(t);
+    console.log(t ? `Idioma del juego: ${t.lang} (${t.size} avisos traducibles)` : 'Idioma del juego: inglés');
+  } catch (err) {
+    setHudTranslator(null);
+    console.warn(`Idioma del juego: no se pueden leer sus textos (${(err as Error).message})`);
+  }
+}
+applyGameLanguage();
+
 const imp = importBackups(store, backupsDir(config));
 console.log(`Historial: ${imp.files} logs archivados (${imp.imported} nuevos, ${imp.events} eventos añadidos)`);
 
 const tailer = new LiveTailer(store, gameLogPath(config));
 // Cuando el juego se reinicia, el log anterior pasa a logbackups/: se completa lo que faltase.
-tailer.on('session', () => setTimeout(() => importBackups(store, backupsDir(config)), 5_000));
+tailer.on('session', () => {
+  applyGameLanguage(); // por si ha cambiado el idioma o la traducción entre partidas
+  setTimeout(() => importBackups(store, backupsDir(config)), 5_000);
+});
 tailer.start();
 
 const bindings = new BindingsService(config.gameDir, DATA_DIR);

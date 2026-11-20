@@ -5,6 +5,7 @@ import { APP_VERSION, PARSER_VERSION, type AppConfig } from './config.ts';
 import type { LiveTailer } from './ingest/tailer.ts';
 import { getLang } from './i18n.ts';
 import { logFiles, redact } from './log.ts';
+import { hudTranslator } from './parser/hudlang.ts';
 import type { Store } from './store/db.ts';
 import { makeZip } from './zip.ts';
 
@@ -97,6 +98,8 @@ export function buildDiagnostics({ config, store, tailer, sources, devices }: Di
   } else {
     out('user.cfg: no hay (el juego va en inglés salvo que se cambie de otra forma)');
   }
+  const hud = hudTranslator();
+  out(`Avisos del juego: ${hud ? `se traducen desde ${hud.lang} (${hud.size} textos)` : 'en inglés, sin traducir'}`);
   out();
 
   out('== Ajustes');
@@ -138,7 +141,7 @@ export function buildDiagnostics({ config, store, tailer, sources, devices }: Di
     );
   }
   if (n(all, 'mission.info') > 0 && n(all, 'mission.accepted') === 0) {
-    out('AVISO: hay marcadores de misión pero ningún "Contract Accepted": seguramente el juego muestra los avisos en otro idioma.');
+    out('AVISO: hay marcadores de misión pero ningún contrato aceptado: los avisos del juego no se están reconociendo (¿idioma o traducción sin cargar?).');
   }
   out();
 
