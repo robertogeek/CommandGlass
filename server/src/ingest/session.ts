@@ -7,6 +7,12 @@ import { applyEvent, emptyState, type LiveState } from '../state/reducer.ts';
 import type { SessionRow, Store, StoredEvent } from '../store/db.ts';
 
 /**
+ * Tamaño de cada lectura del log. Por debajo de ~1 MB Node crea textos normales que se liberan enseguida; con trozos
+ * más grandes los guarda fuera del heap y un log de 600 MB llegaba a ocupar 800 MB de RAM mientras se leía.
+ */
+const READ_CHUNK = 512 * 1024;
+
+/**
  * Procesa un fichero de log (vivo o archivado) de forma incremental.
  * Guarda el desplazamiento en bytes, así que se puede retomar donde se quedó:
  * el Game.log en vivo y su copia posterior en logbackups/ comparten clave y offset.
@@ -50,21 +56,33 @@ export class SessionIngestor {
    */
   readFrom(path: string): StoredEvent[] {
     const fd = openSync(path, 'r');
-    let buf: Buffer;
-    let size: number;
+    const out: StoredEvent[] = [];
     try {
-      size = fstatSync(fd).size;
-      if (size <= this.session.byte_offset) return [];
-      buf = Buffer.alloc(size - this.session.byte_offset);
-      readSync(fd, buf, 0, buf.length, this.session.byte_offset);
+      const size = fstatSync(fd).size;
+      // A trozos: hay Game.log de más de 512 MB, más de lo que cabe en un solo texto de JavaScript.
+      const buf = Buffer.alloc(Math.min(READ_CHUNK, Math.max(0, size - this.session.byte_offset)));
+      while (this.session.byte_offset < size) {
+        const start = this.session.byte_offset;
+        const n = readSync(fd, buf, 0, Math.min(buf.length, size - start), start);
+        if (n <= 0) break;
+        // Solo líneas completas: lo que quede tras el último \n se lee en la siguiente pasada.
+        const lastNl = buf.subarray(0, n).lastIndexOf(0x0a);
+        if (lastNl < 0) {
+          if (n < READ_CHUNK) break; // línea a medio escribir: se completa luego
+          this.skipTo(start + n); // medio mega sin un salto de línea no es del juego: se descarta
+          continue;
+        }
+        out.push(...this.processText(buf.subarray(0, lastNl + 1).toString('utf8'), start + lastNl + 1));
+      }
     } finally {
       closeSync(fd);
     }
-    // Solo líneas completas: lo que quede tras el último \n se lee en la siguiente pasada.
-    const lastNl = buf.lastIndexOf(0x0a);
-    if (lastNl < 0) return [];
-    const text = buf.subarray(0, lastNl + 1).toString('utf8');
-    return this.processText(text, this.session.byte_offset + lastNl + 1);
+    return out;
+  }
+
+  private skipTo(offset: number): void {
+    this.store.updateSessionProgress(this.session.id, offset, 0, this.state);
+    this.session.byte_offset = offset;
   }
 
   processText(text: string, newOffset: number): StoredEvent[] {

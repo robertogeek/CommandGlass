@@ -37,6 +37,8 @@ let server: UtilityProcess | null = null;
 let serverReady = false;
 let quitting = false;
 let restarts = 0;
+// Motivo del último fallo al arrancar, tal como lo cuenta el servidor (puerto ocupado, error al leer el historial…).
+let serverError: string | null = null;
 let trayHintShown = false;
 const startHidden = process.argv.includes('--hidden');
 
@@ -140,6 +142,7 @@ function availableChannels(): Channel[] {
 
 function startServer() {
   serverReady = false;
+  serverError = null;
   const channel = readChannel();
   const dataDir = dataDirFor(channel);
   mkdirSync(dataDir, { recursive: true });
@@ -167,14 +170,15 @@ function startServer() {
   };
   child.stdout?.on('data', log);
   child.stderr?.on('data', log);
-  child.on('message', (m: { type?: string; message?: string }) => {
+  child.on('message', (m: ServerError | { type?: string }) => {
     if (m?.type === 'ready') {
       serverReady = true;
       restarts = 0;
       loadUi();
       void syncLang();
     } else if (m?.type === 'error') {
-      showError(m.message ?? T('No se ha podido arrancar el servidor.', 'The server could not start.'));
+      serverError = errorText(m as ServerError);
+      showError(serverError);
     }
   });
   child.on('exit', (code) => {
@@ -182,14 +186,47 @@ function startServer() {
     server = null;
     serverReady = false;
     if (quitting) return;
+    // Si ha dicho por qué no arranca, ese motivo ya está en la ventana: reintentar solo daría el mismo fallo.
+    if (serverError) return showError(serverError);
     // Si se cae, se reintenta un par de veces antes de rendirse.
     if (restarts < 2 && code !== 1) {
       restarts++;
       setTimeout(startServer, 1500);
     } else {
-      showError(T(`El servidor de CommandGlass se ha detenido (código ${code}). Revisa ${logFile}.`, `The CommandGlass server stopped (code ${code}). Check ${logFile}.`));
+      showError(T(`El servidor de CommandGlass se ha detenido (código ${code}).`, `The CommandGlass server stopped (code ${code}).`));
     }
   });
+}
+
+interface ServerError {
+  type: 'error';
+  code?: string;
+  detail?: string;
+  port?: number;
+}
+
+/** El motivo del fallo, en el idioma de la ventana. */
+function errorText(m: ServerError): string {
+  const port = m.port ?? PORT;
+  if (m.code === 'EADDRINUSE') {
+    return T(
+      `El puerto ${port} ya lo está usando otro programa, o CommandGlass ya está abierto (por ejemplo, la versión de la Store y la del instalador a la vez). Ciérralo y pulsa Reintentar.`,
+      `Port ${port} is already in use by another program, or CommandGlass is already open (for example, the Store version and the installer version at the same time). Close it and press Retry.`,
+    );
+  }
+  if (m.code === 'EACCES') {
+    return T(
+      `Windows no deja usar el puerto ${port} porque lo tiene reservado (pasa a veces con Hyper-V, WSL o Docker). Reinicia el PC y pulsa Reintentar.`,
+      `Windows won't let CommandGlass use port ${port} because it is reserved (this sometimes happens with Hyper-V, WSL or Docker). Restart the PC and press Retry.`,
+    );
+  }
+  const detail = m.detail ? ` (${m.detail})` : '';
+  return T(`CommandGlass ha fallado al arrancar${detail}.`, `CommandGlass failed to start${detail}.`);
+}
+
+/** Carpeta con commandglass.log: la que se abre desde la pantalla de error. */
+function logsDir(): string {
+  return visibleDataDir(join(dataDirFor(readChannel()), 'logs'));
 }
 
 function restartServer() {
@@ -273,6 +310,16 @@ function showWindow() {
       return { action: 'deny' };
     });
     win.webContents.on('will-navigate', (e, url) => {
+      // Botones de la pantalla de error.
+      if (url.startsWith('cg://')) {
+        e.preventDefault();
+        if (url.startsWith('cg://logs')) void shell.openPath(logsDir());
+        else if (url.startsWith('cg://retry')) {
+          restarts = 0;
+          restartServer();
+        }
+        return;
+      }
       if (url.startsWith('mailto:')) {
         // Correo de soporte: lo abre el programa de correo del usuario.
         e.preventDefault();
@@ -299,10 +346,18 @@ function showError(message: string) {
 }
 
 function loadingPage(text: string, error = false): string {
+  const actions = error
+    ? `<p class="hint">${escapeHtml(T('Si no se arregla, mándanos el archivo commandglass.log de la carpeta del registro.', "If it doesn't get fixed, send us the commandglass.log file from the log folder."))}</p>
+<nav><a href="cg://retry">${escapeHtml(T('Reintentar', 'Retry'))}</a><a href="cg://logs">${escapeHtml(T('Abrir carpeta del registro', 'Open log folder'))}</a></nav>`
+    : '';
   const html = `<!doctype html><html lang="${uiLang}"><meta charset="utf-8"><title>${APP_NAME}</title>
 <style>body{margin:0;height:100vh;display:grid;place-items:center;background:#04070b;color:${error ? '#f5c26b' : '#cdd7e0'};font:16px 'Segoe UI',system-ui,sans-serif;text-align:center;padding:0 32px}
-h1{font:700 22px 'Segoe UI',system-ui;letter-spacing:.12em;text-transform:uppercase;color:#e3eaf0;margin:0 0 10px}</style>
-<div><h1>${APP_NAME}</h1><p>${escapeHtml(text)}</p></div>`;
+h1{font:700 22px 'Segoe UI',system-ui;letter-spacing:.12em;text-transform:uppercase;color:#e3eaf0;margin:0 0 10px}
+div{max-width:620px}p{line-height:1.5;overflow-wrap:anywhere}.hint{color:#8d9aa6;font-size:14px}
+nav{display:flex;gap:12px;justify-content:center;margin-top:20px}
+a{color:#e3eaf0;text-decoration:none;border:1px solid #3a4a58;border-radius:6px;padding:10px 18px;font-weight:600}
+a:hover,a:focus-visible{border-color:#7fb8e0;outline:none;background:#0d1620}</style>
+<div><h1>${APP_NAME}</h1><p>${escapeHtml(text)}</p>${actions}</div>`;
   return `data:text/html;charset=utf-8,${encodeURIComponent(html)}`;
 }
 

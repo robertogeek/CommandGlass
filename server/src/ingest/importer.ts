@@ -34,7 +34,15 @@ export function importBackups(
       onProgress?.({ file: f.name, index, total: files.length, events: 0, skipped: true });
       return;
     }
-    const events = ing.readFrom(f.path);
+    let events;
+    try {
+      events = ing.readFrom(f.path);
+    } catch (err) {
+      // Un log dañado o ilegible no impide arrancar: se salta y se sigue con los demás.
+      console.warn(`Historial: no se ha podido leer ${f.name} (${(err as Error).message})`);
+      onProgress?.({ file: f.name, index, total: files.length, events: 0, skipped: true });
+      return;
+    }
     imported++;
     total += events.length;
     onProgress?.({ file: f.name, index, total: files.length, events: events.length, skipped: false });
