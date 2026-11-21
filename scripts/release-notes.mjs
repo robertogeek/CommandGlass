@@ -15,8 +15,12 @@ if (start < 0) {
 }
 const end = lines.findIndex((l, i) => i > start && l.startsWith('## '));
 const body = lines.slice(start + 1, end < 0 ? undefined : end).join('\n').trim();
+// Fecha de la versión según el changelog («## 0.1.2-beta — 2026-11-19»). Va en un comentario que GitHub no
+// muestra: la página de descargas la usa en vez de la fecha en que se creó la release.
+const date = /\b(\d{4}-\d{2}-\d{2})\b/.exec(lines[start])?.[1] ?? new Date().toISOString().slice(0, 10);
 
-console.log(`${body}
+console.log(`<!-- fecha: ${date} -->
+${body}
 
 ---
 
