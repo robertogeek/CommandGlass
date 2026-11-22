@@ -1,7 +1,8 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, session, shell, Tray, utilityProcess, type UtilityProcess } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, session, shell, Tray, utilityProcess, type UtilityProcess } from 'electron';
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { normalizeGameDir } from '../server/src/game/locate.ts';
+import { launchWithTelemetry } from './launcher.ts';
 
 /**
  * App de escritorio de CommandGlass.
@@ -12,6 +13,9 @@ import { normalizeGameDir } from '../server/src/game/locate.ts';
 
 const PORT = Number(process.env.PORT ?? 8777);
 const APP_NAME = 'CommandGlass';
+/** Tamaño de la ventana del PC: la interfaz (/escritorio) está pensada para verse entera, sin scroll, a este tamaño. */
+const WIN_W = 1920;
+const WIN_H = 1080;
 app.setName(APP_NAME);
 app.setAppUserModelId('com.spacecowboys.commandglass');
 
@@ -272,11 +276,14 @@ function uiUrl() {
 function showWindow() {
   if (!app.isReady()) return;
   if (!win) {
+    // 1920×1080. La resolución mínima es 1080p: en una pantalla de 1920×1080 (con la barra de tareas) se abre maximizada.
+    const area = screen.getPrimaryDisplay().workAreaSize;
+    const fits = area.width >= WIN_W && area.height >= WIN_H;
     win = new BrowserWindow({
-      width: 1040,
-      height: 760,
-      minWidth: 760,
-      minHeight: 600,
+      width: Math.min(WIN_W, area.width),
+      height: Math.min(WIN_H, area.height),
+      minWidth: Math.min(1600, area.width),
+      minHeight: Math.min(900, area.height),
       title: APP_NAME,
       backgroundColor: '#04070b',
       icon: paths.icon,
@@ -289,7 +296,7 @@ function showWindow() {
         nodeIntegration: false,
       },
     });
-    win.once('ready-to-show', () => win?.show());
+    win.once('ready-to-show', () => (fits ? win?.show() : win?.maximize()));
     win.on('close', (e) => {
       if (quitting) return;
       e.preventDefault();
@@ -485,6 +492,19 @@ function registerIpc() {
   });
   ipcMain.handle('cg:open-data-dir', async (e) => {
     if (fromOurPage(e)) await shell.openPath(visibleDataDir(dataDirFor(readChannel())));
+  });
+  // En la Store no: lo que abre el paquete corre dentro de su contenedor, y el launcher guardaría su sesión en el
+  // AppData virtual de CommandGlass. Allí la pestaña Telemetría explica cómo abrirlo a mano.
+  ipcMain.handle('cg:can-launch-telemetry', (e) => fromOurPage(e) && !isStore);
+  ipcMain.handle('cg:launch-telemetry', async (e, closeFirst: unknown) => {
+    if (!fromOurPage(e) || isStore) return { ok: false, reason: 'failed', detail: 'not allowed' };
+    const r = await launchWithTelemetry(starCitizenRoot(), closeFirst === true);
+    try {
+      appendFileSync(logFile, `[telemetría] abrir el RSI Launcher: ${r.ok ? 'abierto' : r.reason}${!r.ok && r.detail ? ` (${r.detail})` : ''}\n`);
+    } catch {
+      /* sin registro */
+    }
+    return r;
   });
 }
 

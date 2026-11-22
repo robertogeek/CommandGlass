@@ -1,107 +1,211 @@
-/* Ventana de escritorio (desktop.html): reutiliza los tokens y paneles de styles.css. */
+/* Ventana de escritorio (desktop.html): reutiliza los tokens y paneles de styles.css.
+   Pensada para 1920×1080 y para verse entera sin scroll: los tamaños se ajustan al alto de la ventana (vh),
+   y el QR ocupa el hueco que queda. La resolución mínima es 1080p: en una pantalla de 1920×1080 la ventana se abre maximizada. */
 
 html, body { overflow: auto; }
-body { background: radial-gradient(1100px 520px at 70% -10%, rgba(77, 176, 255, 0.08), transparent 60%), var(--bg); }
+body {
+  background:
+    radial-gradient(1400px 700px at 78% -12%, rgba(77, 176, 255, 0.1), transparent 62%),
+    radial-gradient(900px 600px at -8% 110%, rgba(77, 176, 255, 0.05), transparent 60%),
+    var(--bg);
+}
 #root { min-height: 100%; }
 
 .desk {
-  max-width: 1080px;
-  margin: 0 auto;
-  padding: 22px 26px 18px;
+  --px: clamp(16px, 1.3vw, 26px);
+  --gapd: clamp(12px, 1.7vh, 22px);
+  --fs: clamp(13.5px, 1.45vh, 16px);
+  height: 100vh;
+  min-height: 640px;
+  padding: clamp(14px, 2.2vh, 30px) clamp(18px, 2.2vw, 44px) clamp(10px, 1.4vh, 18px);
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  min-height: 100vh;
+  gap: var(--gapd);
 }
 
-.desk-head { display: flex; align-items: center; gap: 14px; }
+/* ---------- cabecera */
+.desk-head { display: flex; align-items: center; gap: clamp(12px, 1vw, 18px); }
+.desk-head .org-logo { width: clamp(48px, 5.6vh, 66px); }
 .desk-head h1 {
   margin: 0;
-  font: 700 26px/1 var(--display);
-  letter-spacing: 0.1em;
+  font: 700 clamp(24px, 3.1vh, 36px)/1 var(--display);
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--frost);
 }
-.desk-head p { margin: 4px 0 0; font-size: 14px; }
+.desk-head p { margin: 5px 0 0; font-size: var(--fs); }
+.desk-head-tools { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.desk-mbtc { flex: none; width: clamp(48px, 5.6vh, 64px); height: auto; opacity: 0.85; }
 
 .desk-alert { display: flex; align-items: center; gap: 10px; }
 
-.desk-grid {
+/* ---------- rejilla: tablet a la izquierda (alto completo), juego y telemetría en el centro, ajustes a la derecha */
+.desk-main {
+  flex: 1;
+  min-height: 0;
   display: grid;
-  grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
-  gap: var(--gap);
-  align-items: start;
+  gap: var(--gapd);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) minmax(0, 0.8fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'tablet game side'
+    'tablet tele side';
 }
-@media (max-width: 860px) {
-  .desk-grid { grid-template-columns: minmax(0, 1fr); }
-}
+.desk-tablet { grid-area: tablet; }
+.desk-game { grid-area: game; }
+.desk-tele { grid-area: tele; }
+.desk-side { grid-area: side; min-height: 0; display: flex; flex-direction: column; gap: var(--gapd); }
+.desk-side > .desk-coffee { margin-top: auto; }
 
-.desk-qr { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.desk .panel { margin: 0; min-width: 0; padding: clamp(14px, 2vh, 24px) var(--px); }
+.desk .panel > .label {
+  margin: -2px calc(-1 * var(--px)) clamp(12px, 1.7vh, 20px);
+  padding: 0 var(--px) clamp(10px, 1.3vh, 14px);
+  font-size: clamp(15px, 1.75vh, 19px);
+}
+.desk .sub, .desk .kv { font-size: var(--fs); }
+.desk .sub { line-height: 1.45; }
+.desk p.sub { margin: 0; }
+.desk-sublabel {
+  margin-bottom: 6px;
+  font: 600 clamp(11.5px, 1.2vh, 13px)/1.2 var(--display);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.desk-small { font-size: clamp(12.5px, 1.3vh, 14px); }
+
+/* ---------- tablet */
+.desk-tablet { display: flex; flex-direction: column; gap: clamp(12px, 1.8vh, 22px); }
+/* El QR mide lo que quede de alto (y de ancho) en el panel: así nunca empuja ni pisa lo de debajo. */
+.desk-qr-wrap { flex: 1; min-height: 160px; container-type: size; display: grid; place-items: center; }
 .qr-box {
-  align-self: center;
-  width: 300px;
-  max-width: 100%;
+  width: min(100cqw, 100cqh, 430px);
   aspect-ratio: 1;
-  padding: 14px;
+  padding: clamp(10px, 1.4vh, 18px);
   background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 0 0 1px var(--accent-edge), 0 0 28px var(--accent-glow);
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px var(--accent-edge), 0 0 40px var(--accent-glow);
 }
 .qr-box svg { display: block; width: 100%; height: 100%; }
 .qr-loading { display: grid; place-items: center; color: #333; font-size: 14px; }
 
-.desk-steps { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 15px; color: var(--text); }
-.desk-net { margin: 0; font-size: 13px; }
+.desk-howto { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.desk-howto li {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: clamp(10px, 1.3vh, 14px) 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl, 6px);
+  background: var(--cell);
+  font-size: var(--fs);
+  line-height: 1.4;
+  color: var(--text);
+}
+.desk-num {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--accent-edge);
+  border-radius: 50%;
+  background: var(--accent-dim);
+  font: 600 14px/1 var(--display);
+  color: var(--accent);
+}
+.desk-pair-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: var(--fs); }
+.desk-conn { padding-top: clamp(10px, 1.4vh, 16px); border-top: 1px solid var(--line); display: grid; gap: 6px; }
+.desk-conn .desk-sublabel { margin: 0; }
+.desk-device { display: flex; justify-content: space-between; gap: 12px; font-size: var(--fs); }
+
+/* ---------- juego */
+.desk-game { display: flex; flex-direction: column; gap: clamp(12px, 1.6vh, 18px); }
+.desk-state { display: flex; align-items: center; gap: 14px; }
+.desk-state .sub { margin-top: 3px; }
+.desk-state-title { font: 600 clamp(18px, 2.2vh, 24px)/1.1 var(--display); letter-spacing: 0.04em; color: var(--green); }
+.desk-dot {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 0 4px var(--green-bg);
+}
+.desk-dot.live { box-shadow: 0 0 0 4px var(--green-bg), 0 0 18px var(--green); animation: desk-pulse 2s ease-in-out infinite; }
+@keyframes desk-pulse { 50% { box-shadow: 0 0 0 7px var(--green-bg), 0 0 24px var(--green); } }
+@media (prefers-reduced-motion: reduce) { .desk-dot.live { animation: none; } }
+.desk-field { padding-top: clamp(10px, 1.4vh, 16px); border-top: 1px solid var(--line); }
+.desk-folder { display: flex; align-items: center; gap: 12px; }
+.desk-folder .desk-path { flex: 1; min-width: 0; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-folder .chip { flex: none; }
+
+/* ---------- telemetría */
+.desk-tele { display: flex; flex-direction: column; gap: clamp(12px, 1.6vh, 18px); }
+.desk-badge {
+  margin-left: auto;
+  padding: 3px 8px;
+  border: 1px solid rgba(245, 194, 107, 0.45);
+  border-radius: 4px;
+  background: var(--amber-bg);
+  font: 600 11px/1 var(--display);
+  letter-spacing: 0.12em;
+  color: var(--amber);
+}
+.desk-tele-what { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.desk-tele-what > div {
+  padding: clamp(10px, 1.3vh, 14px) 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-ctl, 6px);
+  background: var(--cell);
+  font-size: var(--fs);
+  line-height: 1.4;
+  color: var(--text);
+}
+.desk-tele-go { margin-top: auto; display: grid; gap: 10px; }
+.desk-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.desk-big { min-height: clamp(46px, 5.4vh, 56px); padding: 0 22px; font-size: clamp(14px, 1.55vh, 16px); }
+.desk-warn { color: var(--amber); }
+
+/* ---------- ajustes, informe y café */
+.desk-side .kv:first-of-type { border-top: 0; padding-top: 0; }
+.desk-report { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin-top: 12px; }
+.desk-report .desk-check { margin: 0; }
+.desk-coffee .chip { margin-top: 12px; }
+a.chip { text-decoration: none; }
 
 .desk-ok { display: inline-flex; align-items: center; gap: 8px; color: var(--green); font-weight: 600; }
 .desk-bad { display: inline-flex; align-items: center; gap: 8px; color: var(--amber); font-weight: 600; }
 .desk-path {
   margin-top: 6px;
-  font: 500 14px/1.35 var(--body);
+  font: 500 var(--fs)/1.35 var(--body);
   color: var(--frost);
   overflow-wrap: anywhere;
   user-select: text;
   -webkit-user-select: text;
 }
 .desk-btn { margin-top: 12px; }
-a.chip { text-decoration: none; }
 
-.desk-tip { position: relative; }
-.desk-close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 32px;
-  height: 32px;
-  display: grid;
-  place-items: center;
-  border: 0;
-  border-radius: var(--r-ctl);
-  background: none;
-  color: var(--faint);
-  cursor: pointer;
-}
-.desk-close:hover { color: var(--text); background: var(--cell-hi); }
-
+/* ---------- pie */
 .desk-foot {
-  margin-top: auto;
   display: flex;
   align-items: center;
   gap: 16px;
-  padding-top: 12px;
+  padding-top: clamp(8px, 1.2vh, 14px);
   border-top: 1px solid var(--seam, #17232f);
-  font-size: 13px;
+  font-size: clamp(12px, 1.3vh, 13.5px);
   color: var(--muted);
 }
 .desk-foot-text { flex: 1; min-width: 0; }
 .desk-foot-text p { margin: 0; }
-.desk-foot-text p + p { margin-top: 4px; }
-.desk-legal { font-size: 12px; line-height: 1.45; }
-.desk-mbtc { flex: none; width: 56px; height: 56px; margin-left: auto; opacity: 0.85; }
+.desk-foot-text p + p { margin-top: 3px; }
+.desk-legal { font-size: clamp(11px, 1.2vh, 12.5px); line-height: 1.4; }
 
-/* Configuración inicial */
-.setup { display: grid; gap: var(--gap); max-width: 760px; width: 100%; margin: 0 auto; }
-.desk-head.setup { display: flex; }
+/* ---------- configuración inicial */
+.desk:has(.setup) { height: auto; min-height: 100vh; }
+.setup { display: grid; gap: var(--gap); max-width: 820px; width: 100%; margin: auto; }
+.desk-head.setup { display: flex; max-width: none; margin: 0; }
 .setup-step { display: flex; gap: 16px; align-items: flex-start; }
 .setup-body { flex: 1; min-width: 0; }
 .setup-num {
@@ -123,6 +227,12 @@ a.chip { text-decoration: none; }
 .setup-form { margin-top: 12px; display: grid; gap: 6px; }
 code { color: var(--accent); }
 
-/* Informe de diagnóstico */
-.desk-check { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 4px; font-size: 14px; line-height: 1.4; color: var(--muted); cursor: pointer; }
+/* ---------- informe de diagnóstico */
+.desk-check { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 4px; font-size: var(--fs, 14px); line-height: 1.4; color: var(--muted); cursor: pointer; }
 .desk-check input { flex: none; width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--accent); }
+
+/* ---------- si se encoge la ventana (la resolución mínima es 1080p): se esconde lo accesorio de la telemetría */
+@media (max-height: 960px) {
+  .desk-tele-what, .desk-tele .desk-howto, .desk-tele .desk-small { display: none; }
+  .desk-tele.has-result > p.sub { display: none; }
+}

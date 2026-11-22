@@ -700,18 +700,22 @@ function HelpBody({ t, onBack }: { t: T; onBack?: () => void }) {
           <li>
             <span className="num">1</span>
             <div>
-              <strong>{t('Cierra el RSI Launcher del todo,', 'Close the RSI Launcher completely,')}</strong>{' '}
+              <strong>{t('En la ventana de CommandGlass del PC, pulsa', 'In the CommandGlass window on the PC, press')}</strong>{' '}
+              <strong>{t('«Abrir Star Citizen con telemetría».', '"Open Star Citizen with telemetry".')}</strong>{' '}
               {t(
-                'también desde su icono junto al reloj de Windows. Si sigue abierto en segundo plano, no se activa.',
-                "including from its icon next to the Windows clock. If it keeps running in the background, it won't turn on.",
+                'Si el RSI Launcher ya está abierto, te ofrece cerrarlo y volver a abrirlo: con el launcher abierto de antes no se activa.',
+                "If the RSI Launcher is already open, it offers to close it and open it again: a launcher that was already open won't turn it on.",
               )}
             </div>
           </li>
           <li>
             <span className="num">2</span>
             <div>
-              <strong>{t('En el PC, abre PowerShell y pega esto.', 'On the PC, open PowerShell and paste this.')}</strong>{' '}
-              {t('Abre el launcher con la telemetría encendida.', 'It opens the launcher with telemetry on.')}
+              <strong>{t('O hazlo a mano:', 'Or do it by hand:')}</strong>{' '}
+              {t(
+                'cierra el RSI Launcher del todo (también desde su icono junto al reloj de Windows), abre PowerShell y pega esto. Es lo que hay que hacer con la versión de la Microsoft Store.',
+                "close the RSI Launcher completely (including from its icon next to the Windows clock), open PowerShell and paste this. This is the way with the Microsoft Store version.",
+              )}
               <div className="tl-code">
                 {COMMAND.map((l) => (
                   <div key={l}>{l}</div>

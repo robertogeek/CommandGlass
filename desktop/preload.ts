@@ -8,4 +8,6 @@ contextBridge.exposeInMainWorld('commandglass', {
   openDataDir: () => ipcRenderer.invoke('cg:open-data-dir'),
   getChannels: () => ipcRenderer.invoke('cg:get-channels'),
   setChannel: (ch: string) => ipcRenderer.invoke('cg:set-channel', ch),
+  canLaunchTelemetry: () => ipcRenderer.invoke('cg:can-launch-telemetry'),
+  launchTelemetry: (closeFirst: boolean) => ipcRenderer.invoke('cg:launch-telemetry', closeFirst),
 });

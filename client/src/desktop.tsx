@@ -5,7 +5,7 @@ import '@fontsource/saira-semi-condensed/400.css';
 import '@fontsource/saira-semi-condensed/500.css';
 import './styles.css';
 import './desktop.css';
-import { CheckCircle2, Coffee, Copy, ExternalLink, FileDown, FolderOpen, FolderSearch, KeyRound, LifeBuoy, Pin, Power, Radio, Tablet, TriangleAlert, X } from 'lucide-react';
+import { Activity, CheckCircle2, Coffee, Copy, ExternalLink, FileDown, FolderOpen, FolderSearch, KeyRound, LifeBuoy, Power, Radio, Tablet, TriangleAlert } from 'lucide-react';
 import { StrictMode, useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import logo from './assets/space-cowboys.png';
@@ -44,7 +44,12 @@ interface Bridge {
   openDataDir(): Promise<void>;
   getChannels(): Promise<{ current: string; available: string[] } | null>;
   setChannel(ch: string): Promise<boolean>;
+  /** false en la versión de la Microsoft Store (y en versiones antiguas de la app, que no lo tienen). */
+  canLaunchTelemetry?(): Promise<boolean>;
+  launchTelemetry?(closeFirst: boolean): Promise<LaunchResult>;
 }
+
+type LaunchResult = { ok: true; closed: boolean } | { ok: false; reason: 'not-found' | 'game-running' | 'launcher-running' | 'failed'; detail?: string };
 
 declare global {
   interface Window {
@@ -53,25 +58,8 @@ declare global {
 }
 
 const bridge = window.commandglass;
-const PIN_TIP_KEY = 'cg-pin-tip-dismissed';
 /** Enlace de PayPal de robertogeek para que quien quiera le invite a un café. Vacío = no se muestra. */
 const DONATE_URL = 'https://paypal.me/robertogeek';
-
-function readFlag(key: string): boolean {
-  try {
-    return localStorage.getItem(key) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function writeFlag(key: string) {
-  try {
-    localStorage.setItem(key, '1');
-  } catch {
-    /* sin almacenamiento: el aviso volverá a salir */
-  }
-}
 
 function useDesktopInfo() {
   const [info, setInfo] = useState<DesktopInfo | null>(null);
@@ -97,7 +85,6 @@ function Desktop() {
   const { t } = useLang();
   const { info, error } = useDesktopInfo();
   const [copied, setCopied] = useState(false);
-  const [pinTip, setPinTip] = useState(() => !readFlag(PIN_TIP_KEY));
   const [atLogin, setAtLogin] = useState<boolean | null>(null);
   const [storeLogin, setStoreLogin] = useState(false);
   const [dirMsg, setDirMsg] = useState<string | null>(null);
@@ -157,12 +144,15 @@ function Desktop() {
   return (
     <div className="desk">
       <header className="desk-head">
-        <img className="org-logo" src={logo} alt="Space Cowboys" width={56} height={48} />
+        <img className="org-logo" src={logo} alt="Space Cowboys" width={64} height={54} />
         <div>
           <h1>CommandGlass</h1>
           <p className="faint">{t('Tu mobiGlas para Star Citizen', 'Your mobiGlas for Star Citizen')}{info ? ` · ${info.version}` : ''}</p>
         </div>
-        <MadeByCommunity />
+        <div className="desk-head-tools">
+          <LangSwitch />
+          <MadeByCommunity />
+        </div>
       </header>
 
       {error && !info && (
@@ -175,45 +165,70 @@ function Desktop() {
         </div>
       )}
 
-      <main className="desk-grid">
-        <section className="panel desk-qr" aria-label={t('Emparejar el tablet', 'Pair the tablet')}>
-          <div className="label"><Tablet size={14} aria-hidden /> {t('Empareja tu tablet', 'Pair your tablet')}</div>
-          {info ? (
-            <div
-              className="qr-box"
-              dangerouslySetInnerHTML={{ __html: info.qrSvg }}
-              aria-label={t('Código QR para abrir CommandGlass en el tablet', 'QR code to open CommandGlass on the tablet')}
-              role="img"
-            />
-          ) : (
-            <div className="qr-box qr-loading">{t('Preparando código…', 'Preparing code…')}</div>
-          )}
-          <ol className="desk-steps">
+      <main className="desk-main">
+        <section className="panel desk-tablet" aria-label={t('Emparejar el tablet', 'Pair the tablet')}>
+          <div className="label"><Tablet size={16} aria-hidden /> {t('Empareja tu tablet', 'Pair your tablet')}</div>
+          <div className="desk-qr-wrap">
+            {info ? (
+              <div
+                className="qr-box"
+                dangerouslySetInnerHTML={{ __html: info.qrSvg }}
+                aria-label={t('Código QR para abrir CommandGlass en el tablet', 'QR code to open CommandGlass on the tablet')}
+                role="img"
+              />
+            ) : (
+              <div className="qr-box qr-loading">{t('Preparando código…', 'Preparing code…')}</div>
+            )}
+          </div>
+          <ol className="desk-howto">
             <li>
-              {t('Abre la', 'Open the tablet')} <strong>{t('cámara', 'camera')}</strong> {t('del tablet y apunta al código.', 'and point it at the code.')}
+              <span className="desk-num" aria-hidden>1</span>
+              <span>
+                {t('Abre la', 'Open the tablet')} <strong>{t('cámara', 'camera')}</strong> {t('del tablet y apunta al código.', 'and point it at the code.')}
+              </span>
             </li>
-            <li>{t('Toca el aviso para abrir CommandGlass en el navegador.', 'Tap the notification to open CommandGlass in the browser.')}</li>
             <li>
-              {t('En el iPad, toca', 'On iPad, tap')} <strong>{t('Compartir → Añadir a pantalla de inicio', 'Share → Add to Home Screen')}</strong>
-              {t('. En Android,', '. On Android,')} <strong>{t('menú ⋮ → Añadir a pantalla de inicio', '⋮ menu → Add to Home screen')}</strong>
-              {t('. La app te lo recuerda la primera vez.', '. The app reminds you the first time.')}
+              <span className="desk-num" aria-hidden>2</span>
+              <span>{t('Toca el aviso para abrir CommandGlass en el navegador.', 'Tap the notification to open CommandGlass in the browser.')}</span>
+            </li>
+            <li>
+              <span className="desk-num" aria-hidden>3</span>
+              <span>
+                {t('Añádelo a la pantalla de inicio: en el iPad,', 'Add it to the Home Screen: on iPad,')} <strong>{t('Compartir', 'Share')}</strong>
+                {t('; en Android, el', '; on Android, the')} <strong>{t('menú ⋮', '⋮ menu')}</strong>.
+              </span>
             </li>
           </ol>
-          <p className="faint desk-net">{t('El tablet tiene que estar en la misma wifi que este PC.', 'The tablet must be on the same Wi-Fi as this PC.')}</p>
-          {info && (
-            <button className="chip" onClick={copy}>
-              <Copy size={15} aria-hidden /> {copied ? t('Enlace copiado', 'Link copied') : t('Copiar enlace', 'Copy link')}
-            </button>
-          )}
+          <div className="desk-pair-foot">
+            <span className="faint">{t('El tablet tiene que estar en la misma wifi que este PC.', 'The tablet must be on the same Wi-Fi as this PC.')}</span>
+            {info && (
+              <button className="chip" onClick={copy}>
+                <Copy size={15} aria-hidden /> {copied ? t('Enlace copiado', 'Link copied') : t('Copiar enlace', 'Copy link')}
+              </button>
+            )}
+          </div>
+          <div className="desk-conn" aria-label={t('Conectados ahora', 'Connected now')}>
+            <div className="desk-sublabel">{t('Conectados ahora', 'Connected now')}</div>
+            {devices.length === 0 ? (
+              <div className="sub">{t('Ningún tablet todavía. Escanea el código para empezar.', 'No tablet yet. Scan the code to get started.')}</div>
+            ) : (
+              devices.map((d, i) => (
+                <div key={i} className="desk-device">
+                  <span className="desk-ok"><CheckCircle2 size={16} aria-hidden /> {d.agent}</span>
+                  <span className="faint">{t(`desde las ${hhmm(d.since)}`, `since ${hhmm(d.since)}`)}</span>
+                </div>
+              ))
+            )}
+          </div>
         </section>
 
-        <div className="stack">
-          <section className={`panel ${info && !info.gameDirFound ? 'warn' : ''}`} aria-label="Star Citizen">
-            <div className="label"><Radio size={14} aria-hidden /> Star Citizen</div>
-            {info?.gameDirFound ? (
-              <>
-                <div className="desk-ok"><CheckCircle2 size={18} aria-hidden /> {t('Juego encontrado', 'Game found')}</div>
-                <div className="desk-path">{info.gameDir}</div>
+        <section className={`panel desk-game ${info && !info.gameDirFound ? 'warn' : ''}`} aria-label="Star Citizen">
+          <div className="label"><Radio size={16} aria-hidden /> Star Citizen</div>
+          {info?.gameDirFound ? (
+            <div className="desk-state">
+              <span className={`desk-dot ${info.status.active ? 'live' : ''}`} aria-hidden />
+              <div>
+                <div className="desk-state-title">{t('Juego encontrado', 'Game found')}</div>
                 <div className="sub">
                   {info.status.active
                     ? t('Partida en directo: leyendo el registro del juego.', 'Live session: reading the game log.')
@@ -221,61 +236,53 @@ function Desktop() {
                       ? t('Esperando a que abras el juego.', 'Waiting for you to launch the game.')
                       : t('Aún no hay registro: abre el juego una vez.', 'No log yet: launch the game once.')}
                 </div>
-              </>
-            ) : info ? (
-              <>
-                <div className="desk-bad"><TriangleAlert size={18} aria-hidden /> {t('No encuentro Star Citizen', "Can't find Star Citizen")}</div>
-                <GameDirHint />
-              </>
-            ) : (
-              <div className="sub">{t('Comprobando…', 'Checking…')}</div>
-            )}
-            {channels && channels.available.length > 1 && (
-              <div className="kv desk-channel">
-                <span>{t('Versión del juego', 'Game version')}</span>
-                <div className="segmented" role="group" aria-label={t('Versión del juego', 'Game version')}>
-                  {channels.available.map((ch) => (
-                    <button key={ch} className={`seg ${ch === channels.current ? 'on' : ''}`} onClick={() => switchChannel(ch)} aria-pressed={ch === channels.current}>
-                      {ch}
-                    </button>
-                  ))}
-                </div>
               </div>
-            )}
-            {bridge && (
-              <button className="chip desk-btn" onClick={chooseDir} disabled={choosing}>
-                <FolderSearch size={15} aria-hidden /> {info?.gameDirFound ? t('Cambiar carpeta…', 'Change folder…') : t('Elegir carpeta…', 'Choose folder…')}
-              </button>
-            )}
-            {dirMsg && <div className="sub" role="status">{dirMsg}</div>}
-          </section>
+            </div>
+          ) : info ? (
+            <div>
+              <div className="desk-bad"><TriangleAlert size={18} aria-hidden /> {t('No encuentro Star Citizen', "Can't find Star Citizen")}</div>
+              <GameDirHint />
+            </div>
+          ) : (
+            <div className="sub">{t('Comprobando…', 'Checking…')}</div>
+          )}
+          <div className="desk-field">
+            <div className="desk-sublabel">{t('Carpeta del juego', 'Game folder')}</div>
+            <div className="desk-folder">
+              <div className="desk-path" title={info?.gameDir}>{info?.gameDirFound ? info.gameDir : '—'}</div>
+              {bridge && (
+                <button className="chip" onClick={chooseDir} disabled={choosing}>
+                  <FolderSearch size={15} aria-hidden /> {info?.gameDirFound ? t('Cambiar…', 'Change…') : t('Elegir carpeta…', 'Choose folder…')}
+                </button>
+              )}
+            </div>
+          </div>
+          {channels && channels.available.length > 1 && (
+            <div className="desk-field">
+              <div className="desk-sublabel">{t('Versión del juego', 'Game version')}</div>
+              <div className="segmented" role="group" aria-label={t('Versión del juego', 'Game version')}>
+                {channels.available.map((ch) => (
+                  <button key={ch} className={`seg ${ch === channels.current ? 'on' : ''}`} onClick={() => switchChannel(ch)} aria-pressed={ch === channels.current}>
+                    {ch}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          {dirMsg && <div className="sub" role="status">{dirMsg}</div>}
+        </section>
 
-          <section className="panel" aria-label={t('Dispositivos', 'Devices')}>
-            <div className="label"><Tablet size={14} aria-hidden /> {t('Conectados ahora', 'Connected now')}</div>
-            {devices.length === 0 ? (
-              <div className="sub">{t('Ningún tablet conectado todavía. Escanea el código para empezar.', 'No tablet connected yet. Scan the code to get started.')}</div>
-            ) : (
-              devices.map((d, i) => (
-                <div key={i} className="kv">
-                  <span className="desk-ok"><CheckCircle2 size={16} aria-hidden /> {d.agent}</span>
-                  <span className="faint">{t(`desde las ${hhmm(d.since)}`, `since ${hhmm(d.since)}`)}</span>
-                </div>
-              ))
-            )}
-          </section>
+        {info?.gameDirFound && <TelemetryLaunch />}
 
+        <div className="desk-side">
           {bridge && (
             <section className="panel" aria-label={t('Ajustes', 'Settings')}>
-              <div className="label"><Power size={14} aria-hidden /> {t('Ajustes', 'Settings')}</div>
+              <div className="label"><Power size={16} aria-hidden /> {t('Ajustes', 'Settings')}</div>
               <div className="kv">
-                <span>{t('Idioma', 'Language')}</span>
-                <LangSwitch />
-              </div>
-              <div className="kv">
-                <span>{t('Abrir CommandGlass al iniciar Windows', 'Open CommandGlass when Windows starts')}</span>
+                <span>{t('Abrir al iniciar Windows', 'Open when Windows starts')}</span>
                 {storeLogin ? (
                   <button className="chip" onClick={() => void bridge.setOpenAtLogin(true)}>
-                    <Power size={15} aria-hidden /> {t('Configurar en Windows', 'Set up in Windows')}
+                    <Power size={15} aria-hidden /> {t('Configurar', 'Set up')}
                   </button>
                 ) : (
                   <button
@@ -300,32 +307,16 @@ function Desktop() {
 
           <Diagnostics />
 
-          {pinTip && (
-            <section className="panel desk-tip" aria-label={t('Anclar a la barra de tareas', 'Pin to taskbar')}>
-              <button className="desk-close" onClick={() => (setPinTip(false), writeFlag(PIN_TIP_KEY))} aria-label={t('Cerrar aviso', 'Dismiss tip')}>
-                <X size={16} aria-hidden />
-              </button>
-              <div className="label"><Pin size={14} aria-hidden /> {t('Tenlo a mano', 'Keep it handy')}</div>
-              <div className="sub">
-                {t(
-                  'Para anclarlo a la barra de tareas: clic derecho en el icono de CommandGlass en la barra →',
-                  'To pin it to the taskbar: right-click the CommandGlass icon on the taskbar →',
-                )}{' '}
-                <strong>{t('Anclar a la barra de tareas', 'Pin to taskbar')}</strong>.
-              </div>
-            </section>
-          )}
-
           {DONATE_URL && (
-            <section className="panel" aria-label={t('Invitar a un café', 'Buy a coffee')}>
-              <div className="label"><Coffee size={14} aria-hidden /> {t('¿Te está siendo útil?', 'Finding it useful?')}</div>
+            <section className="panel desk-coffee" aria-label={t('Invitar a un café', 'Buy a coffee')}>
+              <div className="label"><Coffee size={16} aria-hidden /> {t('¿Te está siendo útil?', 'Finding it useful?')}</div>
               <div className="sub">
                 {t(
-                  'CommandGlass es gratis. Si te ayuda en tus partidas, puedes invitar a robertogeek a un café, o a lo que quieras.',
-                  'CommandGlass is free. If it helps your sessions, you can buy robertogeek a coffee, or whatever you like.',
+                  'CommandGlass es gratis. Si te ayuda en tus partidas, puedes invitar a robertogeek a un café.',
+                  'CommandGlass is free. If it helps your sessions, you can buy robertogeek a coffee.',
                 )}
               </div>
-              <a className="chip desk-btn" href={DONATE_URL} target="_blank" rel="noreferrer">
+              <a className="chip" href={DONATE_URL} target="_blank" rel="noreferrer">
                 <Coffee size={15} aria-hidden /> {t('Invitar con PayPal', 'Tip with PayPal')} <ExternalLink size={13} aria-hidden />
               </a>
             </section>
@@ -335,11 +326,131 @@ function Desktop() {
 
       <CommunityFooter>
         {t(
-          'Cerrar esta ventana no apaga CommandGlass: sigue funcionando en la bandeja del sistema, junto al reloj.',
-          "Closing this window doesn't shut down CommandGlass: it keeps running in the system tray, next to the clock.",
+          'Cerrar esta ventana no apaga CommandGlass: sigue en la bandeja del sistema, junto al reloj. Para tenerlo a mano, clic derecho en su icono de la barra de tareas → Anclar a la barra de tareas.',
+          "Closing this window doesn't shut down CommandGlass: it keeps running in the system tray, next to the clock. To keep it handy, right-click its taskbar icon → Pin to taskbar.",
         )}
       </CommunityFooter>
     </div>
+  );
+}
+
+/** Abrir el RSI Launcher con la telemetría encendida, para la pestaña Telemetría del tablet. */
+function TelemetryLaunch() {
+  const { t } = useLang();
+  // null = aún no se sabe; false = versión de la Store (o una app antigua): se explica cómo hacerlo a mano.
+  const [can, setCan] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<LaunchResult | null>(null);
+  useEffect(() => {
+    if (!bridge?.canLaunchTelemetry) return setCan(false);
+    bridge.canLaunchTelemetry().then(setCan).catch(() => setCan(false));
+  }, []);
+
+  const launch = async (closeFirst: boolean) => {
+    if (!bridge?.launchTelemetry) return;
+    setBusy(true);
+    setResult(null);
+    try {
+      setResult(await bridge.launchTelemetry(closeFirst));
+    } catch {
+      setResult({ ok: false, reason: 'failed' });
+    }
+    setBusy(false);
+  };
+
+  const message = (r: LaunchResult): string => {
+    if (r.ok) return t('Launcher abierto con la telemetría. Entra al universo y mira la pestaña Telemetría del tablet.', 'Launcher opened with telemetry. Enter the universe and check the Telemetry tab on the tablet.');
+    switch (r.reason) {
+      case 'launcher-running':
+        return t(
+          'El RSI Launcher ya está abierto y así no se activa: hay que cerrarlo y reabrirlo. Si está descargando una actualización, espera a que termine.',
+          "The RSI Launcher is already open, so it won't turn on: it has to be closed and reopened. If it's downloading an update, wait for it to finish.",
+        );
+      case 'game-running':
+        return t('Star Citizen está abierto. Sal del juego y vuelve a pulsar: la telemetría se enciende al abrir el launcher.', 'Star Citizen is running. Quit the game and press again: telemetry turns on when the launcher opens.');
+      case 'not-found':
+        return t('No encuentro el RSI Launcher. Ábrelo a mano con el comando de la pestaña Telemetría.', "Can't find the RSI Launcher. Open it by hand with the command in the Telemetry tab.");
+      default:
+        return t('No se ha podido abrir el RSI Launcher.', "Couldn't open the RSI Launcher.");
+    }
+  };
+
+  const mustClose = result && !result.ok && result.reason === 'launcher-running';
+  return (
+    <section className={`panel desk-tele ${result ? 'has-result' : ''}`} aria-label={t('Telemetría', 'Telemetry')}>
+      <div className="label">
+        <Activity size={16} aria-hidden /> {t('Telemetría', 'Telemetry')} <span className="desk-badge">{t('Experimental', 'Experimental')}</span>
+      </div>
+      <p className="sub">
+        {t(
+          'Star Citizen puede enviar al tablet lo que pasa en directo, unas 18 veces por segundo. Viene apagada: se enciende al abrir el RSI Launcher de una forma concreta, solo para esa vez.',
+          "Star Citizen can send the tablet what's happening live, about 18 times a second. It's off by default: it turns on when the RSI Launcher is opened in a specific way, just for that time.",
+        )}
+      </p>
+      <div className="desk-tele-what">
+        <div>
+          <div className="desk-sublabel">{t('Tu personaje', 'Your character')}</div>
+          <span>{t('Salud, oxígeno, hambre, sed, pulso, entorno y saldo', 'Health, oxygen, hunger, thirst, heart rate, environment and balance')}</span>
+        </div>
+        <div>
+          <div className="desk-sublabel">{t('Tu nave', 'Your ship')}</div>
+          <span>{t('Luces de aviso, velocidad, rumbo, hidrógeno, boost, energía, armas y contramedidas', 'Warning lights, speed, heading, hydrogen, boost, power, weapons and countermeasures')}</span>
+        </div>
+      </div>
+      {can !== false && (
+        <ol className="desk-howto">
+          <li>
+            <span className="desk-num" aria-hidden>1</span>
+            <span>{t('Pulsa el botón de abajo: se abre el RSI Launcher.', 'Press the button below: the RSI Launcher opens.')}</span>
+          </li>
+          <li>
+            <span className="desk-num" aria-hidden>2</span>
+            <span>{t('Entra al universo como siempre.', 'Enter the universe as usual.')}</span>
+          </li>
+          <li>
+            <span className="desk-num" aria-hidden>3</span>
+            <span>{t('En el tablet, abre la pestaña Telemetría.', 'On the tablet, open the Telemetry tab.')}</span>
+          </li>
+        </ol>
+      )}
+      <div className="desk-tele-go">
+        {can === false ? (
+          <div className="sub">
+            {t(
+              'En la versión de la Microsoft Store se activa a mano: la pestaña Telemetría del tablet explica cómo.',
+              'In the Microsoft Store version it is turned on by hand: the Telemetry tab on the tablet explains how.',
+            )}
+          </div>
+        ) : (
+          <>
+            {result && (
+              <div className={`sub ${result.ok ? 'desk-ok' : 'desk-warn'}`} role="status">
+                {message(result)}
+              </div>
+            )}
+            <div className="desk-actions">
+              {mustClose ? (
+                <>
+                  <button className="chip on desk-big" onClick={() => void launch(true)} disabled={busy}>
+                    <Power size={16} aria-hidden /> {busy ? t('Reabriendo…', 'Reopening…') : t('Cerrar el launcher y reabrirlo', 'Close and reopen the launcher')}
+                  </button>
+                  <button className="chip" onClick={() => setResult(null)} disabled={busy}>
+                    {t('Cancelar', 'Cancel')}
+                  </button>
+                </>
+              ) : (
+                <button className="chip on desk-big" onClick={() => void launch(false)} disabled={busy || can === null}>
+                  <Activity size={16} aria-hidden /> {busy ? t('Abriendo…', 'Opening…') : t('Abrir Star Citizen con telemetría', 'Open Star Citizen with telemetry')}
+                </button>
+              )}
+            </div>
+            {!result && (
+              <div className="faint desk-small">{t('No cambia nada en tu PC ni en el juego, y solo lee datos.', 'Nothing changes on your PC or in the game, and it only reads data.')}</div>
+            )}
+          </>
+        )}
+      </div>
+    </section>
   );
 }
 
@@ -356,25 +467,27 @@ function Diagnostics() {
     `&body=${encodeURIComponent(t('Qué falla y cuándo:\n\n\nAdjunto el informe de diagnóstico.', "What's wrong and when:\n\n\nThe diagnostic report is attached."))}`;
   return (
     <section className="panel" aria-label={t('Informe de diagnóstico', 'Diagnostic report')}>
-      <div className="label"><LifeBuoy size={14} aria-hidden /> {t('¿Algo no funciona?', "Something isn't working?")}</div>
+      <div className="label"><LifeBuoy size={16} aria-hidden /> {t('¿Algo no funciona?', "Something isn't working?")}</div>
       <div className="sub">
         {t(
-          'Crea un informe y mándalo por correo contando qué falla. Lleva el registro de CommandGlass y lo que la app ha entendido de tus partidas, nunca tu token de UEX. No se envía solo. Si el fallo es en el tablet, ábrelo antes de crearlo.',
-          "Create a report and email it, telling us what's wrong. It has the CommandGlass log and what the app understood from your sessions, never your UEX token. Nothing is sent automatically. If the problem is on the tablet, open it before creating the report.",
+          'Crea un informe y mándalo por correo contando qué falla. No se envía solo y nunca lleva tu token de UEX. Si falla el tablet, tenlo abierto al crearlo.',
+          "Create a report and email it, telling us what's wrong. Nothing is sent automatically and it never includes your UEX token. If the tablet is failing, keep it open while you create it.",
         )}
       </div>
-      <label className="desk-check">
-        <input type="checkbox" checked={withGameLog} onChange={(e) => setWithGameLog(e.target.checked)} />
-        <span>
-          {t(
-            'Incluir el Game.log de la última partida (lleva tu nombre de jugador y el de otros jugadores con los que te has cruzado)',
-            "Include the Game.log from your last session (it has your player name and those of players you've come across)",
-          )}
-        </span>
-      </label>
-      <a className="chip desk-btn" href={`/api/diagnostics?gamelog=${withGameLog ? 1 : 0}`} download onClick={() => setCreated(true)}>
-        <FileDown size={15} aria-hidden /> {t('Crear informe…', 'Create report…')}
-      </a>
+      <div className="desk-report">
+        <label className="desk-check">
+          <input type="checkbox" checked={withGameLog} onChange={(e) => setWithGameLog(e.target.checked)} />
+          <span>
+            {t(
+              'Incluir el Game.log de la última partida (lleva tu nombre de jugador y el de otros con los que te has cruzado)',
+              "Include the Game.log from your last session (it has your player name and those of others you've come across)",
+            )}
+          </span>
+        </label>
+        <a className="chip" href={`/api/diagnostics?gamelog=${withGameLog ? 1 : 0}`} download onClick={() => setCreated(true)}>
+          <FileDown size={15} aria-hidden /> {t('Crear informe…', 'Create report…')}
+        </a>
+      </div>
       {created && (
         <div className="sub" role="status">
           {t('Guarda el .zip y envíalo a ', 'Save the .zip and send it to ')}
