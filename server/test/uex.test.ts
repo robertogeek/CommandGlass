@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { bestRoutes, terminalsAt, vehicleByName, type UexCommodity, type UexPrice, type UexTerminal, type UexVehicle } from '../src/game/uex.ts';
+import { bestRoutes, terminalsAt, uexFetch, vehicleByName, type UexCommodity, type UexPrice, type UexTerminal, type UexVehicle } from '../src/game/uex.ts';
 
 const term = (id: number, name: string, displayname: string, system: string, extra: Partial<UexTerminal> = {}): UexTerminal => ({
   id,
@@ -100,4 +100,25 @@ test('UEX: rutas en el mismo sistema, limitadas por bodega, stock y cartera', ()
   assert.equal(bestRoutes(PRICES, TERMINALS, COMMODITIES, { scu: 46, budget: 28_000 })[0]!.scu, 10);
   // Desde Baijini Point solo sale Agricium (o WiDoW si se piden ilegales).
   assert.deepEqual(bestRoutes(PRICES, TERMINALS, COMMODITIES, { scu: 46, from: [1] }).map((r) => r.commodity), ['Agricium']);
+});
+
+test('UEX: si un dominio no responde se usa el otro, y se sigue con él', async () => {
+  const calls: string[] = [];
+  const fake = (async (url: string | URL | Request) => {
+    const u = String(url);
+    calls.push(new URL(u).host);
+    if (u.includes('uexcorp.uk')) throw new TypeError('fetch failed'); // bloqueado: sin respuesta
+    return new Response('{"status":"ok","data":[]}', { status: 200 });
+  }) as typeof fetch;
+  const r1 = await uexFetch('commodities', {}, 1000, fake);
+  assert.equal(r1.status, 200);
+  assert.deepEqual(calls, ['api.uexcorp.uk', 'api.uexcorp.space']);
+  calls.length = 0;
+  await uexFetch('terminals', {}, 1000, fake);
+  assert.deepEqual(calls, ['api.uexcorp.space'], 'la siguiente petición va directa al dominio que funcionó');
+  // Una respuesta de error (token malo) no hace cambiar de dominio.
+  calls.length = 0;
+  const bad = (async (url: string | URL | Request) => (calls.push(new URL(String(url)).host), new Response('{}', { status: 401 }))) as typeof fetch;
+  assert.equal((await uexFetch('game_versions', {}, 1000, bad)).status, 401);
+  assert.deepEqual(calls, ['api.uexcorp.space']);
 });

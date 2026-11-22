@@ -10,7 +10,31 @@ import { join } from 'node:path';
  * Límite de la API: 120 peticiones por minuto. CommandGlass hace como mucho cuatro cada 20 minutos.
  */
 
-const BASE = 'https://api.uexcorp.uk/2.0/';
+/**
+ * La API de UEX responde en dos dominios. Si uno no contesta se prueba el otro, y se sigue con el que funcionó:
+ * en España las operadoras bloquean a ratos rangos de IP de Cloudflare (durante el fútbol) y api.uexcorp.uk
+ * se quedaba sin respuesta mientras api.uexcorp.space seguía funcionando.
+ */
+const HOSTS = ['https://api.uexcorp.uk/2.0/', 'https://api.uexcorp.space/2.0/'];
+let preferred = 0;
+
+/** Pide un recurso a UEX probando sus dominios. Solo cambia de dominio si no hay respuesta; un 401 o un 500 valen. */
+export async function uexFetch(resource: string, headers: Record<string, string>, timeoutMs: number, fetchImpl: typeof fetch = fetch): Promise<Response> {
+  let lastErr: unknown;
+  for (let i = 0; i < HOSTS.length; i++) {
+    const idx = (preferred + i) % HOSTS.length;
+    try {
+      const res = await fetchImpl(HOSTS[idx] + resource, { headers, signal: AbortSignal.timeout(timeoutMs) });
+      if (idx !== preferred) console.log(`[uex] ${new URL(HOSTS[preferred]!).host} no responde; se usa ${new URL(HOSTS[idx]!).host}`);
+      preferred = idx;
+      return res;
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw lastErr;
+}
+
 const DAY = 24 * 3600_000;
 const PRICES_MAX_AGE = 20 * 60_000;
 
@@ -212,10 +236,7 @@ export class UexMarket {
 
   /** Comprueba un token nuevo antes de guardarlo. No lo guarda ni lo escribe en ningún sitio. */
   static async check(token: string): Promise<boolean> {
-    const res = await fetch(`${BASE}game_versions`, {
-      headers: { authorization: `Bearer ${token}`, accept: 'application/json', 'user-agent': 'CommandGlass' },
-      signal: AbortSignal.timeout(15_000),
-    });
+    const res = await uexFetch('game_versions', { authorization: `Bearer ${token}`, accept: 'application/json', 'user-agent': 'CommandGlass' }, 10_000);
     if (res.status === 401 || res.status === 403) return false;
     const j = (await res.json().catch(() => null)) as { status?: string } | null;
     return res.ok && j?.status === 'ok';
@@ -231,10 +252,7 @@ export class UexMarket {
     let p = this.pending.get(resource);
     if (!p) {
       p = (async () => {
-        const res = await fetch(BASE + resource, {
-          headers: { authorization: `Bearer ${token}`, accept: 'application/json', 'user-agent': 'CommandGlass (herramienta de fans de Star Citizen)' },
-          signal: AbortSignal.timeout(30_000),
-        });
+        const res = await uexFetch(resource, { authorization: `Bearer ${token}`, accept: 'application/json', 'user-agent': 'CommandGlass (herramienta de fans de Star Citizen)' }, 30_000);
         if (res.status === 401 || res.status === 403) throw new Error(tx('UEX no acepta el token: revísalo en uexcorp.space → My Apps', 'UEX rejects the token: check it at uexcorp.space → My Apps'));
         if (res.status === 429) throw new Error(tx('UEX pide esperar un poco (demasiadas consultas)', 'UEX asks you to wait a bit (too many requests)'));
         if (!res.ok) throw new Error(tx(`UEX respondió ${res.status}`, `UEX responded ${res.status}`));
