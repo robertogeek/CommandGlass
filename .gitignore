@@ -6,3 +6,4 @@ desktop/dist/
 release/
 *.log
 .DS_Store
+scripts/mode.txt

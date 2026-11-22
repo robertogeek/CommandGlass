@@ -18,6 +18,7 @@ import { LiveTailer } from './ingest/tailer.ts';
 import { Store } from './store/db.ts';
 import { getSetting } from './store/economy.ts';
 import { UexMarket } from './game/uex.ts';
+import { GameTelemetry } from './game/telemetry.ts';
 
 // Registro en data/logs/commandglass.log (va en el informe de diagnóstico).
 setupLog(DATA_DIR);
@@ -96,7 +97,9 @@ const uex = new UexMarket(DATA_DIR, () => getSetting<string>(store, 'uexToken'))
 // Starmap del juego (posiciones reales de cada parche), extraído por la Star Citizen Wiki.
 const starmap = new GameStarmap(DATA_DIR);
 void starmap.refresh();
-const { server, pairUrl } = startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community, uex, starmap });
+// Telemetría del juego (gRPC local, solo lectura): se conecta solo mientras el tablet tiene abierta la pestaña.
+const telemetry = new GameTelemetry();
+const { server, pairUrl } = startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community, uex, starmap, telemetry });
 
 server.on('listening', () => {
   started = true;
@@ -138,6 +141,7 @@ function pickLanIp(): string {
 const shutdown = () => {
   tailer.stop();
   keys.stop();
+  telemetry.stop();
   store.close();
   process.exit(0);
 };

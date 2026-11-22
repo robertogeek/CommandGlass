@@ -1,4 +1,4 @@
-import { Archive, Coins, FileCheck, FileText, Gamepad2, MapIcon, MapPin, Radar, Rocket, ScrollText, Server, ShieldAlert, ShieldCheck, Swords, Timer, UserRound, Users, type LucideIcon } from 'lucide-react';
+import { Activity, Archive, Coins, FileCheck, FileText, Gamepad2, MapIcon, MapPin, Radar, Rocket, ScrollText, Server, ShieldAlert, ShieldCheck, Swords, Timer, UserRound, Users, type LucideIcon } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Emblem } from './components/Emblem.tsx';
 import logo from './assets/space-cowboys.png';
@@ -12,9 +12,9 @@ import { Combate } from './views/Combate.tsx';
 import { Comercio } from './views/Comercio.tsx';
 import { Contactos } from './views/Contactos.tsx';
 import { Contratos } from './views/Contratos.tsx';
-import { Hangar } from './views/Hangar.tsx';
 import { Mapa } from './views/Mapa.tsx';
 import { Mandos } from './views/Mandos.tsx';
+import { Telemetria } from './views/Telemetria.tsx';
 
 type Bilingual = { es: string; en: string };
 
@@ -33,7 +33,8 @@ const SECTIONS: Section[] = [
   { id: 'mandos', label: { es: 'Mandos', en: 'Controls' }, title: { es: 'Mandos', en: 'Controls' }, icon: Gamepad2 },
   { id: 'bitacora', label: { es: 'Bitácora', en: 'Logbook' }, title: { es: 'Bitácora', en: 'Logbook' }, icon: ScrollText, view: () => <Bitacora /> },
   { id: 'contactos', label: { es: 'Contactos', en: 'Contacts' }, title: { es: 'Contactos', en: 'Contacts' }, icon: Users, view: () => <Contactos /> },
-  { id: 'hangar', label: { es: 'Hangar', en: 'Hangar' }, title: { es: 'Hangar', en: 'Hangar' }, icon: Rocket, view: () => <Hangar /> },
+  // Hangar se retira por ahora (su vista sigue en views/Hangar.tsx); #hangar lleva a Telemetría.
+  { id: 'telemetria', label: { es: 'Telemetría', en: 'Telemetry' }, title: { es: 'Telemetría', en: 'Telemetry' }, icon: Activity, view: () => <Telemetria /> },
   { id: 'contratos', label: { es: 'Contratos', en: 'Contracts' }, title: { es: 'Contratos', en: 'Contracts' }, icon: FileCheck, view: () => <Contratos /> },
   { id: 'combate', label: { es: 'Combate', en: 'Combat' }, title: { es: 'Combate', en: 'Combat' }, icon: Swords, view: () => <Combate /> },
   { id: 'comercio', label: { es: 'Comercio', en: 'Trade' }, title: { es: 'Comercio', en: 'Trade' }, icon: Coins, view: () => <Comercio /> },
@@ -41,9 +42,15 @@ const SECTIONS: Section[] = [
   { id: 'archivo', label: { es: 'Archivo', en: 'Archive' }, title: { es: 'Archivo', en: 'Archive' }, icon: Archive, view: () => <Archivo /> },
 ];
 
+/** Secciones retiradas de la barra: sus enlaces llevan a la que ocupa su sitio. */
+const RETIRED: Record<string, string> = { hangar: 'telemetria' };
+
 function useHashSection(): [string, (id: string) => void] {
   // "#contactos/Nombre": la sección es el primer tramo; el resto lo lee la propia vista.
-  const read = () => window.location.hash.replace('#', '').split('/')[0] || 'ahora';
+  const read = () => {
+    const id = window.location.hash.replace('#', '').split('/')[0] || 'ahora';
+    return RETIRED[id] ?? id;
+  };
   const [id, setId] = useState(read);
   useEffect(() => {
     const on = () => setId(read());

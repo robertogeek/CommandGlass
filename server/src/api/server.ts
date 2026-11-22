@@ -17,6 +17,7 @@ import { itemName } from '../parser/names.ts';
 import { loadShips, nameIndex } from '../store/hangar.ts';
 import { jumpVisits, loadPlaces, placeInfo, placeLocator } from '../store/places.ts';
 import type { GameStarmap } from '../game/starmap.ts';
+import type { GameTelemetry } from '../game/telemetry.ts';
 import { addClientReport, buildDiagnostics } from '../diagnostics.ts';
 import { getSetting, loadEconomy, setSetting, walletEstimate, type Purchase } from '../store/economy.ts';
 import { buildWrapped } from '../store/wrapped.ts';
@@ -54,12 +55,13 @@ export interface ServerDeps {
   community: CommunityContracts;
   uex: UexMarket;
   starmap: GameStarmap;
+  telemetry: GameTelemetry;
 }
 
 /** Acciones que no se envían sin una confirmación explícita desde la interfaz. */
 const DANGEROUS = new Set(['v_self_destruct', 'v_eject', 'force_respawn', 'v_emergency_exit']);
 
-export function startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community, uex, starmap }: ServerDeps) {
+export function startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community, uex, starmap, telemetry }: ServerDeps) {
   // Conexiones en directo abiertas; "remote" = desde otro dispositivo (el iPad), no desde este PC.
   const clients = new Map<ServerResponse, { remote: boolean; since: string; agent: string }>();
   // Límite de informes de los tablets por dirección (por si una interfaz rota se pone a mandar errores sin parar).
@@ -591,6 +593,13 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         }
         const contact = getContact(store, name, tailer.status().sessionId);
         return contact ? json(res, 200, contact) : json(res, 404, { error: tx('No hay registros de este jugador', 'No records for this player') });
+      }
+
+      // Telemetría del juego: cada petición la mantiene conectada; ?debug=1 añade el fotograma en crudo.
+      if (path === '/api/telemetry') {
+        telemetry.touch();
+        const snap = telemetry.snapshot();
+        return json(res, 200, url.searchParams.get('debug') === '1' ? { ...snap, debug: telemetry.debug() } : snap);
       }
 
       if (path === '/api/stream') {

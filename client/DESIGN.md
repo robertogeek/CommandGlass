@@ -164,3 +164,26 @@ Prototipo validado: el lienzo «CommandGlass · Mandos» (claude.ai/artifact/ScT
   Cada tablet guarda su modo en `localStorage` (`cg-mandos`): una puede quedarse en Combate y otra en Nave.
 - **Tamaños:** los controles centrales tienen medida fija y se reducen con `zoom` en poca altura o en
   vertical; en vertical el control central pasa arriba a lo ancho y los grupos van debajo.
+
+## Telemetría
+
+Sustituye de momento a Hangar en la barra (`#hangar` lleva aquí; `views/Hangar.tsx` se conserva).
+Lienzo del diseño: https://claude.ai/artifact/3n272jjxsQkC2BVxJMzyGa. Textos y reglas completos en
+la especificación de la sesión de telemetría; lo esencial:
+
+- **Solo muestra datos.** Nunca envía teclas ni reacciona sola a lo que llega (regla de no macros).
+- **Franja de conexión** arriba: Apagada, Esperando al juego, Recibiendo · N Hz o «Sin datos desde
+  hace N s» (cuerpo atenuado, normal en cargas). Lleva la etiqueta «Experimental», las pestañas
+  Panel/Depuración y el botón «?» con las instrucciones de activación.
+- **Cuerpo según el estado:** con nave (Personaje · Nave · Energía + Armas), a pie (estado físico,
+  traje y entorno, saldo y una franja «Sin nave»), esperando, apagada (cómo activarla) y depuración.
+- **Luces de aviso:** sigla del juego tal cual (PWR, WPN…), significado y estado. Normal en verde
+  tenue, Aviso en ámbar, Alerta con fondo rojo relleno (se distingue también por luminosidad);
+  los estados «flashing» parpadean y, con movimiento reducido, se rayan en lugar de parpadear.
+- **Sin dato ≠ 0:** altitud `3.4e38` o densidad ausente se muestran como «—» con su motivo.
+- **Nombres del juego tal cual:** `class_name`, armas (sin el id de entidad, que va debajo en gris),
+  asientos, Decoy/Noise. IFCS solo sale en Depuración, numerado, hasta saber qué es cada ajuste.
+- **Tamaños:** sin scroll en horizontal desde 1133×744; en vertical la nave va arriba a lo ancho y
+  la vista puede hacer scroll. Clases con prefijo `tl-`.
+- **Para probar sin el juego:** `node scripts/fake-telemetry.mjs` y el servidor con
+  `CG_TELEMETRY_PORTS=29420`.

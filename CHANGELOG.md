@@ -15,6 +15,7 @@ Lo que se vaya haciendo se apunta en la versión «en desarrollo» de arriba.
 - Abajo, siempre a mano: aceptar y rechazar, mobiGlas, mapa, chat y la emergencia tras una tapa (se mantiene 1,5 s para confirmar).
 - Cambia solo entre Nave y A pie según lo que haces en el juego (botón **Auto**), y cada tablet recuerda su modo: puedes tener uno con Combate y otro con Nave.
 - Avisa de las funciones que no tienen tecla de teclado en tu perfil del juego (por ejemplo, el láser de minería va con el ratón) y las lista en **Buscar › Sin tecla en Mandos** para que las asignes.
+- Nueva pestaña **Telemetría** (experimental), en el sitio de Hangar: si abres el RSI Launcher con la telemetría del juego activada, ves en directo tu salud, oxígeno, hambre, sed, pulso, entorno y saldo, y en la nave las luces de aviso, velocidad, rumbo, hidrógeno, boost, energía de cada sistema, armas y contramedidas. Solo lee datos: no actúa en el juego. La propia pestaña explica cómo activarla.
 
 **English**
 
@@ -22,6 +23,7 @@ Lo que se vaya haciendo se apunta en la versión «en desarrollo» de arriba.
 - Always at hand at the bottom: accept and decline, mobiGlas, map, chat and the emergency actions behind a cover (hold 1.5 s to confirm).
 - It switches between Ship and On foot by itself depending on what you're doing in the game (**Auto** button), and each tablet remembers its mode: you can have one on Combat and another on Ship.
 - It flags the functions that have no keyboard key in your game profile (for example, the mining laser is on the mouse) and lists them under **Search › Unbound in Controls** so you can bind them.
+- New **Telemetry** tab (experimental), where Hangar used to be: if you open the RSI Launcher with the game's telemetry turned on, you see your health, oxygen, hunger, thirst, heart rate, environment and balance live, and in a ship the warning lights, speed, heading, hydrogen, boost, power to each system, weapons and countermeasures. It only reads data: it never acts in the game. The tab itself explains how to turn it on.
 
 ## 0.1.4-beta — 2026-11-22
 
