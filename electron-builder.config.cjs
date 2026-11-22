@@ -13,6 +13,9 @@ function releaseName(v) {
   return `commandglass_v.${base}${pre ? `_${pre[0]}` : ''}`;
 }
 
+// Versión de pruebas: el CI pone la coletilla de la etiqueta (v0.1.5-beta-telemetry → «_telemetry») en el nombre del .exe.
+const suffix = /^_[a-z0-9-]+$/i.test(process.env.CG_BUILD_SUFFIX ?? '') ? process.env.CG_BUILD_SUFFIX : '';
+
 const azure = process.env.CG_AZURE_ENDPOINT
   ? {
       azureSignOptions: {
@@ -56,7 +59,7 @@ module.exports = {
     installerLanguages: ['es_ES'],
     language: '3082',
     multiLanguageInstaller: false,
-    artifactName: `${releaseName(version)}.\${ext}`,
+    artifactName: `${releaseName(version)}${suffix}.\${ext}`,
     uninstallDisplayName: 'CommandGlass',
     include: 'desktop/build/installer.nsh',
   },

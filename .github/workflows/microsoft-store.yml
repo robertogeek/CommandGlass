@@ -9,7 +9,8 @@ name: Microsoft Store
 on:
   workflow_dispatch:
   push:
-    tags: ['v*']
+    # Las versiones de pruebas (v0.1.5-beta-telemetry) no van a la Store.
+    tags: ['v*', '!v*-*-*']
 
 permissions:
   contents: read

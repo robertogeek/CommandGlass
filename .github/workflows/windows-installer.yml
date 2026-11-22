@@ -43,6 +43,22 @@ jobs:
           npm test
           npm run typecheck
 
+      # Etiqueta de pruebas: la versión de package.json más una coletilla (v0.1.5-beta-telemetry). El .exe lleva
+      # la coletilla en el nombre y la release sale como versión de pruebas, sin quitarle a la estable el «Latest».
+      - name: ¿Versión de pruebas?
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          $version = (Get-Content package.json -Raw | ConvertFrom-Json).version
+          if ($tag -eq "v$version") { "Versión normal: $tag"; exit 0 }
+          if (-not $tag.StartsWith("v$version-")) { throw "La etiqueta $tag no es de la versión de package.json ($version)" }
+          $label = $tag.Substring("v$version-".Length)
+          if ($label -notmatch '^[a-z0-9-]+$') { throw "Coletilla no válida: $label" }
+          "CG_BUILD_SUFFIX=_$label" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "CG_TEST_BUILD=1" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          "Versión de pruebas: $label"
+
       - name: Construir instalador
         run: npm run dist:win
         env:
@@ -87,6 +103,8 @@ jobs:
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
             gh release upload $tag $exe.FullName --clobber
+          } elseif ($env:CG_TEST_BUILD) {
+            gh release create $tag $exe.FullName --title "CommandGlass $tag (pruebas)" --notes-file notes.md --prerelease --latest=false
           } else {
             gh release create $tag $exe.FullName --title "CommandGlass $tag" --notes-file notes.md --latest
           }
