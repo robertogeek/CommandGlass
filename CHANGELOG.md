@@ -11,11 +11,17 @@ Lo que se vaya haciendo se apunta en la versión «en desarrollo» de arriba.
 
 ## 0.1.5-beta (en desarrollo)
 
-- 
+- Mandos renovado: ocupa toda la pantalla del tablet y tiene seis modos (Nave, Combate, A pie, Minería, Chatarreo y Social), cada uno con un control central (anillo del salto cuántico, panal de objetivos, rueda de armas, láser de minería, cabezales de chatarreo e invitaciones), una fila de conmutadores rápidos y los grupos de botones a los lados. Los botones dicen qué hacen, sin la tecla.
+- Abajo, siempre a mano: aceptar y rechazar, mobiGlas, mapa, chat y la emergencia tras una tapa (se mantiene 1,5 s para confirmar).
+- Cambia solo entre Nave y A pie según lo que haces en el juego (botón **Auto**), y cada tablet recuerda su modo: puedes tener uno con Combate y otro con Nave.
+- Avisa de las funciones que no tienen tecla de teclado en tu perfil del juego (por ejemplo, el láser de minería va con el ratón) y las lista en **Buscar › Sin tecla en Mandos** para que las asignes.
 
 **English**
 
-- 
+- Controls redesigned: it fills the whole tablet screen and has six modes (Ship, Combat, On foot, Mining, Salvage and Social), each with a central control (quantum jump ring, target honeycomb, weapon wheel, mining laser, salvage heads and invitations), a row of quick toggles and button groups on both sides. Buttons say what they do, without the key.
+- Always at hand at the bottom: accept and decline, mobiGlas, map, chat and the emergency actions behind a cover (hold 1.5 s to confirm).
+- It switches between Ship and On foot by itself depending on what you're doing in the game (**Auto** button), and each tablet remembers its mode: you can have one on Combat and another on Ship.
+- It flags the functions that have no keyboard key in your game profile (for example, the mining laser is on the mouse) and lists them under **Search › Unbound in Controls** so you can bind them.
 
 ## 0.1.4-beta — 2026-11-22
 

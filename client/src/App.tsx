@@ -29,7 +29,8 @@ interface Section {
 
 const SECTIONS: Section[] = [
   { id: 'ahora', label: { es: 'Ahora', en: 'Now' }, title: { es: 'Ahora', en: 'Now' }, icon: Radar, view: () => <Ahora /> },
-  { id: 'mandos', label: { es: 'Mandos', en: 'Controls' }, title: { es: 'Mandos', en: 'Controls' }, icon: Gamepad2, view: () => <Mandos /> },
+  // Mandos va a pantalla completa (ver App): su vista la pinta App, no la rejilla de secciones.
+  { id: 'mandos', label: { es: 'Mandos', en: 'Controls' }, title: { es: 'Mandos', en: 'Controls' }, icon: Gamepad2 },
   { id: 'bitacora', label: { es: 'Bitácora', en: 'Logbook' }, title: { es: 'Bitácora', en: 'Logbook' }, icon: ScrollText, view: () => <Bitacora /> },
   { id: 'contactos', label: { es: 'Contactos', en: 'Contacts' }, title: { es: 'Contactos', en: 'Contacts' }, icon: Users, view: () => <Contactos /> },
   { id: 'hangar', label: { es: 'Hangar', en: 'Hangar' }, title: { es: 'Hangar', en: 'Hangar' }, icon: Rocket, view: () => <Hangar /> },
@@ -56,6 +57,16 @@ export function App() {
   const [sectionId, go] = useHashSection();
   const section = SECTIONS.find((s) => s.id === sectionId) ?? SECTIONS[0]!;
   const { t } = useLang();
+
+  // Mandos ocupa toda la pantalla: sin barra lateral, cabecera ni franja de estado, para que quepan los controles.
+  if (section.id === 'mandos') {
+    return (
+      <div className="app immersive">
+        <span className="hud-notch" aria-hidden />
+        <Mandos onExit={() => go('ahora')} />
+      </div>
+    );
+  }
 
   return (
     <div className="app">

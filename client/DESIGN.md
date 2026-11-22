@@ -139,3 +139,28 @@ Cambios de estructura en `App.tsx`: la cabecera pasa a ser hija directa de `.app
 el ancho; `.rail` vuelve a ser la barra lateral; aparece `<StatusBar />`. Los pseudoelementos
 `::before` y `::after` de `.panel` están ocupados: si una vista necesita otro adorno, que use un
 elemento propio.
+
+## Mandos (pantalla completa)
+
+Prototipo validado: el lienzo «CommandGlass · Mandos» (claude.ai/artifact/ScTLx7wWPzcFLheN8LLCCz).
+
+- **Sin marco de secciones.** En `#mandos`, `App` pinta `.app.immersive` con `<Mandos onExit>`: sin barra
+  lateral, cabecera ni franja de estado. «‹ CommandGlass» vuelve a Ahora.
+- **Misma estructura en los seis modos** (Nave, Combate, A pie, Minería, Chatarreo, Social):
+  cabecera con pestañas → `.mx-top` (6 conmutadores) → `.mx-body` (grupo izquierdo, **control central**,
+  grupo derecho) → `.mx-dock` (aceptar, rechazar, mobiGlas · logo · mapa, chat, emergencia).
+- **Los botones (`.mpad`) dicen qué hacen, nunca la tecla.** Llevan el nombre oficial de la acción del
+  juego en el idioma elegido, sin la coletilla de modo («(alternar)», «(hold)»…: `cleanLabel`). Si el
+  juego no lo traduce, sale el nombre oficial en inglés. Solo hay textos propios en los títulos de
+  grupo y en los controles centrales donde no cabe el nombre (números del panal, «+»/«−»).
+- **Cómo se pulsa:** toque normal (el servidor mantiene la tecla lo que pida el juego); las acciones de
+  modo `hold` del juego se envían mientras el dedo está encima («Mientras pulses»); las delicadas van
+  tras la tapa de emergencia y piden mantener 1,5 s (`.arming`).
+- **Sin tecla de teclado** (`.off`, borde discontinuo, etiqueta ámbar): no hay tecla en el perfil o va
+  con el ratón. El grupo lo avisa y **Buscar › Sin tecla en Mandos** las lista para asignarlas en el juego.
+  Nunca se escribe en los ficheros del juego.
+- **Sin falsos interruptores:** el juego no informa del estado (tren, luces…), así que no hay on/off.
+- **Auto** cambia entre Nave y A pie según haya nave en el estado; el resto de modos se eligen a mano.
+  Cada tablet guarda su modo en `localStorage` (`cg-mandos`): una puede quedarse en Combate y otra en Nave.
+- **Tamaños:** los controles centrales tienen medida fija y se reducen con `zoom` en poca altura o en
+  vertical; en vertical el control central pasa arriba a lo ancho y los grupos van debajo.
