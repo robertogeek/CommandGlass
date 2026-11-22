@@ -9,6 +9,14 @@ Este archivo es la fuente de las notas de las dos. Cada versión lleva su parte 
 flujo `Instalador de Windows` copia la sección de la etiqueta (`v0.1.3-beta` → `## 0.1.3-beta`) en la release.
 Lo que se vaya haciendo se apunta en la versión «en desarrollo» de arriba.
 
+## 0.1.5-beta (en desarrollo)
+
+- 
+
+**English**
+
+- 
+
 ## 0.1.4-beta — 2026-11-22
 
 - UEX vuelve a funcionar cuando tu operadora bloquea parte de Cloudflare (pasa en España durante el fútbol): si su dirección principal no responde, CommandGlass usa la otra.
