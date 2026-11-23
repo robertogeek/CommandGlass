@@ -15,12 +15,44 @@ const UNINSTALL_KEY = 'HKLM\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Unins
 
 export type LaunchResult =
   | { ok: true; closed: boolean }
-  | { ok: false; reason: 'not-found' | 'game-running' | 'launcher-running' | 'failed'; detail?: string };
+  | {
+      ok: false;
+      /**
+       * needs-admin: el launcher está puesto para abrirse como administrador; Windows no deja pasarle la variable.
+       * cannot-close: sigue abierto (casi siempre en la bandeja) y Windows no deja cerrarlo desde aquí.
+       */
+      reason: 'not-found' | 'game-running' | 'launcher-running' | 'needs-admin' | 'cannot-close' | 'failed';
+      detail?: string;
+    };
 
 function run(file: string, args: string[]): Promise<string> {
   return new Promise((resolve) => {
     execFile(file, args, { windowsHide: true, timeout: 10_000 }, (_err, stdout) => resolve(String(stdout ?? '')));
   });
+}
+
+/** Como run, pero también el código de salida y el error (taskkill avisa por stderr). */
+function runFull(file: string, args: string[]): Promise<{ code: number; out: string }> {
+  return new Promise((resolve) => {
+    execFile(file, args, { windowsHide: true, timeout: 10_000 }, (err, stdout, stderr) =>
+      resolve({ code: typeof err?.code === 'number' ? err.code : err ? 1 : 0, out: `${stdout ?? ''}${stderr ?? ''}`.trim() }),
+    );
+  });
+}
+
+/**
+ * ¿Tiene el launcher «Ejecutar como administrador» (Propiedades → Compatibilidad)? Entonces Windows lo abre con
+ * permisos elevados: CommandGlass no puede abrirlo con la variable ni cerrarlo.
+ */
+async function runsAsAdmin(exe: string): Promise<boolean> {
+  for (const hive of ['HKCU', 'HKLM']) {
+    const out = await run('reg', ['query', `${hive}\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers`]);
+    for (const line of out.split(/\r?\n/)) {
+      const m = /^\s+(.+?)\s+REG_SZ\s+(.*)$/.exec(line);
+      if (m && m[1]!.toLowerCase() === exe.toLowerCase() && /\bRUNASADMIN\b/i.test(m[2]!)) return true;
+    }
+  }
+  return false;
 }
 
 async function isRunning(exe: string): Promise<boolean> {
@@ -69,12 +101,17 @@ export async function launchWithTelemetry(starCitizenRoot: string | null, closeF
   const exe = await findLauncher(starCitizenRoot);
   if (!exe) return { ok: false, reason: 'not-found' };
   if (await isRunning(GAME_EXE)) return { ok: false, reason: 'game-running' };
+  // Con «Ejecutar como administrador» no hay forma de pasarle la variable desde aquí: mejor decirlo antes de cerrar nada.
+  if (await runsAsAdmin(exe)) return { ok: false, reason: 'needs-admin', detail: 'RUNASADMIN' };
   let closed = false;
   if (await isRunning(LAUNCHER_EXE)) {
     if (!closeFirst) return { ok: false, reason: 'launcher-running' };
     // Se queda en la bandeja al cerrar su ventana, así que hay que terminar el proceso (y sus hijos).
-    await run('taskkill', ['/IM', LAUNCHER_EXE, '/T', '/F']);
-    if (!(await waitUntilClosed(LAUNCHER_EXE, 10_000))) return { ok: false, reason: 'failed', detail: 'still running' };
+    const kill = await runFull('taskkill', ['/IM', LAUNCHER_EXE, '/T', '/F']);
+    if (!(await waitUntilClosed(LAUNCHER_EXE, 10_000))) {
+      // Casi siempre: el launcher se abrió como administrador (Windows no deja cerrarlo a una app normal).
+      return { ok: false, reason: 'cannot-close', detail: `taskkill ${kill.code}: ${kill.out.slice(0, 200)}` };
+    }
     closed = true;
   }
   // El launcher también es Electron: no debe heredar las variables de Electron ni de Node de CommandGlass.
@@ -95,6 +132,9 @@ export async function launchWithTelemetry(starCitizenRoot: string | null, closeF
     child.unref();
     return { ok: true, closed };
   } catch (err) {
-    return { ok: false, reason: 'failed', detail: (err as Error).message };
+    const e = err as NodeJS.ErrnoException;
+    // ERROR_ELEVATION_REQUIRED (740): el ejecutable pide permisos de administrador.
+    if (e.code === 'EACCES' || /\b740\b|elevat/i.test(e.message)) return { ok: false, reason: 'needs-admin', detail: e.message };
+    return { ok: false, reason: 'failed', detail: e.message };
   }
 }

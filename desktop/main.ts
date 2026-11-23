@@ -4,6 +4,7 @@ import { dirname, join } from 'node:path';
 import { normalizeGameDir } from '../server/src/game/locate.ts';
 import { isGameRunning, launchWithTelemetry } from './launcher.ts';
 import { startUpdater, updateState } from './updater.ts';
+import { createScreens, MAX_SCREENS } from './screens.ts';
 
 /**
  * App de escritorio de CommandGlass.
@@ -51,6 +52,9 @@ const startHidden = process.argv.includes('--hidden');
 let uiLang: 'en' | 'es' = 'en';
 const T = (es: string, en: string) => (uiLang === 'es' ? es : en);
 let refreshTray: () => void = () => {};
+/** Pantallas de este PC (CommandGlass a pantalla completa en un monitor secundario): ver screens.ts. */
+let screens: ReturnType<typeof createScreens> | null = null;
+let screensRestored = false;
 
 /** Lee el idioma guardado en el servidor y, si ha cambiado, rehace el menú de la bandeja. */
 async function syncLang() {
@@ -95,6 +99,19 @@ function boot() {
     item.once('done', (_ev, state) => {
       if (state === 'completed') shell.showItemInFolder(item.getSavePath());
     });
+  });
+  screens = createScreens({
+    file: join(app.getPath('userData'), 'screens.json'),
+    url: () => `http://localhost:${PORT}/`,
+    preload: join(here, 'screen-preload.cjs'),
+    icon: paths.icon,
+    log: appendLog,
+    openExternal: (url) => void (url.startsWith(DISCORD_LINK) ? openDiscord(url) : shell.openExternal(url)),
+    changed: () => {
+      win?.webContents.send('cg:screens', screens?.list() ?? []);
+      refreshTray();
+    },
+    T,
   });
   createTray();
   registerIpc();
@@ -157,6 +174,8 @@ function startServer() {
     CG_DATA_DIR: dataDir,
     // Lo común a todas las versiones del juego (token de UEX): %APPDATA%\CommandGlass.
     CG_SHARED_DIR: isDev ? paths.data : app.getPath('userData'),
+    // Registro de la app de escritorio: el informe de diagnóstico saca de aquí lo de telemetría, pantallas y actualizaciones.
+    CG_DESKTOP_LOG: logFile,
     CG_CLIENT_DIST: paths.client,
     CG_VERSION: versionLabel(),
     PORT: String(PORT),
@@ -184,6 +203,11 @@ function startServer() {
       restarts = 0;
       loadUi();
       void syncLang();
+      // Pantallas de este PC: la primera vez se abren las de la última sesión; después, se recargan.
+      if (!screensRestored) {
+        screensRestored = true;
+        screens?.restore();
+      } else screens?.reload();
     } else if (m?.type === 'error') {
       serverError = errorText(m as ServerError);
       showError(serverError);
@@ -388,6 +412,16 @@ function createTray() {
       Menu.buildFromTemplate([
         { label: T('Abrir CommandGlass', 'Open CommandGlass'), click: () => showWindow() },
         { label: T('Abrir en el navegador', 'Open in browser'), click: () => void shell.openExternal(`http://localhost:${PORT}/`) },
+        {
+          label: T('Pantallas de este PC', 'Displays on this PC'),
+          submenu: (screens?.list() ?? []).map((s) => ({
+            label: `${s.label}${s.primary ? T(' (principal)', ' (main)') : ''} · ${s.width}×${s.height}`,
+            type: 'checkbox' as const,
+            checked: s.open,
+            enabled: s.open || (screens?.count ?? 0) < MAX_SCREENS,
+            click: () => void screens?.toggle(s.id),
+          })),
+        },
         { type: 'separator' },
         isStore
           ? { label: T('Abrir al iniciar Windows…', 'Open at Windows startup…'), click: () => openStartupSettings() }
@@ -413,6 +447,7 @@ function quit() {
 
 app.on('before-quit', () => {
   quitting = true;
+  screens?.closeAllForQuit();
   server?.kill();
 });
 app.on('window-all-closed', () => {
@@ -504,11 +539,7 @@ function registerIpc() {
   ipcMain.handle('cg:launch-telemetry', async (e, closeFirst: unknown) => {
     if (!fromOurPage(e) || isStore) return { ok: false, reason: 'failed', detail: 'not allowed' };
     const r = await launchWithTelemetry(starCitizenRoot(), closeFirst === true);
-    try {
-      appendFileSync(logFile, `[telemetría] abrir el RSI Launcher: ${r.ok ? 'abierto' : r.reason}${!r.ok && r.detail ? ` (${r.detail})` : ''}\n`);
-    } catch {
-      /* sin registro */
-    }
+    appendLog(`[telemetría] abrir el RSI Launcher${closeFirst === true ? ' (cerrándolo antes)' : ''}: ${r.ok ? (r.closed ? 'cerrado y abierto' : 'abierto') : r.reason}${!r.ok && r.detail ? ` (${r.detail})` : ''}`);
     return r;
   });
   // Actualizaciones (solo la versión de GitHub instalada; null = aquí no aplica: Store o desarrollo).
@@ -518,6 +549,13 @@ function registerIpc() {
   });
   ipcMain.handle('cg:check-update', (e) => {
     if (fromOurPage(e)) updater?.check();
+  });
+  // Pantallas de este PC: solo desde la ventana del PC (las pantallas también cargan páginas de localhost).
+  const fromPcWindow = (e: Electron.IpcMainInvokeEvent) => fromOurPage(e) && e.sender === win?.webContents;
+  ipcMain.handle('cg:get-screens', (e) => (fromPcWindow(e) ? { screens: screens?.list() ?? [], max: MAX_SCREENS } : null));
+  ipcMain.handle('cg:toggle-screen', (e, id: unknown) => {
+    if (!fromPcWindow(e) || typeof id !== 'number') return { ok: false };
+    return screens?.toggle(id) ?? { ok: false };
   });
 }
 
@@ -553,9 +591,10 @@ async function openDiscord(url: string) {
 
 let updater: ReturnType<typeof startUpdater> | null = null;
 
+/** Una línea en servidor.log con la hora. Las de [telemetría], [pantallas] y [actualización] van al informe de diagnóstico. */
 function appendLog(line: string) {
   try {
-    appendFileSync(logFile, `${line}\n`);
+    appendFileSync(logFile, `${new Date().toISOString()} ${line}\n`);
   } catch {
     /* sin registro */
   }

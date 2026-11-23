@@ -15,6 +15,9 @@ function releaseName(v) {
 
 // Versión de pruebas: el CI pone la coletilla de la etiqueta (v0.1.5-beta-telemetry → «_telemetry») en el nombre del .exe.
 const suffix = /^_[a-z0-9-]+$/i.test(process.env.CG_BUILD_SUFFIX ?? '') ? process.env.CG_BUILD_SUFFIX : '';
+// Y la versión de la app instalada queda por debajo de la normal (0.1.8-alpha.pantallas < 0.1.8-beta), para que el
+// actualizador pase a quien la prueba a la versión normal en cuanto salga.
+const appVersion = /^\d+\.\d+\.\d+-alpha\.[a-z0-9-]+$/i.test(process.env.CG_APP_VERSION ?? '') ? process.env.CG_APP_VERSION : null;
 
 const azure = process.env.CG_AZURE_ENDPOINT
   ? {
@@ -31,9 +34,10 @@ const azure = process.env.CG_AZURE_ENDPOINT
 module.exports = {
   appId: 'com.spacecowboys.commandglass',
   productName: 'CommandGlass',
+  ...(appVersion ? { extraMetadata: { version: appVersion } } : {}),
   copyright: 'Space Cowboys · Proyecto de fans de Star Citizen, sin relación con Cloud Imperium Games',
   directories: { output: 'release', buildResources: 'desktop/build' },
-  files: ['desktop/dist/main.mjs', 'desktop/dist/preload.cjs', 'package.json', '!node_modules/**/*'],
+  files: ['desktop/dist/main.mjs', 'desktop/dist/preload.cjs', 'desktop/dist/screen-preload.cjs', 'package.json', '!node_modules/**/*'],
   extraResources: [
     { from: 'desktop/dist/server.mjs', to: 'server/server.mjs' },
     { from: 'client/dist', to: 'client' },

@@ -1,7 +1,7 @@
 {
   "name": "sc-master",
   "productName": "CommandGlass",
-  "version": "0.1.7-beta",
+  "version": "0.1.8-beta",
   "private": true,
   "description": "CommandGlass: tu mobiGlas para Star Citizen. Lee Game.log y lo muestra en el tablet.",
   "author": "Space Cowboys",

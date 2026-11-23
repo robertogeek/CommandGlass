@@ -35,3 +35,12 @@ await build({
   format: 'cjs',
   external: ['electron'],
 });
+
+// Pantallas de este PC (desktop/screens.ts): activa la ventana solo mientras se escribe.
+await build({
+  ...common,
+  entryPoints: ['desktop/screen-preload.ts'],
+  outfile: 'desktop/dist/screen-preload.cjs',
+  format: 'cjs',
+  external: ['electron'],
+});

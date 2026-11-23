@@ -9,6 +9,16 @@ Este archivo es la fuente de las notas de las dos. Cada versión lleva su parte 
 flujo `Instalador de Windows` copia la sección de la etiqueta (`v0.1.3-beta` → `## 0.1.3-beta`) en la release.
 Lo que se vaya haciendo se apunta en la versión «en desarrollo» de arriba.
 
+## 0.1.8-beta (en desarrollo)
+
+- **CommandGlass en las pantallas de este PC**: sin tablet, ábrelo a pantalla completa en un monitor secundario o una pantalla táctil (hasta dos a la vez), desde la ventana del PC o desde el icono de la bandeja. Esas ventanas no le quitan el foco al juego al tocarlas o hacer clic: Mandos funciona igual que desde el tablet, y cada una recuerda su pantalla y su sección. Para escribir (un buscador, una nota) la ventana coge el foco un momento y luego se lo devuelve al juego. En un navegador normal (Chrome, Edge…) en el mismo PC sigue sin poder ser: al tocarlo, el juego deja de estar en primer plano.
+- Botón **Abrir Star Citizen con telemetría**: avisa de que el RSI Launcher sigue abierto en la bandeja aunque no se vea su ventana, detecta si está puesto para **ejecutarse como administrador** (así Windows no deja pasarle la telemetría) y dice cómo arreglarlo, y si no puede cerrarlo explica cómo hacerlo a mano. Lo que pasa al pulsarlo queda en el informe de diagnóstico.
+
+**English**
+
+- **CommandGlass on this PC's displays**: no tablet needed, open it full screen on a secondary monitor or a touchscreen (up to two at a time), from the PC window or the tray icon. Those windows don't take focus from the game when you tap or click them: Controls work just like from the tablet, and each one remembers its display and its section. To type (a search box, a note) the window takes focus for a moment and then gives it back to the game. A regular browser (Chrome, Edge…) on the same PC still can't do this: touching it takes the game out of the foreground.
+- **Open Star Citizen with telemetry** button: it tells you the RSI Launcher is still running in the tray even if you can't see its window, detects when it's set to **run as administrator** (Windows then won't let telemetry through) and says how to fix it, and if it can't close it, explains how to do it by hand. What happens when you press it is now in the diagnostic report.
+
 ## 0.1.7-beta — 2026-11-23
 
 - Con el juego en español (u otro idioma), CommandGlass no veía cuándo subías a una nave y te marcaba siempre **a pie**: el aviso «Te has unido al canal 'Nave : Dueño'» lleva un texto dentro de otro y solo se traducía el de fuera. Ahora se entiende (con los packs de zalaca y de 0zzyt0), igual que quién sube y baja de tu nave, y al abrir la app se repasa el historial para que también cuenten las naves de antes.

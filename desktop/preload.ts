@@ -13,6 +13,13 @@ contextBridge.exposeInMainWorld('commandglass', {
   getUpdate: () => ipcRenderer.invoke('cg:get-update'),
   installUpdate: () => ipcRenderer.invoke('cg:install-update'),
   checkUpdate: () => ipcRenderer.invoke('cg:check-update'),
+  getScreens: () => ipcRenderer.invoke('cg:get-screens'),
+  toggleScreen: (id: number) => ipcRenderer.invoke('cg:toggle-screen', id),
+  onScreens: (cb: (s: unknown) => void) => {
+    const fn = (_e: unknown, s: unknown) => cb(s);
+    ipcRenderer.on('cg:screens', fn);
+    return () => ipcRenderer.removeListener('cg:screens', fn);
+  },
   /** Avisa cuando cambia el estado de la actualización; devuelve la función para dejar de escuchar. */
   onUpdate: (cb: (s: unknown) => void) => {
     const fn = (_e: unknown, s: unknown) => cb(s);

@@ -57,6 +57,8 @@ jobs:
           if ($label -notmatch '^[a-z0-9-]+$') { throw "Coletilla no válida: $label" }
           "CG_BUILD_SUFFIX=_$label" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
           "CG_TEST_BUILD=1" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+          # La app de pruebas se instala como 0.1.8-alpha.<coletilla>: por debajo de 0.1.8-beta, así se actualiza sola a la normal.
+          "CG_APP_VERSION=$($version.Split('-')[0])-alpha.$label" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
           "Versión de pruebas: $label"
 
       - name: Construir instalador

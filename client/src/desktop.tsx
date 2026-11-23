@@ -5,7 +5,7 @@ import '@fontsource/saira-semi-condensed/400.css';
 import '@fontsource/saira-semi-condensed/500.css';
 import './styles.css';
 import './desktop.css';
-import { Activity, CheckCircle2, Coffee, Copy, Download, ExternalLink, FileDown, FolderOpen, FolderSearch, KeyRound, LifeBuoy, MessagesSquare, Power, Radio, RefreshCw, Tablet, TriangleAlert } from 'lucide-react';
+import { Activity, CheckCircle2, Coffee, Copy, Download, ExternalLink, FileDown, FolderOpen, FolderSearch, KeyRound, LifeBuoy, MessagesSquare, Monitor, Power, Radio, RefreshCw, Tablet, TriangleAlert } from 'lucide-react';
 import { StrictMode, useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import logo from './assets/space-cowboys.png';
@@ -52,6 +52,10 @@ interface Bridge {
   installUpdate?(): Promise<void>;
   /** Mirar ahora si hay versión nueva (desde la 0.1.7). */
   checkUpdate?(): Promise<void>;
+  /** Pantallas de este PC (desde la 0.1.8). */
+  getScreens?(): Promise<{ screens: ScreenInfo[]; max: number } | null>;
+  toggleScreen?(id: number): Promise<{ ok: boolean; message?: string }>;
+  onScreens?(cb: (s: ScreenInfo[]) => void): () => void;
   onUpdate?(cb: (s: UpdateState) => void): () => void;
 }
 
@@ -62,7 +66,9 @@ type UpdateState =
   | { state: 'ready' | 'installing'; version: string }
   | { state: 'error'; message: string };
 
-type LaunchResult = { ok: true; closed: boolean } | { ok: false; reason: 'not-found' | 'game-running' | 'launcher-running' | 'failed'; detail?: string };
+type LaunchResult =
+  | { ok: true; closed: boolean }
+  | { ok: false; reason: 'not-found' | 'game-running' | 'launcher-running' | 'needs-admin' | 'cannot-close' | 'failed'; detail?: string };
 
 declare global {
   interface Window {
@@ -80,6 +86,68 @@ const UEX_TOKEN_URL = 'https://uexcorp.space/api/apps';
  * robertogeek.com/CommandGlass/discord redirige a la invitación que da el rol de CommandGlass.
  */
 const DISCORD_URL = 'https://robertogeek.com/CommandGlass/discord';
+
+interface ScreenInfo {
+  id: number;
+  label: string;
+  width: number;
+  height: number;
+  primary: boolean;
+  open: boolean;
+}
+
+/**
+ * Sin tablet: CommandGlass a pantalla completa en un monitor de este PC (hasta dos). Esas ventanas no se activan al
+ * tocarlas, así que el juego sigue en primer plano y Mandos funciona como desde el tablet.
+ */
+function LocalScreens() {
+  const { t } = useLang();
+  const [list, setList] = useState<ScreenInfo[] | null>(null);
+  const [max, setMax] = useState(2);
+  const [msg, setMsg] = useState<string | null>(null);
+  useEffect(() => {
+    if (!bridge?.getScreens) return;
+    bridge
+      .getScreens()
+      .then((r) => r && (setList(r.screens), setMax(r.max)))
+      .catch(() => setList(null));
+    return bridge.onScreens?.((s) => setList(s));
+  }, []);
+  if (!list || !bridge?.toggleScreen) return null;
+  const openCount = list.filter((s) => s.open).length;
+  const toggle = async (id: number) => {
+    setMsg(null);
+    const r = await bridge?.toggleScreen?.(id);
+    if (r && !r.ok && r.message) setMsg(r.message);
+  };
+  return (
+    <div className="desk-conn desk-screens" aria-label={t('En una pantalla de este PC', 'On a display of this PC')}>
+      <div className="desk-sublabel">{t('O en una pantalla de este PC', 'Or on a display of this PC')}</div>
+      <div className="sub">
+        {t(
+          `A pantalla completa, sin quitarle el foco al juego: Mandos funciona como desde el tablet. Hasta ${max}.`,
+          `Full screen, without taking focus from the game: Controls work just like from the tablet. Up to ${max}.`,
+        )}
+      </div>
+      <div className="desk-screen-list">
+        {list.map((s) => (
+          <button
+            key={s.id}
+            className={`chip ${s.open ? 'on' : ''}`}
+            onClick={() => void toggle(s.id)}
+            disabled={!s.open && openCount >= max}
+            aria-pressed={s.open}
+            title={`${s.width}×${s.height}${s.primary ? t(' · pantalla principal', ' · main display') : ''}`}
+          >
+            <Monitor size={15} aria-hidden /> {s.label}
+            {s.primary ? t(' (principal)', ' (main)') : ''}
+          </button>
+        ))}
+      </div>
+      {msg && <div className="sub" role="status">{msg}</div>}
+    </div>
+  );
+}
 
 /** "0.1.6-beta" → "0.1.6 beta". */
 const prettyVersion = (v: string) => v.replace('-', ' ');
@@ -302,6 +370,7 @@ function Desktop() {
               ))
             )}
           </div>
+          <LocalScreens />
         </section>
 
         <section className={`panel desk-game ${info && !info.gameDirFound ? 'warn' : ''}`} aria-label="Star Citizen">
@@ -450,15 +519,28 @@ function TelemetryLaunch() {
     switch (r.reason) {
       case 'launcher-running':
         return t(
-          'El RSI Launcher ya está abierto y así no se activa: hay que cerrarlo y reabrirlo. Si está descargando una actualización, espera a que termine.',
-          "The RSI Launcher is already open, so it won't turn on: it has to be closed and reopened. If it's downloading an update, wait for it to finish.",
+          'El RSI Launcher sigue abierto, aunque no veas su ventana: al cerrarla se queda en la bandeja del sistema, junto al reloj. Así la telemetría no se activa: hay que cerrarlo del todo y reabrirlo. Si está descargando una actualización, espera a que termine.',
+          "The RSI Launcher is still running, even if you can't see its window: closing it leaves it in the system tray, next to the clock. That way telemetry won't turn on: it has to be fully closed and reopened. If it's downloading an update, wait for it to finish.",
+        );
+      case 'cannot-close':
+        return t(
+          'Windows no deja a CommandGlass cerrar el RSI Launcher (suele pasar si se abre como administrador). Ciérralo tú desde su icono de la bandeja, junto al reloj (clic derecho → Salir), y vuelve a pulsar el botón.',
+          "Windows won't let CommandGlass close the RSI Launcher (it usually happens when it runs as administrator). Close it yourself from its tray icon next to the clock (right-click → Quit) and press the button again.",
+        );
+      case 'needs-admin':
+        return t(
+          'Tu RSI Launcher se abre como administrador, y así Windows no deja a CommandGlass pasarle la telemetría. Quita esa opción (clic derecho en el acceso directo del launcher → Propiedades → Compatibilidad → «Ejecutar este programa como administrador») o actívala a mano como explica la pestaña Telemetría del tablet, con PowerShell abierto como administrador.',
+          'Your RSI Launcher runs as administrator, so Windows won\'t let CommandGlass pass telemetry to it. Turn that off (right-click the launcher shortcut → Properties → Compatibility → "Run this program as an administrator") or turn telemetry on by hand as the Telemetry tab on the tablet explains, with PowerShell opened as administrator.',
         );
       case 'game-running':
         return t('Star Citizen está abierto. Sal del juego y vuelve a pulsar: la telemetría se enciende al abrir el launcher.', 'Star Citizen is running. Quit the game and press again: telemetry turns on when the launcher opens.');
       case 'not-found':
         return t('No encuentro el RSI Launcher. Ábrelo a mano con el comando de la pestaña Telemetría.', "Can't find the RSI Launcher. Open it by hand with the command in the Telemetry tab.");
       default:
-        return t('No se ha podido abrir el RSI Launcher.', "Couldn't open the RSI Launcher.");
+        return t(
+          `No se ha podido abrir el RSI Launcher${r.detail ? ` (${r.detail})` : ''}. Si sigue fallando, crea el informe de diagnóstico: guarda lo que ha pasado.`,
+          `Couldn't open the RSI Launcher${r.detail ? ` (${r.detail})` : ''}. If it keeps failing, create the diagnostic report: it records what happened.`,
+        );
     }
   };
 

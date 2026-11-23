@@ -135,6 +135,8 @@ body {
 .desk-pair-foot { display: flex; align-items: center; justify-content: space-between; gap: 14px; font-size: var(--fs); }
 .desk-conn { padding-top: clamp(10px, 1.4vh, 16px); border-top: 1px solid var(--line); display: grid; gap: 6px; }
 .desk-conn .desk-sublabel { margin: 0; }
+.desk-screen-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.desk-screen-list .chip { min-height: 38px; text-transform: none; letter-spacing: 0.02em; }
 .desk-device { display: flex; justify-content: space-between; gap: 12px; font-size: var(--fs); }
 
 /* ---------- juego */
@@ -249,8 +251,12 @@ code { color: var(--accent); }
 .desk-check input { flex: none; width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--accent); }
 
 /* ---------- si se encoge la ventana (la resolución mínima es 1080p): se esconde lo accesorio de la telemetría */
+/* Con un resultado del botón (que puede ser largo: bandeja, administrador…) se quitan los ejemplos de qué se ve. */
+.desk-tele.has-result .desk-tele-what { display: none; }
+
 @media (max-height: 960px) {
   .desk-tele-what, .desk-tele .desk-howto, .desk-tele .desk-small { display: none; }
   .desk-tele.has-result > p.sub { display: none; }
   .desk-coffee > .sub { display: none; }
+  .desk-screens > .sub { display: none; }
 }

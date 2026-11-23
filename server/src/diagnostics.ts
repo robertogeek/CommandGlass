@@ -164,6 +164,26 @@ export function buildDiagnostics({ config, store, tailer, sources, devices }: Di
   for (const r of reports) out(`${r.ts} ${r.device}${r.remote ? '' : ' (PC)'} · ${r.kind === 'hello' ? 'conexión' : 'ERROR'}: ${r.message}${r.detail ? `\n    ${r.detail.replace(/\n/g, '\n    ')}` : ''}`);
   out();
 
+  // Lo que hace la app de escritorio por su cuenta (botón de telemetría, pantallas de este PC, actualizaciones).
+  // Solo esas líneas: el resto de ese registro repite lo del servidor.
+  out('== App de escritorio (telemetría, pantallas de este PC y actualizaciones; últimas 60)');
+  const desktopLog = process.env.CG_DESKTOP_LOG;
+  let desktopLines: string[] = [];
+  try {
+    if (desktopLog && existsSync(desktopLog)) {
+      desktopLines = tail(desktopLog, 2 ** 20)
+        .toString('utf8')
+        .split(/\r?\n/)
+        .filter((l) => /\[(telemetría|pantallas|actualización)\]/.test(l))
+        .slice(-60);
+    }
+  } catch {
+    /* sin registro */
+  }
+  if (!desktopLines.length) out('(nada todavía)');
+  for (const l of desktopLines) out(l);
+  out();
+
   const state = tailer.state;
   const files: { name: string; data: Buffer | string }[] = [
     { name: 'informe.txt', data: redact(lines.join('\n')) },
