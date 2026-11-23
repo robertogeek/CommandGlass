@@ -16,6 +16,9 @@ const en = {
   'mobiglas_ui_notification_party_member_joined': '%S has joined the party.',
   'text_uec_reward_text': 'Awarded %i aUEC',
   'hud_generic_solo': '%s',
+  'comms_local_player_joined_auto': 'You have joined %s.',
+  'comms_local_player_left': 'You have left the %s.',
+  'comms_suffix_ship_channel': "channel '%S'",
 };
 const loc = {
   'mobiglas_ui_missionevent_activated': 'Contrato aceptado: %s',
@@ -29,6 +32,9 @@ const loc = {
   'mobiglas_ui_notification_party_member_joined': '%S se ha unido al escuadrón.',
   'text_uec_reward_text': 'Recompensa de %i aUEC',
   'hud_generic_solo': 'Aviso %s',
+  'comms_local_player_joined_auto': 'Te has unido al %s.',
+  'comms_local_player_left': 'Has abandonado el %s.',
+  'comms_suffix_ship_channel': "canal '%S'",
 };
 
 const TS = '<2026-11-20T10:00:00.000Z>';
@@ -72,6 +78,19 @@ test('idioma del juego: avisos de varias líneas, compuestos y con nombres tradu
   const [money] = notify('Recompensa de 12,500 aUEC');
   assert.equal(money?.type, 'economy.reward');
   assert.equal(money?.data.amount, 12500);
+});
+
+test('idioma del juego: subir y bajar de la nave (el canal va dentro de otro texto)', () => {
+  setHudTranslator(new HudTranslator({ lang: 'spanish_(spain)', en, loc }));
+  // Tal cual sale en el Game.log de un tester con el juego en español (antes se quedaba «a pie»).
+  const [board] = notify("Te has unido al canal 'Crusader Ares Star Fighter Inferno : Yo'.\n: ");
+  assert.equal(board?.type, 'ship.boarded');
+  assert.equal(board?.data.ship, 'Crusader Ares Star Fighter Inferno');
+  assert.equal(board?.data.own, true);
+
+  const [left] = notify("Has abandonado el canal 'Crusader Ares Star Fighter Inferno : Yo'.");
+  assert.equal(left?.type, 'ship.left');
+  assert.equal(left?.data.ship, 'Crusader Ares Star Fighter Inferno');
 });
 
 test('idioma del juego: lo que no tiene regla se guarda tal cual se vio, y el inglés sigue igual', () => {

@@ -11,11 +11,13 @@ Lo que se vaya haciendo se apunta en la versión «en desarrollo» de arriba.
 
 ## 0.1.7-beta (en desarrollo)
 
+- Con el juego en español (u otro idioma), CommandGlass no veía cuándo subías a una nave y te marcaba siempre **a pie**: el aviso «Te has unido al canal 'Nave : Dueño'» lleva un texto dentro de otro y solo se traducía el de fuera. Ahora se entiende, y al abrir la app se repasa el historial para que también cuenten las naves de antes.
 - **Abrir el Discord** abre la invitación en la app de Discord si la tienes instalada, en vez de en el navegador.
 - Arriba en la ventana del PC se ve si estás **al día**, con un botón **Buscar ahora** para comprobar si hay versión nueva sin esperar.
 
 **English**
 
+- With the game in Spanish (or another language), CommandGlass didn't notice when you boarded a ship and always showed you **on foot**: the "You have joined channel 'Ship : Owner'" notification has one text inside another, and only the outer one was translated. It's understood now, and when you open the app your history is reprocessed so earlier ships count too.
 - **Open Discord** opens the invite in the Discord app if you have it installed, instead of in the browser.
 - The top of the PC window shows whether you're **up to date**, with a **Check now** button to look for a new version without waiting.
 

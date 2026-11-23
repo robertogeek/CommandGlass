@@ -8,10 +8,13 @@
 
 /** Claves de global.ini que pueden salir como aviso del HUD (y los nombres que van dentro). */
 export const HUD_KEY =
-  /^(hud_|mobiGlas_ui_|notification_|ATC_GatewayQueue_|crafting_hud_|comms_local_|text_(UEC|MER)_reward|Mission_(Multi)?Reward_Notification|TheCollector_|refinery_ui_(job|multipleJobs)Complete|Jurisdictions_Name_|kiosk_TransactionComplete|Temp_CovalexShipping_Transaction)/i;
+  /^(hud_|mobiGlas_ui_|notification_|ATC_GatewayQueue_|crafting_hud_|comms_local_|comms_suffix_|text_(UEC|MER)_reward|Mission_(Multi)?Reward_Notification|TheCollector_|refinery_ui_(job|multipleJobs)Complete|Jurisdictions_Name_|kiosk_TransactionComplete|Temp_CovalexShipping_Transaction)/i;
 
-/** Textos que se sustituyen dentro de otro aviso (nombres de jurisdicción). */
-const VALUE_KEY = /^Jurisdictions_Name_/i;
+/**
+ * Textos que van dentro de otro aviso: nombres de jurisdicción y los trozos de los canales de comunicación
+ * («You have joined %s.» lleva dentro «channel '%S'»: en español «Te has unido al canal 'Nave : Dueño'.»).
+ */
+const VALUE_KEY = /^(Jurisdictions_Name_|comms_suffix_)/i;
 
 export interface HudStrings {
   /** Carpeta del idioma (spanish_(spain), french_(france)…). */
@@ -50,6 +53,22 @@ function parts(tpl: string): { lits: string[]; slots: (number | null)[] } {
   return { lits, slots };
 }
 
+/** Plantilla para pasar un texto traducido con huecos a su inglés, o null si es demasiado genérica. */
+function template(L: ReturnType<typeof parts>, E: ReturnType<typeof parts>, flags: string): Template | null {
+  const literal = L.lits.join('').replace(/\s+/g, '');
+  if (literal.length < 3) return null; // "%s" a secas lo traduciría todo
+  // Captura i del texto traducido = hueco número i (o el que diga %n$).
+  const order = L.slots.map((s, i) => s ?? i);
+  const capOf = new Map(order.map((slot, i) => [slot, i]));
+  const re = new RegExp(`^${L.lits.map(escape).join('(.+?)')}$`, flags);
+  const en: (string | number)[] = [];
+  E.lits.forEach((lit, i) => {
+    if (lit) en.push(lit);
+    if (i < E.slots.length) en.push(capOf.get(E.slots[i] ?? i) ?? i);
+  });
+  return { re, en, weight: literal.length };
+}
+
 function firstWord(s: string): string {
   return /^\s*([^\s%~:.,!-]+)/.exec(s)?.[1]?.toLowerCase() ?? '';
 }
@@ -63,6 +82,8 @@ export class HudTranslator {
   /** Plantillas de varias líneas (se prueban con el aviso entero). */
   private multi: Template[] = [];
   private values = new Map<string, string>();
+  /** Trozos con huecos que van dentro de otro aviso («canal '%S'» → «channel '%S'»). */
+  private valueTemplates: Template[] = [];
   readonly size: number;
 
   constructor(strings: HudStrings) {
@@ -74,12 +95,16 @@ export class HudTranslator {
       const en = unescapeIni(rawEn);
       const loc = unescapeIni(rawLoc);
       if (!loc || norm(loc) === norm(en)) continue;
-      if (VALUE_KEY.test(key)) {
-        this.values.set(norm(loc), en);
-        continue;
-      }
       const L = parts(loc);
       const E = parts(en);
+      if (VALUE_KEY.test(key)) {
+        if (L.slots.length === 0) this.values.set(norm(loc), en);
+        else if (L.slots.length === E.slots.length) {
+          const tpl = template(L, E, 'isu');
+          if (tpl) this.valueTemplates.push(tpl);
+        }
+        continue;
+      }
       if (L.slots.length === 0) {
         if (E.slots.length > 0) continue;
         if (!this.exact.has(norm(loc))) this.exact.set(norm(loc), en);
@@ -87,18 +112,8 @@ export class HudTranslator {
         continue;
       }
       if (L.slots.length !== E.slots.length) continue;
-      const literal = L.lits.join('').replace(/\s+/g, '');
-      if (literal.length < 3) continue; // "%s" a secas lo traduciría todo
-      // Captura i del texto traducido = hueco número i (o el que diga %n$).
-      const order = L.slots.map((s, i) => s ?? i);
-      const capOf = new Map(order.map((slot, i) => [slot, i]));
-      const re = new RegExp(`^${L.lits.map(escape).join('(.+?)')}$`, 'isu');
-      const enParts: (string | number)[] = [];
-      E.lits.forEach((lit, i) => {
-        if (lit) enParts.push(lit);
-        if (i < E.slots.length) enParts.push(capOf.get(E.slots[i] ?? i) ?? i);
-      });
-      const tpl: Template = { re, en: enParts, weight: literal.length };
+      const tpl = template(L, E, 'isu');
+      if (!tpl) continue;
       if (loc.includes('\n')) this.multi.push(tpl);
       else {
         const w = firstWord(loc);
@@ -109,7 +124,7 @@ export class HudTranslator {
       size++;
     }
     // Las plantillas más concretas primero.
-    for (const list of [this.multi, ...this.byWord.values()]) list.sort((a, b) => b.weight - a.weight);
+    for (const list of [this.multi, this.valueTemplates, ...this.byWord.values()]) list.sort((a, b) => b.weight - a.weight);
     this.size = size;
   }
 
@@ -118,7 +133,14 @@ export class HudTranslator {
   }
 
   private value(v: string): string {
-    return this.values.get(norm(v)) ?? v;
+    const exact = this.values.get(norm(v));
+    if (exact !== undefined) return exact;
+    for (const tpl of this.valueTemplates) {
+      const m = tpl.re.exec(v.trim());
+      // Lo de dentro (el nombre de la nave y su dueño) se deja tal cual.
+      if (m) return tpl.en.map((p) => (typeof p === 'number' ? (m[p + 1] ?? '') : p)).join('');
+    }
+    return v;
   }
 
   private line(s: string): string | null {
