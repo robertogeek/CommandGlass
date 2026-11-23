@@ -2,6 +2,10 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { actorName, isEntityName } from '../src/parser/names.ts';
 import { replayPresence } from '../src/store/contacts.ts';
+import { setLang } from '../src/i18n.ts';
+
+// Los textos esperados están en español, sea cual sea el idioma del PC que pasa las pruebas.
+setLang('es');
 
 test('los peligros del entorno no cuentan como jugadores', () => {
   for (const n of ['Hazard-001', 'Hazard_Toggleable-Howitzer', 'PlanetKillVolume', 'StreamingSOC_asd_shuttle_a']) {

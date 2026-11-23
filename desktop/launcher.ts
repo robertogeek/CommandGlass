@@ -28,6 +28,9 @@ async function isRunning(exe: string): Promise<boolean> {
   return out.toLowerCase().includes(`"${exe.toLowerCase()}"`);
 }
 
+/** ¿Está Star Citizen abierto? */
+export const isGameRunning = (): Promise<boolean> => isRunning(GAME_EXE);
+
 /** Carpeta del launcher según su desinstalador (DisplayIcon apunta a un archivo de su carpeta). */
 async function fromRegistry(): Promise<string | null> {
   const out = await run('reg', ['query', UNINSTALL_KEY, '/v', 'DisplayIcon']);

@@ -40,6 +40,9 @@ module.exports = {
     { from: 'client/public/icon-192.png', to: 'assets/icon.png' },
   ],
   asar: true,
+  // De dónde saca las actualizaciones la versión de GitHub (desktop/updater.ts). No publica nada al construir
+  // (--publish never): solo genera latest.yml, que el CI sube a la release junto al .exe.
+  publish: [{ provider: 'github', owner: 'robertogeek', repo: 'CommandGlass', releaseType: 'release' }],
   win: {
     target: [{ target: 'nsis', arch: ['x64'] }],
     icon: 'client/public/icon-512.png',
@@ -56,9 +59,11 @@ module.exports = {
     shortcutName: 'CommandGlass',
     runAfterFinish: true,
     deleteAppDataOnUninstall: false,
-    installerLanguages: ['es_ES'],
-    language: '3082',
-    multiLanguageInstaller: false,
+    // En inglés o en español según el idioma de Windows (en inglés si no es ninguno de los dos).
+    installerLanguages: ['en_US', 'es_ES'],
+    language: '1033',
+    multiLanguageInstaller: true,
+    displayLanguageSelector: false,
     artifactName: `${releaseName(version)}${suffix}.\${ext}`,
     uninstallDisplayName: 'CommandGlass',
     include: 'desktop/build/installer.nsh',

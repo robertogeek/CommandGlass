@@ -129,7 +129,7 @@ const qtArrived: Rule = (l) => {
     type: 'travel.qt_arrived',
     category: 'travel',
     importance: 1,
-    ...say(`Salto cuántico completado con ${shipName(m[1]!)}`, `Quantum jump completed in ${shipName(m[1]!)}`),
+    ...say(`Salto cuántico completado con ${shipName(m[1]!, 'es')}`, `Quantum jump completed in ${shipName(m[1]!, 'en')}`),
     data: { ship: stripEntityId(m[1]!), shipName: shipName(m[1]!), vehicleId: m[2] },
   };
 };
@@ -141,7 +141,7 @@ const clearDriver: Rule = (l, api) => {
     type: 'ship.controls_released',
     category: 'travel',
     importance: 0,
-    ...say(`Dejas los mandos de ${shipName(m[2]!)}`, `You leave the controls of ${shipName(m[2]!)}`),
+    ...say(`Dejas los mandos de ${shipName(m[2]!, 'es')}`, `You leave the controls of ${shipName(m[2]!, 'en')}`),
     data: { ship: stripEntityId(m[2]!), shipName: shipName(m[2]!), vehicleId: m[3] },
   };
 };
@@ -166,7 +166,8 @@ function vehicleDestroyedEvent(
     format: '2025' | '2026';
   },
 ): EventDraft {
-  const ship = shipName(d.cls);
+  const ship = shipName(d.cls, 'es');
+  const shipEn = shipName(d.cls, 'en');
   const reason = REASONS[d.reason] ?? { es: d.reason, en: d.reason };
   const reasonEs = reason.es;
   const mine = api.isMe(null, d.ownerGeid) || api.isMe(d.driver, d.driverGeid);
@@ -180,16 +181,16 @@ function vehicleDestroyedEvent(
   let text: { summary: string; summaryEn: string };
   let importance: 0 | 1 | 2 = 1;
   if (mine && byMe) {
-    text = say(`Tu ${ship} ${state} · ${reason.es}`, `Your ${ship} ${stateEn} · ${reason.en}`);
+    text = say(`Tu ${ship} ${state} · ${reason.es}`, `Your ${shipEn} ${stateEn} · ${reason.en}`);
     importance = 2;
   } else if (mine) {
-    text = say(`Tu ${ship} ${state} por ${killerName} · ${reason.es}`, `Your ${ship} ${stateEn} by ${killerEn} · ${reason.en}`);
+    text = say(`Tu ${ship} ${state} por ${killerName} · ${reason.es}`, `Your ${shipEn} ${stateEn} by ${killerEn} · ${reason.en}`);
     importance = 2;
   } else if (byMe) {
-    text = say(`Has ${destroyed ? 'destruido' : 'inutilizado'} ${ship}`, `You ${stateEn} ${ship}`);
+    text = say(`Has ${destroyed ? 'destruido' : 'inutilizado'} ${ship}`, `You ${stateEn} ${shipEn}`);
     importance = 2;
   } else {
-    text = say(`${ship} ${state} por ${killerName} · ${reason.es}`, `${ship} ${stateEn} by ${killerEn} · ${reason.en}`);
+    text = say(`${ship} ${state} por ${killerName} · ${reason.es}`, `${shipEn} ${stateEn} by ${killerEn} · ${reason.en}`);
   }
 
   return {
@@ -253,13 +254,15 @@ const actorDeath: Rule = (l, api) => {
   const [, victim, victimGeid, zone, killer, killerGeid, weapon, damageType] = m as unknown as string[];
   const victimIsMe = api.isMe(victim, victimGeid);
   const killerIsMe = api.isMe(killer, killerGeid);
-  const weaponName = weapon && weapon !== 'unknown' ? (itemName(weapon) ?? shipName(weapon)) : null;
+  const weaponOf = (lang: 'es' | 'en') => (weapon && weapon !== 'unknown' ? (itemName(weapon) ?? shipName(weapon, lang)) : null);
+  const weaponName = weaponOf('es');
+  const weaponEn = weaponOf('en');
   const victimNpc = isEntityName(victim!);
 
   let text: { summary: string; summaryEn: string };
   let importance: 0 | 1 | 2 = 1;
   const withEs = weaponName ? ` con ${weaponName}` : '';
-  const withEn = weaponName ? ` with ${weaponName}` : '';
+  const withEn = weaponEn ? ` with ${weaponEn}` : '';
   if (victimIsMe && killerIsMe) {
     text = say(`Has muerto (${damageType})`, `You died (${damageType})`);
     importance = 2;

@@ -5,7 +5,7 @@ import '@fontsource/saira-semi-condensed/400.css';
 import '@fontsource/saira-semi-condensed/500.css';
 import './styles.css';
 import './desktop.css';
-import { Activity, CheckCircle2, Coffee, Copy, ExternalLink, FileDown, FolderOpen, FolderSearch, KeyRound, LifeBuoy, Power, Radio, Tablet, TriangleAlert } from 'lucide-react';
+import { Activity, CheckCircle2, Coffee, Copy, Download, ExternalLink, FileDown, FolderOpen, FolderSearch, KeyRound, LifeBuoy, Power, Radio, Tablet, TriangleAlert } from 'lucide-react';
 import { StrictMode, useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import logo from './assets/space-cowboys.png';
@@ -47,7 +47,18 @@ interface Bridge {
   /** false en la versión de la Microsoft Store (y en versiones antiguas de la app, que no lo tienen). */
   canLaunchTelemetry?(): Promise<boolean>;
   launchTelemetry?(closeFirst: boolean): Promise<LaunchResult>;
+  /** Estado de la actualización; null si no aplica (Store o desarrollo). No existe en versiones antiguas de la app. */
+  getUpdate?(): Promise<UpdateState | null>;
+  installUpdate?(): Promise<void>;
+  onUpdate?(cb: (s: UpdateState) => void): () => void;
 }
+
+type UpdateState =
+  | { state: 'idle' | 'checking' }
+  | { state: 'none'; version: string }
+  | { state: 'downloading'; version: string; percent: number }
+  | { state: 'ready' | 'installing'; version: string }
+  | { state: 'error'; message: string };
 
 type LaunchResult = { ok: true; closed: boolean } | { ok: false; reason: 'not-found' | 'game-running' | 'launcher-running' | 'failed'; detail?: string };
 
@@ -60,6 +71,46 @@ declare global {
 const bridge = window.commandglass;
 /** Enlace de PayPal de robertogeek para que quien quiera le invite a un café. Vacío = no se muestra. */
 const DONATE_URL = 'https://paypal.me/robertogeek';
+
+/** "0.1.6-beta" → "0.1.6 beta". */
+const prettyVersion = (v: string) => v.replace('-', ' ');
+
+/**
+ * Actualización de la versión de GitHub: se descarga sola al abrir la app y se instala si no estás jugando.
+ * Aquí solo se ve mientras pasa algo (descargando, lista para instalar, instalando).
+ */
+function UpdateNotice() {
+  const { t } = useLang();
+  const [u, setU] = useState<UpdateState | null>(null);
+  useEffect(() => {
+    if (!bridge?.getUpdate) return;
+    bridge.getUpdate().then(setU).catch(() => setU(null));
+    return bridge.onUpdate?.(setU);
+  }, []);
+  if (!u) return null;
+  if (u.state === 'downloading') {
+    return (
+      <div className="desk-update" role="status">
+        <Download size={16} aria-hidden /> {t(`Descargando la ${prettyVersion(u.version)}… ${u.percent} %`, `Downloading ${prettyVersion(u.version)}… ${u.percent}%`)}
+      </div>
+    );
+  }
+  if (u.state === 'ready') {
+    return (
+      <button className="chip on desk-update-go" onClick={() => void bridge?.installUpdate?.()} title={t('Se instalará al salir de la app si no lo haces ahora.', "It will install when you quit the app if you don't do it now.")}>
+        <Download size={16} aria-hidden /> {t(`Instalar la ${prettyVersion(u.version)} y reiniciar`, `Install ${prettyVersion(u.version)} and restart`)}
+      </button>
+    );
+  }
+  if (u.state === 'installing') {
+    return (
+      <div className="desk-update" role="status">
+        <Download size={16} aria-hidden /> {t(`Instalando la ${prettyVersion(u.version)}…`, `Installing ${prettyVersion(u.version)}…`)}
+      </div>
+    );
+  }
+  return null;
+}
 
 function useDesktopInfo() {
   const [info, setInfo] = useState<DesktopInfo | null>(null);
@@ -150,6 +201,7 @@ function Desktop() {
           <p className="faint">{t('Tu mobiGlas para Star Citizen', 'Your mobiGlas for Star Citizen')}{info ? ` · ${info.version}` : ''}</p>
         </div>
         <div className="desk-head-tools">
+          <UpdateNotice />
           <LangSwitch />
           <MadeByCommunity />
         </div>

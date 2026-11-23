@@ -10,4 +10,12 @@ contextBridge.exposeInMainWorld('commandglass', {
   setChannel: (ch: string) => ipcRenderer.invoke('cg:set-channel', ch),
   canLaunchTelemetry: () => ipcRenderer.invoke('cg:can-launch-telemetry'),
   launchTelemetry: (closeFirst: boolean) => ipcRenderer.invoke('cg:launch-telemetry', closeFirst),
+  getUpdate: () => ipcRenderer.invoke('cg:get-update'),
+  installUpdate: () => ipcRenderer.invoke('cg:install-update'),
+  /** Avisa cuando cambia el estado de la actualización; devuelve la función para dejar de escuchar. */
+  onUpdate: (cb: (s: unknown) => void) => {
+    const fn = (_e: unknown, s: unknown) => cb(s);
+    ipcRenderer.on('cg:update', fn);
+    return () => ipcRenderer.removeListener('cg:update', fn);
+  },
 });

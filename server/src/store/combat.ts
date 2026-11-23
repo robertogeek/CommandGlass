@@ -1,5 +1,5 @@
 import { tx } from '../i18n.ts';
-import { actorName } from '../parser/names.ts';
+import { actorName, stripAiSuffix } from '../parser/names.ts';
 import { REASONS } from '../parser/rules.ts';
 import type { Store } from './db.ts';
 
@@ -65,7 +65,7 @@ export function foldCombat(rows: Row[]): CombatSummary {
           lostShips.push(String(d.ship ?? '—'));
           feed.push({ id: r.id, ts: r.ts, type: r.type, summary: r.summary, tone: 'bad' });
         } else if (d.byMe) {
-          destroyedShips.push(String(d.ship ?? '—').replace(/ \(IA[^)]*\)$/, ''));
+          destroyedShips.push(stripAiSuffix(String(d.ship ?? '—')));
           feed.push({ id: r.id, ts: r.ts, type: r.type, summary: r.summary, tone: 'good' });
         }
         break;

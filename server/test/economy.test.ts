@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { purchaseKind, shopName, walletEstimate } from '../src/store/economy.ts';
+import { setLang } from '../src/i18n.ts';
+
+// Los textos esperados están en español, sea cual sea el idioma del PC que pasa las pruebas.
+setLang('es');
 
 test('nombres de tienda y tipos de compra', () => {
   assert.equal(shopName('SCShop_ConscientiousObjects_Levski-001'), 'Conscientious Objects · Levski');

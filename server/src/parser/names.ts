@@ -28,15 +28,19 @@ const MANUFACTURERS: Record<string, string> = {
   VNCL: 'Vanduul',
 };
 
-const AI_SUFFIXES: [RegExp, string][] = [
-  [/_PU_AI_CRIM$/i, ' (IA criminal)'],
-  [/_PU_AI_NT$/i, ' (IA Nine Tails)'],
-  [/_PU_AI_UEE$/i, ' (IA UEE)'],
-  [/_PU_AI_SEC$/i, ' (IA seguridad)'],
-  [/_PU_AI_CIV$/i, ' (IA civil)'],
-  [/_PU_AI_[A-Z0-9_]+$/i, ' (IA)'],
-  [/_AI_[A-Z0-9_]+$/i, ' (IA)'],
+/** Sufijo de las naves de la IA: [regla, español, inglés]. */
+const AI_SUFFIXES: [RegExp, string, string][] = [
+  [/_PU_AI_CRIM$/i, ' (IA criminal)', ' (criminal AI)'],
+  [/_PU_AI_NT$/i, ' (IA Nine Tails)', ' (Nine Tails AI)'],
+  [/_PU_AI_UEE$/i, ' (IA UEE)', ' (UEE AI)'],
+  [/_PU_AI_SEC$/i, ' (IA seguridad)', ' (security AI)'],
+  [/_PU_AI_CIV$/i, ' (IA civil)', ' (civilian AI)'],
+  [/_PU_AI_[A-Z0-9_]+$/i, ' (IA)', ' (AI)'],
+  [/_AI_[A-Z0-9_]+$/i, ' (IA)', ' (AI)'],
 ];
+
+/** Quita el sufijo de nave de la IA en cualquiera de los dos idiomas: "Anvil Arrow (IA criminal)" → "Anvil Arrow". */
+export const stripAiSuffix = (name: string): string => name.replace(/ \((?:IA(?: [^)]*)?|[^)]*\bAI)\)$/, '');
 
 /** Quita el sufijo numérico de entidad: "RSI_Skylark_939541665607" -> "RSI_Skylark". */
 export function stripEntityId(name: string): string {
@@ -52,13 +56,13 @@ export function isEntityName(name: string): boolean {
 }
 
 /** "RSI_Constellation_Mk5_Centaurus" -> "RSI Constellation Mk5 Centaurus" */
-export function shipName(cls: string): string {
+export function shipName(cls: string, lang: Lang = getLang()): string {
   let base = stripEntityId(cls);
   let suffix = '';
-  for (const [re, label] of AI_SUFFIXES) {
+  for (const [re, es, en] of AI_SUFFIXES) {
     if (re.test(base)) {
       base = base.replace(re, '');
-      suffix = label;
+      suffix = lang === 'es' ? es : en;
       break;
     }
   }
@@ -95,7 +99,7 @@ export function actorName(name: string, lang: Lang = getLang()): string {
   if (/^Hazard[_-]/.test(name)) return t('un peligro del entorno', 'an environmental hazard');
   if (/^PlanetKillVolume/.test(name)) return t('el límite del planeta', 'the planet boundary');
   if (/^StreamingSOC_/.test(name)) return t('un objeto del escenario', 'a scenery object');
-  if (isEntityName(name)) return shipName(name);
+  if (isEntityName(name)) return shipName(name, lang);
   return name;
 }
 

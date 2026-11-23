@@ -24,6 +24,8 @@ await build({
   outfile: 'desktop/dist/main.mjs',
   format: 'esm',
   external: ['electron'],
+  // electron-updater (va dentro del bundle) es CommonJS: necesita un require de verdad.
+  banner: { js: "import { createRequire as __cgRequire } from 'node:module'; const require = __cgRequire(import.meta.url);" },
 });
 
 await build({

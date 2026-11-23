@@ -8,7 +8,32 @@
 !include nsDialogs.nsh
 !include LogicLib.nsh
 
+; Textos en inglés (1033) y en español (3082): el instalador usa el idioma de Windows.
+LangString CgFirewall 1033 "CommandGlass: tablet connection over the local network"
+LangString CgFirewall 3082 "CommandGlass: conexión del tablet por la red local"
+
 !ifndef BUILD_UNINSTALLER
+
+LangString CgNotFound 1033 "I couldn't find Star Citizen on this PC. If it's installed, click Browse and choose its folder. If you don't have it yet, you can continue and choose it later from CommandGlass."
+LangString CgNotFound 3082 "No he encontrado Star Citizen en este PC. Si lo tienes instalado, pulsa Examinar y elige su carpeta. Si aún no lo tienes, puedes seguir y elegirla más tarde desde CommandGlass."
+LangString CgWrongDir 1033 "Star Citizen isn't in that folder. Choose the StarCitizen folder or its LIVE subfolder (the one that contains Data.p4k)."
+LangString CgWrongDir 3082 "En esa carpeta no está Star Citizen. Elige la carpeta StarCitizen o su subcarpeta LIVE (la que contiene Data.p4k)."
+LangString CgFoundAt 1033 "Star Citizen found in:"
+LangString CgFoundAt 3082 "Star Citizen encontrado en:"
+LangString CgPickDir 1033 "Choose the Star Citizen folder (StarCitizen or its LIVE subfolder)"
+LangString CgPickDir 3082 "Elige la carpeta de Star Citizen (StarCitizen o su subcarpeta LIVE)"
+LangString CgPageSub 1033 "Where is the game installed?"
+LangString CgPageSub 3082 "¿Dónde está instalado el juego?"
+LangString CgIntro 1033 "CommandGlass reads Star Citizen's log to know what's happening in your game. It only reads it: it doesn't change anything in the game."
+LangString CgIntro 3082 "CommandGlass lee el registro de Star Citizen para saber qué pasa en tu partida. Solo lo lee: no modifica nada del juego."
+LangString CgDirLabel 1033 "Game folder:"
+LangString CgDirLabel 3082 "Carpeta del juego:"
+LangString CgBrowseBtn 1033 "Browse..."
+LangString CgBrowseBtn 3082 "Examinar..."
+LangString CgSkipAsk 1033 "You haven't chosen the Star Citizen folder.$\r$\n$\r$\nContinue without it? You can choose it later from the CommandGlass window."
+LangString CgSkipAsk 3082 "No has indicado la carpeta de Star Citizen.$\r$\n$\r$\n¿Quieres seguir sin ella? Podrás elegirla después desde la ventana de CommandGlass."
+LangString CgWrongDirBox 1033 "Star Citizen isn't in that folder.$\r$\n$\r$\nChoose the StarCitizen folder or its LIVE subfolder (the one that contains Data.p4k)."
+LangString CgWrongDirBox 3082 "En esa carpeta no está Star Citizen.$\r$\n$\r$\nElige la carpeta StarCitizen o su subcarpeta LIVE (la que contiene Data.p4k)."
 
 Var CgGameDir
 Var CgDirField
@@ -55,14 +80,14 @@ FunctionEnd
 Function CgUpdateStatus
   ${NSD_GetText} $CgDirField $R0
   ${If} $R0 == ""
-    ${NSD_SetText} $CgStatusLabel "No he encontrado Star Citizen en este PC. Si lo tienes instalado, pulsa Examinar y elige su carpeta. Si aún no lo tienes, puedes seguir y elegirla más tarde desde CommandGlass."
+    ${NSD_SetText} $CgStatusLabel "$(CgNotFound)"
     Return
   ${EndIf}
   Call CgNormalize
   ${If} $R0 == ""
-    ${NSD_SetText} $CgStatusLabel "En esa carpeta no está Star Citizen. Elige la carpeta StarCitizen o su subcarpeta LIVE (la que contiene Data.p4k)."
+    ${NSD_SetText} $CgStatusLabel "$(CgWrongDir)"
   ${Else}
-    ${NSD_SetText} $CgStatusLabel "Star Citizen encontrado en:$\r$\n$R0"
+    ${NSD_SetText} $CgStatusLabel "$(CgFoundAt)$\r$\n$R0"
   ${EndIf}
 FunctionEnd
 
@@ -74,7 +99,7 @@ FunctionEnd
 Function CgBrowse
   Pop $0
   ${NSD_GetText} $CgDirField $1
-  nsDialogs::SelectFolderDialog "Elige la carpeta de Star Citizen (StarCitizen o su subcarpeta LIVE)" "$1"
+  nsDialogs::SelectFolderDialog "$(CgPickDir)" "$1"
   Pop $1
   ${If} $1 != error
     ${NSD_SetText} $CgDirField "$1"
@@ -87,20 +112,20 @@ Function CgGamePageCreate
     Call CgDetectGameDir
     StrCpy $CgDetected "1"
   ${EndIf}
-  !insertmacro MUI_HEADER_TEXT "Star Citizen" "¿Dónde está instalado el juego?"
+  !insertmacro MUI_HEADER_TEXT "Star Citizen" "$(CgPageSub)"
   nsDialogs::Create 1018
   Pop $0
   ${If} $0 == error
     Abort
   ${EndIf}
-  ${NSD_CreateLabel} 0 0 100% 30u "CommandGlass lee el registro de Star Citizen para saber qué pasa en tu partida. Solo lo lee: no modifica nada del juego."
+  ${NSD_CreateLabel} 0 0 100% 30u "$(CgIntro)"
   Pop $0
-  ${NSD_CreateLabel} 0 34u 100% 10u "Carpeta del juego:"
+  ${NSD_CreateLabel} 0 34u 100% 10u "$(CgDirLabel)"
   Pop $0
   ${NSD_CreateDirRequest} 0 46u 74% 13u "$CgGameDir"
   Pop $CgDirField
   ${NSD_OnChange} $CgDirField CgOnChange
-  ${NSD_CreateBrowseButton} 76% 45u 24% 15u "Examinar..."
+  ${NSD_CreateBrowseButton} 76% 45u 24% 15u "$(CgBrowseBtn)"
   Pop $0
   ${NSD_OnClick} $0 CgBrowse
   ${NSD_CreateLabel} 0 68u 100% 44u ""
@@ -112,7 +137,7 @@ FunctionEnd
 Function CgGamePageLeave
   ${NSD_GetText} $CgDirField $R0
   ${If} $R0 == ""
-    MessageBox MB_YESNO|MB_ICONQUESTION "No has indicado la carpeta de Star Citizen.$\r$\n$\r$\n¿Quieres seguir sin ella? Podrás elegirla después desde la ventana de CommandGlass." IDYES cg_skip
+    MessageBox MB_YESNO|MB_ICONQUESTION "$(CgSkipAsk)" IDYES cg_skip
     Abort
     cg_skip:
     StrCpy $CgGameDir ""
@@ -120,7 +145,7 @@ Function CgGamePageLeave
   ${EndIf}
   Call CgNormalize
   ${If} $R0 == ""
-    MessageBox MB_OK|MB_ICONEXCLAMATION "En esa carpeta no está Star Citizen.$\r$\n$\r$\nElige la carpeta StarCitizen o su subcarpeta LIVE (la que contiene Data.p4k)."
+    MessageBox MB_OK|MB_ICONEXCLAMATION "$(CgWrongDirBox)"
     Abort
   ${EndIf}
   StrCpy $CgGameDir $R0
@@ -173,7 +198,7 @@ FunctionEnd
   !endif
   nsExec::Exec '"$SYSDIR\netsh.exe" advfirewall firewall delete rule name="CommandGlass"'
   Pop $0
-  nsExec::Exec '"$SYSDIR\netsh.exe" advfirewall firewall add rule name="CommandGlass" dir=in action=allow program="$INSTDIR\CommandGlass.exe" enable=yes profile=private description="CommandGlass: conexión del tablet por la red local"'
+  nsExec::Exec '"$SYSDIR\netsh.exe" advfirewall firewall add rule name="CommandGlass" dir=in action=allow program="$INSTDIR\CommandGlass.exe" enable=yes profile=private description="$(CgFirewall)"'
   Pop $0
 !macroend
 

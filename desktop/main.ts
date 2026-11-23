@@ -2,7 +2,8 @@ import { app, BrowserWindow, dialog, ipcMain, Menu, nativeImage, screen, session
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { normalizeGameDir } from '../server/src/game/locate.ts';
-import { launchWithTelemetry } from './launcher.ts';
+import { isGameRunning, launchWithTelemetry } from './launcher.ts';
+import { startUpdater, updateState } from './updater.ts';
 
 /**
  * App de escritorio de CommandGlass.
@@ -100,6 +101,7 @@ function boot() {
   startServer();
   if (!startHidden) showWindow();
   setInterval(() => void syncLang(), 20_000);
+  startUpdates();
 }
 
 // ---------------------------------------------------------------- servidor
@@ -505,6 +507,48 @@ function registerIpc() {
       /* sin registro */
     }
     return r;
+  });
+  // Actualizaciones (solo la versión de GitHub instalada; null = aquí no aplica: Store o desarrollo).
+  ipcMain.handle('cg:get-update', (e) => (fromOurPage(e) && updater ? updateState() : null));
+  ipcMain.handle('cg:install-update', (e) => {
+    if (fromOurPage(e)) updater?.install();
+  });
+}
+
+// ---------------------------------------------------------------- actualizaciones
+
+let updater: ReturnType<typeof startUpdater> | null = null;
+
+function appendLog(line: string) {
+  try {
+    appendFileSync(logFile, `${line}\n`);
+  } catch {
+    /* sin registro */
+  }
+}
+
+function startUpdates() {
+  // La Store actualiza su versión por su cuenta; en desarrollo no hay nada que actualizar.
+  if (isDev || isStore) return;
+  updater = startUpdater({
+    log: appendLog,
+    changed: (s) => win?.webContents.send('cg:update', s),
+    // Si estás jugando no se cierra nada: se espera.
+    canInstallNow: async () => !(await isGameRunning()),
+    readyLater: (version) => {
+      tray?.displayBalloon({
+        title: APP_NAME,
+        content: T(
+          `La versión ${version} está descargada. Se instalará al salir de CommandGlass, o pulsa «Instalar y reiniciar» en su ventana.`,
+          `Version ${version} is downloaded. It will install when you quit CommandGlass, or click "Install and restart" in its window.`,
+        ),
+        iconType: 'info',
+      });
+    },
+    beforeInstall: () => {
+      quitting = true;
+      server?.kill();
+    },
   });
 }
 

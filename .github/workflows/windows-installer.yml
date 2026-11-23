@@ -95,16 +95,25 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         # Notas desde CHANGELOG.md (la sección de esta versión). Si la release ya existe, solo se cambia el instalador.
+        # En las versiones normales van también latest.yml y el .blockmap: es lo que lee la app para actualizarse sola
+        # (desktop/updater.ts mira la release «Latest»). Las de pruebas solo llevan el .exe.
         run: |
           $tag = '${{ github.ref_name }}'
-          $exe = Get-ChildItem release -Filter *.exe | Select-Object -First 1
+          $exe = Get-ChildItem release -Filter *.exe | Where-Object { $_.Name -notmatch '__uninstaller' } | Select-Object -First 1
+          if (-not $exe) { throw 'No hay instalador en release/' }
+          $files = @($exe.FullName)
+          if (-not $env:CG_TEST_BUILD) {
+            if (-not (Test-Path release/latest.yml)) { throw 'Falta release/latest.yml (configuración publish de electron-builder)' }
+            $files += (Resolve-Path release/latest.yml).Path
+            if (Test-Path "$($exe.FullName).blockmap") { $files += "$($exe.FullName).blockmap" }
+          }
           node scripts/release-notes.mjs $tag | Out-File notes.md -Encoding utf8
           if ($LASTEXITCODE -ne 0) { throw "Falta la sección de $tag en CHANGELOG.md" }
           gh release view $tag *> $null
           if ($LASTEXITCODE -eq 0) {
-            gh release upload $tag $exe.FullName --clobber
+            gh release upload $tag @files --clobber
           } elseif ($env:CG_TEST_BUILD) {
-            gh release create $tag $exe.FullName --title "CommandGlass $tag (pruebas)" --notes-file notes.md --prerelease --latest=false
+            gh release create $tag @files --title "CommandGlass $tag (pruebas)" --notes-file notes.md --prerelease --latest=false
           } else {
-            gh release create $tag $exe.FullName --title "CommandGlass $tag" --notes-file notes.md --latest
+            gh release create $tag @files --title "CommandGlass $tag" --notes-file notes.md --latest
           }

@@ -35,6 +35,13 @@ body {
 }
 .desk-head p { margin: 5px 0 0; font-size: var(--fs); }
 .desk-head-tools { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+/* Actualización: solo aparece mientras se descarga, está lista o se instala. */
+.desk-update {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 14px;
+  border: 1px solid var(--seam); border-radius: var(--r-ctl); color: var(--muted);
+  font: 500 14px/1 var(--display); letter-spacing: 0.06em; font-variant-numeric: tabular-nums;
+}
+.desk-update-go { min-height: 40px; }
 .desk-mbtc { flex: none; width: clamp(48px, 5.6vh, 64px); height: auto; opacity: 0.85; }
 
 .desk-alert { display: flex; align-items: center; gap: 10px; }
