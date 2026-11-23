@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 /**
  * Mercado de UEX (uexcorp.space, API 2.0): precios de mercancías por terminal, que reportan los propios jugadores.
- * Cada usuario pone su token (se crea gratis en uexcorp.space → My Apps) y se guarda solo en sus ajustes locales;
+ * Cada usuario pone su token (el «Bearer Token» de uexcorp.space/api/apps, gratis) y se guarda solo en su PC;
  * nunca se devuelve a la interfaz ni se escribe en el registro.
  * Terminales, mercancías y naves se guardan un día en data/game/uex/; los precios, 20 minutos.
  * Límite de la API: 120 peticiones por minuto. CommandGlass hace como mucho cuatro cada 20 minutos.
@@ -253,7 +253,7 @@ export class UexMarket {
     if (!p) {
       p = (async () => {
         const res = await uexFetch(resource, { authorization: `Bearer ${token}`, accept: 'application/json', 'user-agent': 'CommandGlass (herramienta de fans de Star Citizen)' }, 30_000);
-        if (res.status === 401 || res.status === 403) throw new Error(tx('UEX no acepta el token: revísalo en uexcorp.space → My Apps', 'UEX rejects the token: check it at uexcorp.space → My Apps'));
+        if (res.status === 401 || res.status === 403) throw new Error(tx('UEX no acepta el token: revísalo en uexcorp.space/api/apps (Bearer Token)', 'UEX rejects the token: check it at uexcorp.space/api/apps (Bearer Token)'));
         if (res.status === 429) throw new Error(tx('UEX pide esperar un poco (demasiadas consultas)', 'UEX asks you to wait a bit (too many requests)'));
         if (!res.ok) throw new Error(tx(`UEX respondió ${res.status}`, `UEX responded ${res.status}`));
         const j = (await res.json()) as { status?: string; data?: unknown[] };

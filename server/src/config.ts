@@ -7,6 +7,11 @@ import { isGameDir, locateGameDir, normalizeGameDir } from './game/locate.ts';
 export const ROOT_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 /** En la app instalada, %APPDATA%\CommandGlass (lo pasa la app de escritorio). En desarrollo, data/. */
 export const DATA_DIR = process.env.CG_DATA_DIR ?? join(ROOT_DIR, 'data');
+/**
+ * Carpeta común a todas las versiones del juego (cada una tiene su DATA_DIR: data, data-PTU…). Aquí va lo que es
+ * del jugador y no del historial, como el token de UEX. Instalada, %APPDATA%\CommandGlass; en desarrollo, data/.
+ */
+export const SHARED_DIR = process.env.CG_SHARED_DIR ?? DATA_DIR;
 export const CLIENT_DIST = process.env.CG_CLIENT_DIST ?? join(ROOT_DIR, 'client', 'dist');
 export const APP_VERSION = process.env.CG_VERSION ?? 'desarrollo';
 

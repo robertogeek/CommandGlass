@@ -1,7 +1,7 @@
 import { networkInterfaces } from 'node:os';
 import QRCode from 'qrcode';
 import { startServer } from './api/server.ts';
-import { APP_VERSION, backupsDir, DATA_DIR, dbPath, gameLogPath, loadConfig } from './config.ts';
+import { APP_VERSION, backupsDir, DATA_DIR, dbPath, gameLogPath, loadConfig, SHARED_DIR } from './config.ts';
 import { BindingsService } from './game/bindings.ts';
 import { KeySender } from './game/keysender.ts';
 import { WikiMissions } from './game/wiki.ts';
@@ -17,6 +17,7 @@ import { importBackups } from './ingest/importer.ts';
 import { LiveTailer } from './ingest/tailer.ts';
 import { Store } from './store/db.ts';
 import { getSetting } from './store/economy.ts';
+import { readUexToken } from './store/uexToken.ts';
 import { UexMarket } from './game/uex.ts';
 import { GameTelemetry } from './game/telemetry.ts';
 
@@ -93,7 +94,8 @@ const catalog = new WikiCatalog(DATA_DIR);
 const community = new CommunityContracts(DATA_DIR, config.gameDir);
 void community.refresh();
 // Precios de mercancías de UEX: solo si el usuario ha puesto su token (se guarda en sus ajustes locales).
-const uex = new UexMarket(DATA_DIR, () => getSetting<string>(store, 'uexToken'));
+// Es uno para toda la app (LIVE, PTU…): ver store/uexToken.ts.
+const uex = new UexMarket(DATA_DIR, () => readUexToken(store, SHARED_DIR));
 // Starmap del juego (posiciones reales de cada parche), extraído por la Star Citizen Wiki.
 const starmap = new GameStarmap(DATA_DIR);
 void starmap.refresh();

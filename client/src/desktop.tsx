@@ -5,7 +5,7 @@ import '@fontsource/saira-semi-condensed/400.css';
 import '@fontsource/saira-semi-condensed/500.css';
 import './styles.css';
 import './desktop.css';
-import { Activity, CheckCircle2, Coffee, Copy, Download, ExternalLink, FileDown, FolderOpen, FolderSearch, KeyRound, LifeBuoy, Power, Radio, Tablet, TriangleAlert } from 'lucide-react';
+import { Activity, CheckCircle2, Coffee, Copy, Download, ExternalLink, FileDown, FolderOpen, FolderSearch, KeyRound, LifeBuoy, MessagesSquare, Power, Radio, Tablet, TriangleAlert } from 'lucide-react';
 import { StrictMode, useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import logo from './assets/space-cowboys.png';
@@ -71,6 +71,13 @@ declare global {
 const bridge = window.commandglass;
 /** Enlace de PayPal de robertogeek para que quien quiera le invite a un café. Vacío = no se muestra. */
 const DONATE_URL = 'https://paypal.me/robertogeek';
+/** Donde UEX enseña el token de cada usuario («Bearer Token»): no hay que crear ninguna aplicación. */
+const UEX_TOKEN_URL = 'https://uexcorp.space/api/apps';
+/**
+ * Comentarios en el Discord de la comunidad. Pasa por la web para poder cambiar la invitación sin sacar versión:
+ * robertogeek.com/CommandGlass/discord redirige a la invitación que da el rol de CommandGlass.
+ */
+const DISCORD_URL = 'https://robertogeek.com/CommandGlass/discord';
 
 /** "0.1.6-beta" → "0.1.6 beta". */
 const prettyVersion = (v: string) => v.replace('-', ' ');
@@ -359,20 +366,25 @@ function Desktop() {
 
           <Diagnostics />
 
-          {DONATE_URL && (
-            <section className="panel desk-coffee" aria-label={t('Invitar a un café', 'Buy a coffee')}>
-              <div className="label"><Coffee size={16} aria-hidden /> {t('¿Te está siendo útil?', 'Finding it useful?')}</div>
-              <div className="sub">
-                {t(
-                  'CommandGlass es gratis. Si te ayuda en tus partidas, puedes invitar a robertogeek a un café.',
-                  'CommandGlass is free. If it helps your sessions, you can buy robertogeek a coffee.',
-                )}
-              </div>
-              <a className="chip" href={DONATE_URL} target="_blank" rel="noreferrer">
-                <Coffee size={15} aria-hidden /> {t('Invitar con PayPal', 'Tip with PayPal')} <ExternalLink size={13} aria-hidden />
+          <section className="panel desk-coffee" aria-label={t('Comunidad', 'Community')}>
+            <div className="label"><MessagesSquare size={16} aria-hidden /> {t('Cuéntanos qué te parece', 'Tell us what you think')}</div>
+            <div className="sub">
+              {t(
+                'Ideas, fallos y dudas, en el Discord de la comunidad: con este enlace ves el chat y el foro de CommandGlass. Y si te ayuda en tus partidas, puedes invitar a robertogeek a un café.',
+                'Ideas, bugs and questions go on the community Discord: this link gives you the CommandGlass chat and forum. And if it helps your sessions, you can buy robertogeek a coffee.',
+              )}
+            </div>
+            <div className="desk-coffee-actions">
+              <a className="chip" href={DISCORD_URL} target="_blank" rel="noreferrer">
+                <MessagesSquare size={15} aria-hidden /> {t('Abrir el Discord', 'Open Discord')} <ExternalLink size={13} aria-hidden />
               </a>
-            </section>
-          )}
+              {DONATE_URL && (
+                <a className="chip" href={DONATE_URL} target="_blank" rel="noreferrer">
+                  <Coffee size={15} aria-hidden /> {t('Invitar con PayPal', 'Tip with PayPal')} <ExternalLink size={13} aria-hidden />
+                </a>
+              )}
+            </div>
+          </section>
         </div>
       </main>
 
@@ -667,13 +679,13 @@ function Setup({ info, chooseDir, choosing, dirMsg }: { info: DesktopInfo; choos
                 {t('con tu cuenta (o créala).', 'with your account (or create one).')}
               </li>
               <li>
-                {t('Abre', 'Open')} <strong>My Apps</strong>
-                {t(
-                  ', crea una aplicación (el nombre da igual: «CommandGlass») y copia su token.',
-                  ', create an app (any name works, e.g. "CommandGlass") and copy its token.',
-                )}
+                {t('Abre', 'Open')}{' '}
+                <a href={UEX_TOKEN_URL} target="_blank" rel="noreferrer">uexcorp.space/api/apps <ExternalLink size={13} aria-hidden /></a>
+                {t(': ahí está tu ', ': your ')}
+                <strong>Bearer Token</strong>
+                {t('. No hace falta crear ninguna aplicación.', " is there. You don't need to create an app.")}
               </li>
-              <li>{t('Pégalo aquí.', 'Paste it here.')}</li>
+              <li>{t('Pulsa el ojo para verlo, cópialo y pégalo aquí. Es siempre el mismo.', 'Click the eye to show it, copy it and paste it here. It never changes.')}</li>
             </ol>
             <form
               className="setup-form"

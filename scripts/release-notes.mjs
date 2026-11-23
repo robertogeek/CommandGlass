@@ -43,6 +43,11 @@ if (test) {
 ${unsignedEn} It is also on the [Microsoft Store](https://apps.microsoft.com/detail/9MX5DG0F5P0T), signed by Microsoft, once it passes certification.`;
 }
 
+// Comentarios: el Discord de la comunidad (la web redirige a la invitación que da el rol de CommandGlass).
+footer += `
+
+¿Ideas, fallos o dudas? Cuéntanoslo en el [Discord de la comunidad](https://robertogeek.com/CommandGlass/discord). · Ideas, bugs or questions? Tell us on the [community Discord](https://robertogeek.com/CommandGlass/discord).`;
+
 console.log(`<!-- fecha: ${date} -->
 ${body}
 

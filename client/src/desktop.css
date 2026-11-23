@@ -179,7 +179,7 @@ body {
 .desk-side .kv:first-of-type { border-top: 0; padding-top: 0; }
 .desk-report { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin-top: 12px; }
 .desk-report .desk-check { margin: 0; }
-.desk-coffee .chip { margin-top: 12px; }
+.desk-coffee-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 a.chip { text-decoration: none; }
 
 .desk-ok { display: inline-flex; align-items: center; gap: 8px; color: var(--green); font-weight: 600; }
@@ -242,4 +242,5 @@ code { color: var(--accent); }
 @media (max-height: 960px) {
   .desk-tele-what, .desk-tele .desk-howto, .desk-tele .desk-small { display: none; }
   .desk-tele.has-result > p.sub { display: none; }
+  .desk-coffee > .sub { display: none; }
 }

@@ -155,6 +155,8 @@ function startServer() {
   const env: Record<string, string> = {
     ...(process.env as Record<string, string>),
     CG_DATA_DIR: dataDir,
+    // Lo común a todas las versiones del juego (token de UEX): %APPDATA%\CommandGlass.
+    CG_SHARED_DIR: isDev ? paths.data : app.getPath('userData'),
     CG_CLIENT_DIST: paths.client,
     CG_VERSION: versionLabel(),
     PORT: String(PORT),

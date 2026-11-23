@@ -192,10 +192,12 @@ export function Mercado() {
             {t('con tu cuenta (o créala).', 'with your account (or create one).')}
           </li>
           <li>
-            {t('Ve a', 'Go to')} <strong>My Apps</strong>
-            {t(', crea una aplicación y copia su token.', ', create an app and copy its token.')}
+            {t('Abre', 'Open')} <a href="https://uexcorp.space/api/apps" target="_blank" rel="noreferrer">uexcorp.space/api/apps</a>
+            {t(': ahí está tu ', ': your ')}
+            <strong>Bearer Token</strong>
+            {t('. No hace falta crear ninguna aplicación.', " is there. You don't need to create an app.")}
           </li>
-          <li>{t('Pégalo aquí. Se guarda solo en tu PC.', "Paste it here. It's stored only on your PC.")}</li>
+          <li>{t('Pulsa el ojo para verlo, cópialo y pégalo aquí. Es siempre el mismo y se guarda solo en tu PC.', "Click the eye to show it, copy it and paste it here. It never changes and it's stored only on your PC.")}</li>
         </ol>
         <TokenForm onSaved={load} />
       </section>

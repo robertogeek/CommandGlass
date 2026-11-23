@@ -114,6 +114,44 @@ jobs:
             gh release upload $tag @files --clobber
           } elseif ($env:CG_TEST_BUILD) {
             gh release create $tag @files --title "CommandGlass $tag (pruebas)" --notes-file notes.md --prerelease --latest=false
+            "CG_RELEASE_CREATED=1" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
           } else {
             gh release create $tag @files --title "CommandGlass $tag" --notes-file notes.md --latest
+            "CG_RELEASE_CREATED=1" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
           }
+
+      # Aviso en el canal de novedades del Discord de la comunidad, solo la primera vez que se crea la release.
+      # El webhook es un secreto del repositorio (DISCORD_RELEASES_WEBHOOK); sin él, no se avisa.
+      - name: Aviso en Discord
+        if: env.CG_RELEASE_CREATED == '1'
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_RELEASES_WEBHOOK }}
+        shell: pwsh
+        run: |
+          if (-not $env:DISCORD_WEBHOOK) { 'Sin webhook de Discord: no se avisa.'; exit 0 }
+          $tag = '${{ github.ref_name }}'
+          $version = $tag.TrimStart('v') -replace '-', ' '
+          $url = "https://github.com/robertogeek/CommandGlass/releases/tag/$tag"
+          # Solo las novedades: sin la fecha (comentario) ni el pie que va tras «---» (instalador sin firmar, Store…).
+          $notes = ((((Get-Content notes.md -Raw) -replace '<!--[\s\S]*?-->', '') -split '(?m)^---\s*$')[0]).Trim()
+          # Discord admite unos 4000 caracteres: si no caben las dos partes, va la española y el enlace para el inglés.
+          if ($notes.Length -gt 3800) {
+            $es = ($notes -split '(?m)^\*\*English\*\*\s*$')[0].Trim()
+            if ($es.Length -gt 3600) { $es = $es.Substring(0, 3600).TrimEnd() + '…' }
+            $notes = "$es`n`n**English:** $url"
+          }
+          if ($env:CG_TEST_BUILD) {
+            $title = "CommandGlass $version · versión de pruebas / test build"
+            $intro = "🧪 Nueva versión de pruebas: se descarga desde su release. · New test build: download it from its release."
+          } else {
+            $title = "CommandGlass $version"
+            $intro = "🚀 Nueva versión: se actualiza sola al abrir CommandGlass, o descárgala en https://robertogeek.com/CommandGlass/descargas.html · New version: it updates itself when you open CommandGlass, or download it from https://robertogeek.com/CommandGlass/en/download.html"
+          }
+          $payload = @{
+            username = 'CommandGlass'
+            content  = $intro
+            embeds   = @(@{ title = $title; url = $url; description = $notes; color = 5091583 })
+            allowed_mentions = @{ parse = @() }
+          } | ConvertTo-Json -Depth 6
+          Invoke-RestMethod -Uri $env:DISCORD_WEBHOOK -Method Post -ContentType 'application/json; charset=utf-8' -Body ([Text.Encoding]::UTF8.GetBytes($payload)) | Out-Null
+          'Aviso publicado en Discord.'

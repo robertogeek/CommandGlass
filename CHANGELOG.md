@@ -9,6 +9,18 @@ Este archivo es la fuente de las notas de las dos. Cada versión lleva su parte 
 flujo `Instalador de Windows` copia la sección de la etiqueta (`v0.1.3-beta` → `## 0.1.3-beta`) en la release.
 Lo que se vaya haciendo se apunta en la versión «en desarrollo» de arriba.
 
+## 0.1.6-beta — 2026-11-23
+
+- **El token de UEX se pide una sola vez**: ahora es uno para toda la app. Antes se guardaba con el historial de cada versión del juego, y al cambiar a PTU (o volver a LIVE) había que ponerlo otra vez.
+- Instrucciones de UEX más claras, con enlace directo: el token es el **Bearer Token** de uexcorp.space/api/apps. No hace falta crear ninguna aplicación y no cambia.
+- **Discord de la comunidad**: en la ventana del PC, **Abrir el Discord** te lleva al chat y al foro de CommandGlass para contarnos ideas, fallos y dudas. Cada versión nueva se anuncia allí.
+
+**English**
+
+- **The UEX token is asked only once**: it's now one for the whole app. It used to be stored with each game version's history, so switching to PTU (or back to LIVE) meant entering it again.
+- Clearer UEX instructions with a direct link: the token is the **Bearer Token** at uexcorp.space/api/apps. You don't need to create an app, and it never changes.
+- **Community Discord**: in the PC window, **Open Discord** takes you to the CommandGlass chat and forum to share ideas, bugs and questions. Every new version is announced there.
+
 ## 0.1.5-beta — 2026-11-23
 
 - **Se actualiza sola** (versión de GitHub): al abrirla, CommandGlass mira si hay una versión nueva, la descarga y la instala, y vuelve a abrirse. Si estás jugando no te interrumpe: espera y se instala al salir de la app, o cuando pulses **Instalar y reiniciar** en la ventana del PC. Windows pide permiso para instalarla. La versión de la Microsoft Store la sigue actualizando la Store. Esta 0.1.5 hay que instalarla a mano una última vez.

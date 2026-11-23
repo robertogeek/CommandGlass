@@ -2,7 +2,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { extname, join, normalize } from 'node:path';
 import QRCode from 'qrcode';
-import { APP_VERSION, CLIENT_DIST, DATA_DIR, type AppConfig } from '../config.ts';
+import { APP_VERSION, CLIENT_DIST, DATA_DIR, SHARED_DIR, type AppConfig } from '../config.ts';
 import type { LiveTailer } from '../ingest/tailer.ts';
 import type { BindingsService, GameLang } from '../game/bindings.ts';
 import type { KeySender } from '../game/keysender.ts';
@@ -20,6 +20,7 @@ import type { GameStarmap } from '../game/starmap.ts';
 import type { GameTelemetry } from '../game/telemetry.ts';
 import { addClientReport, buildDiagnostics } from '../diagnostics.ts';
 import { getSetting, loadEconomy, setSetting, walletEstimate, type Purchase } from '../store/economy.ts';
+import { saveUexToken } from '../store/uexToken.ts';
 import { buildWrapped } from '../store/wrapped.ts';
 import { alertsFor } from '../alerts.ts';
 import { loadCombat } from '../store/combat.ts';
@@ -370,8 +371,8 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
         } catch {
           return json(res, 502, { error: tx('No se ha podido contactar con UEX. Comprueba la conexión a Internet y vuelve a probar.', 'Could not reach UEX. Check your internet connection and try again.') });
         }
-        if (!ok) return json(res, 400, { error: tx('UEX no reconoce ese token. Cópialo otra vez desde uexcorp.space → My Apps.', 'UEX does not recognize that token. Copy it again from uexcorp.space → My Apps.') });
-        setSetting(store, 'uexToken', token);
+        if (!ok) return json(res, 400, { error: tx('UEX no reconoce ese token. Cópialo otra vez de uexcorp.space/api/apps (Bearer Token).', 'UEX does not recognize that token. Copy it again from uexcorp.space/api/apps (Bearer Token).') });
+        saveUexToken(store, SHARED_DIR, token);
         uex.forget();
         return json(res, 200, { ok: true, configured: true });
       }
