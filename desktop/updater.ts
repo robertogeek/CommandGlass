@@ -3,6 +3,7 @@ import electronUpdater from 'electron-updater';
 /**
  * Actualizaciones de la versión de GitHub (el instalador .exe). La de la Microsoft Store la actualiza la Store.
  * - Al abrir la app (y cada 6 horas) mira la última release estable de GitHub (las de pruebas no cuentan).
+ *   En la ventana del PC también se puede mirar a mano («Buscar ahora»).
  * - Si hay una versión nueva, la descarga sola.
  * - Descargada: si el juego no está abierto se instala ya y la app vuelve a abrirse; si estás jugando, espera
  *   (botón «Instalar y reiniciar» en la ventana del PC) y, si no, se instala al salir de la app.
@@ -74,7 +75,7 @@ export function startUpdater(hooks: UpdaterHooks) {
   });
 
   const check = () => {
-    if (current.state === 'ready' || current.state === 'installing') return;
+    if (current.state === 'ready' || current.state === 'installing' || current.state === 'downloading' || current.state === 'checking') return;
     autoUpdater.checkForUpdates().catch(() => {
       /* ya lo cuenta el evento 'error' */
     });

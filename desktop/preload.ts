@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('commandglass', {
   launchTelemetry: (closeFirst: boolean) => ipcRenderer.invoke('cg:launch-telemetry', closeFirst),
   getUpdate: () => ipcRenderer.invoke('cg:get-update'),
   installUpdate: () => ipcRenderer.invoke('cg:install-update'),
+  checkUpdate: () => ipcRenderer.invoke('cg:check-update'),
   /** Avisa cuando cambia el estado de la actualización; devuelve la función para dejar de escuchar. */
   onUpdate: (cb: (s: unknown) => void) => {
     const fn = (_e: unknown, s: unknown) => cb(s);

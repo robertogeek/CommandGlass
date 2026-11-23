@@ -317,7 +317,8 @@ function showWindow() {
     win.on('closed', () => (win = null));
     // Solo la propia página local; cualquier enlace externo se abre en el navegador.
     win.webContents.setWindowOpenHandler(({ url }) => {
-      if (/^(https?|mailto):/.test(url)) void shell.openExternal(url);
+      if (url.startsWith(DISCORD_LINK)) void openDiscord(url);
+      else if (/^(https?|mailto):/.test(url)) void shell.openExternal(url);
       return { action: 'deny' };
     });
     win.webContents.on('will-navigate', (e, url) => {
@@ -515,6 +516,33 @@ function registerIpc() {
   ipcMain.handle('cg:install-update', (e) => {
     if (fromOurPage(e)) updater?.install();
   });
+  ipcMain.handle('cg:check-update', (e) => {
+    if (fromOurPage(e)) updater?.check();
+  });
+}
+
+// ---------------------------------------------------------------- Discord de la comunidad
+
+/** Enlace de la ventana del PC: la web redirige a la invitación vigente (así se puede cambiar sin sacar versión). */
+const DISCORD_LINK = 'https://robertogeek.com/CommandGlass/discord';
+
+/**
+ * Abre la invitación en la app de Discord si está instalada (discord://-/invite/<código>, que la app convierte en
+ * su ruta /invite/<código>); si no, o si algo falla, en el navegador, como cualquier enlace.
+ */
+async function openDiscord(url: string) {
+  try {
+    if (app.getApplicationNameForProtocol('discord://')) {
+      // El código sale de la redirección de la web, sin seguirla.
+      const res = await fetch(DISCORD_LINK, { redirect: 'manual', signal: AbortSignal.timeout(5000) });
+      const target = res.headers.get('location') ?? '';
+      const code = /^https:\/\/(?:discord\.gg|(?:www\.)?discord(?:app)?\.com\/invite)\/([A-Za-z0-9-]+)\/?$/.exec(target)?.[1];
+      if (code) return void (await shell.openExternal(`discord://-/invite/${code}`));
+    }
+  } catch {
+    /* sin red o sin respuesta de la web: al navegador */
+  }
+  await shell.openExternal(url);
 }
 
 // ---------------------------------------------------------------- actualizaciones

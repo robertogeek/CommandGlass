@@ -9,6 +9,16 @@ Este archivo es la fuente de las notas de las dos. Cada versión lleva su parte 
 flujo `Instalador de Windows` copia la sección de la etiqueta (`v0.1.3-beta` → `## 0.1.3-beta`) en la release.
 Lo que se vaya haciendo se apunta en la versión «en desarrollo» de arriba.
 
+## 0.1.7-beta (en desarrollo)
+
+- **Abrir el Discord** abre la invitación en la app de Discord si la tienes instalada, en vez de en el navegador.
+- Arriba en la ventana del PC se ve si estás **al día**, con un botón **Buscar ahora** para comprobar si hay versión nueva sin esperar.
+
+**English**
+
+- **Open Discord** opens the invite in the Discord app if you have it installed, instead of in the browser.
+- The top of the PC window shows whether you're **up to date**, with a **Check now** button to look for a new version without waiting.
+
 ## 0.1.6-beta — 2026-11-23
 
 - **El token de UEX se pide una sola vez**: ahora es uno para toda la app. Antes se guardaba con el historial de cada versión del juego, y al cambiar a PTU (o volver a LIVE) había que ponerlo otra vez.

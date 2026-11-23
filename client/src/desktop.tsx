@@ -5,7 +5,7 @@ import '@fontsource/saira-semi-condensed/400.css';
 import '@fontsource/saira-semi-condensed/500.css';
 import './styles.css';
 import './desktop.css';
-import { Activity, CheckCircle2, Coffee, Copy, Download, ExternalLink, FileDown, FolderOpen, FolderSearch, KeyRound, LifeBuoy, MessagesSquare, Power, Radio, Tablet, TriangleAlert } from 'lucide-react';
+import { Activity, CheckCircle2, Coffee, Copy, Download, ExternalLink, FileDown, FolderOpen, FolderSearch, KeyRound, LifeBuoy, MessagesSquare, Power, Radio, RefreshCw, Tablet, TriangleAlert } from 'lucide-react';
 import { StrictMode, useEffect, useState, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import logo from './assets/space-cowboys.png';
@@ -50,6 +50,8 @@ interface Bridge {
   /** Estado de la actualización; null si no aplica (Store o desarrollo). No existe en versiones antiguas de la app. */
   getUpdate?(): Promise<UpdateState | null>;
   installUpdate?(): Promise<void>;
+  /** Mirar ahora si hay versión nueva (desde la 0.1.7). */
+  checkUpdate?(): Promise<void>;
   onUpdate?(cb: (s: UpdateState) => void): () => void;
 }
 
@@ -84,7 +86,8 @@ const prettyVersion = (v: string) => v.replace('-', ' ');
 
 /**
  * Actualización de la versión de GitHub: se descarga sola al abrir la app y se instala si no estás jugando.
- * Aquí solo se ve mientras pasa algo (descargando, lista para instalar, instalando).
+ * Mientras pasa algo se ve el progreso; si no, «Al día» con «Buscar ahora» para mirarlo a mano.
+ * En la versión de la Microsoft Store no sale nada: la actualiza la Store.
  */
 function UpdateNotice() {
   const { t } = useLang();
@@ -116,7 +119,27 @@ function UpdateNotice() {
       </div>
     );
   }
-  return null;
+  if (u.state === 'checking') {
+    return (
+      <div className="desk-update" role="status">
+        <RefreshCw size={16} aria-hidden className="spin" /> {t('Buscando versión nueva…', 'Checking for updates…')}
+      </div>
+    );
+  }
+  // Al día, sin mirar todavía o sin poder mirar (sin red): se puede buscar a mano.
+  const label =
+    u.state === 'none' ? t('Al día', 'Up to date') : u.state === 'error' ? t('No se ha podido comprobar', "Couldn't check") : null;
+  if (!bridge?.checkUpdate) return null;
+  return (
+    <div className="desk-update" role="status">
+      {u.state === 'none' && <CheckCircle2 size={16} aria-hidden className="ok" />}
+      {u.state === 'error' && <TriangleAlert size={16} aria-hidden />}
+      {label}
+      <button className="desk-update-check" onClick={() => void bridge?.checkUpdate?.()}>
+        <RefreshCw size={14} aria-hidden /> {t('Buscar ahora', 'Check now')}
+      </button>
+    </div>
+  );
 }
 
 function useDesktopInfo() {
