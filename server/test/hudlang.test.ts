@@ -19,6 +19,9 @@ const en = {
   'comms_local_player_joined_auto': 'You have joined %s.',
   'comms_local_player_left': 'You have left the %s.',
   'comms_suffix_ship_channel': "channel '%S'",
+  'comms_invite_accepted': '%S has joined the %s.',
+  'comms_member_left': '%S has left the %s.',
+  'notification_member_left_title': 'Member Left',
 };
 const loc = {
   'mobiglas_ui_missionevent_activated': 'Contrato aceptado: %s',
@@ -35,6 +38,9 @@ const loc = {
   'comms_local_player_joined_auto': 'Te has unido al %s.',
   'comms_local_player_left': 'Has abandonado el %s.',
   'comms_suffix_ship_channel': "canal '%S'",
+  'comms_invite_accepted': '%S se ha unido a %s.',
+  'comms_member_left': '%S ha dejado el %s.',
+  'notification_member_left_title': 'Miembro ha salido',
 };
 
 const TS = '<2026-11-20T10:00:00.000Z>';
@@ -91,6 +97,16 @@ test('idioma del juego: subir y bajar de la nave (el canal va dentro de otro tex
   const [left] = notify("Has abandonado el canal 'Crusader Ares Star Fighter Inferno : Yo'.");
   assert.equal(left?.type, 'ship.left');
   assert.equal(left?.data.ship, 'Crusader Ares Star Fighter Inferno');
+
+  // Otros jugadores que suben y bajan de tu nave (packs de zalaca y 0zzyt0).
+  const [crew] = notify("Nuevo miembro\nAmiga se ha unido a canal 'Crusader Ares Star Fighter Inferno : Yo'.");
+  assert.equal(crew?.type, 'social.crew_joined');
+  assert.equal(crew?.data.name, 'Amiga');
+  assert.equal(crew?.data.ship, 'Crusader Ares Star Fighter Inferno');
+
+  const [gone] = notify("Miembro ha salido\nAmiga ha dejado el canal 'Crusader Ares Star Fighter Inferno : Yo'.");
+  assert.equal(gone?.type, 'social.crew_left');
+  assert.equal(gone?.data.name, 'Amiga');
 });
 
 test('idioma del juego: lo que no tiene regla se guarda tal cual se vio, y el inglés sigue igual', () => {

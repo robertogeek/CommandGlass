@@ -8,7 +8,7 @@
 
 /** Claves de global.ini que pueden salir como aviso del HUD (y los nombres que van dentro). */
 export const HUD_KEY =
-  /^(hud_|mobiGlas_ui_|notification_|ATC_GatewayQueue_|crafting_hud_|comms_local_|comms_suffix_|text_(UEC|MER)_reward|Mission_(Multi)?Reward_Notification|TheCollector_|refinery_ui_(job|multipleJobs)Complete|Jurisdictions_Name_|kiosk_TransactionComplete|Temp_CovalexShipping_Transaction)/i;
+  /^(hud_|mobiGlas_ui_|notification_|ATC_GatewayQueue_|crafting_hud_|comms_local_|comms_suffix_|comms_invite_accepted|comms_member_left|text_(UEC|MER)_reward|Mission_(Multi)?Reward_Notification|TheCollector_|refinery_ui_(job|multipleJobs)Complete|Jurisdictions_Name_|kiosk_TransactionComplete|Temp_CovalexShipping_Transaction)/i;
 
 /**
  * Textos que van dentro de otro aviso: nombres de jurisdicción y los trozos de los canales de comunicación
