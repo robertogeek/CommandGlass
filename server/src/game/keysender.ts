@@ -1,5 +1,5 @@
 import { tx } from '../i18n.ts';
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { execFileSync, spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
@@ -140,7 +140,7 @@ export class KeySender {
     if (!this.available) return { ok: false, reason: 'unavailable', message: tx('El envío de teclas solo funciona con el servidor en Windows.', 'Sending keys only works when the server runs on Windows.') };
     try {
       const line = await this.request(`send ${requireFocus ? 1 : 0} ${tokens.join(' ')}`);
-      const [, status, fg] = line.split(' ');
+      const [, status, fg, sent] = line.split(' ');
       if (status === 'fg') {
         return {
           ok: false,
@@ -148,6 +148,12 @@ export class KeySender {
           message: tx('Star Citizen no está en primer plano en el PC: haz clic en la ventana del juego y vuelve a intentarlo.', 'Star Citizen is not in the foreground on the PC: click the game window and try again.'),
           foreground: fg,
         };
+      }
+      // Si el ayudante se cae a media petición contesta «error»: antes se daba la tecla por enviada.
+      if (status !== 'ok') return { ok: false, reason: 'error', message: tx(`No se ha podido enviar la tecla (${line}).`, `Could not send the key (${line}).`) };
+      // SendInput cuenta las pulsaciones que ha metido: 0 es que Windows las ha rechazado todas.
+      if (sent === '0' && tokens.some((t) => !t.startsWith('w:'))) {
+        return { ok: false, reason: 'error', message: tx('Windows no ha aceptado la pulsación (SendInput).', 'Windows did not accept the key press (SendInput).'), foreground: fg };
       }
       return { ok: true };
     } catch (err) {
@@ -201,6 +207,41 @@ export class KeySender {
     });
     return this.ready;
   }
+}
+
+/**
+ * Solo para el informe de diagnóstico: ¿tiene Windows marcado «Ejecutar como administrador» para el RSI Launcher
+ * o el juego (Propiedades → Compatibilidad, en el usuario o para todos)? Así el juego va elevado y Windows no le
+ * deja pasar teclas de una app normal. Se lee del registro, sin tocar el proceso del juego, como mucho una vez
+ * por minuto. No cambia nada de cómo se envían las teclas.
+ */
+let adminMark = { at: 0, value: false };
+export function runAsAdminMarked(): boolean {
+  if (process.platform !== 'win32') return false;
+  if (Date.now() - adminMark.at < 60_000) return adminMark.value;
+  let value = false;
+  for (const root of ['HKCU', 'HKLM']) {
+    try {
+      const out = execFileSync('reg.exe', ['query', `${root}\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers`], {
+        encoding: 'utf8',
+        windowsHide: true,
+        timeout: 3_000,
+        stdio: ['ignore', 'pipe', 'ignore'],
+      });
+      if (hasAdminMark(out)) value = true;
+    } catch {
+      /* sin la clave: nada marcado */
+    }
+  }
+  adminMark = { at: Date.now(), value };
+  return value;
+}
+
+/** Salida de «reg query …\Layers»: una línea por programa, con sus banderas (RUNASADMIN, WIN8RTM…). */
+export function hasAdminMark(regOutput: string): boolean {
+  return regOutput
+    .split(/\r?\n/)
+    .some((l) => /\\(RSI Launcher|StarCitizen)\.exe\s+REG_SZ\s+.*\bRUNASADMIN\b/i.test(l));
 }
 
 function downTokens(keys: string[]): string[] {

@@ -130,7 +130,7 @@ export function createScreens(o: Options) {
       if (!url.startsWith(o.url())) e.preventDefault();
     });
     void win.loadURL(`${o.url()}${hash ? `#${hash}` : ''}`);
-    o.log(`[pantallas] abierta en ${displayLabel(d, screen.getAllDisplays().indexOf(d))} (${d.bounds.width}×${d.bounds.height})`);
+    o.log(`[pantallas] abierta en ${displayLabel(d, screen.getAllDisplays().findIndex((x) => x.id === d.id))} (${d.bounds.width}×${d.bounds.height})`);
     save();
     o.changed();
     return { ok: true };

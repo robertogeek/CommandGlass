@@ -10,10 +10,12 @@ import { extractFromP4k } from './p4k.ts';
  */
 
 const EN = 'Data/Localization/english/global.ini';
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 2;
 
 interface Cache {
   version: number;
+  /** Qué claves se guardaron: si la app reconoce avisos nuevos (HUD_KEY cambia), hay que volver a leerlas. */
+  keys?: string;
   sig: string;
   strings: HudStrings;
 }
@@ -71,7 +73,7 @@ export function loadHudStrings(gameDir: string, dataDir: string): HudStrings | n
   if (existsSync(file)) {
     try {
       const c = JSON.parse(readFileSync(file, 'utf8')) as Cache;
-      if (c.version === CACHE_VERSION && c.sig === sig) return c.strings;
+      if (c.version === CACHE_VERSION && c.keys === HUD_KEY.source && c.sig === sig) return c.strings;
     } catch {
       /* se regenera */
     }
@@ -83,6 +85,6 @@ export function loadHudStrings(gameDir: string, dataDir: string): HudStrings | n
   if (!locBuf) throw new Error(`No encuentro los textos del idioma ${lang}`);
   const strings: HudStrings = { lang, en: pick(files.get(EN)), loc: pick(locBuf) };
   mkdirSync(join(dataDir, 'game'), { recursive: true });
-  writeFileSync(file, JSON.stringify({ version: CACHE_VERSION, sig, strings } satisfies Cache));
+  writeFileSync(file, JSON.stringify({ version: CACHE_VERSION, keys: HUD_KEY.source, sig, strings } satisfies Cache));
   return strings;
 }

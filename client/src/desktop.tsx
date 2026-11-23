@@ -121,12 +121,14 @@ function LocalScreens() {
     if (r && !r.ok && r.message) setMsg(r.message);
   };
   return (
-    <div className="desk-conn desk-screens" aria-label={t('En una pantalla de este PC', 'On a display of this PC')}>
-      <div className="desk-sublabel">{t('O en una pantalla de este PC', 'Or on a display of this PC')}</div>
+    <div className="desk-conn desk-screens" aria-label={t('En una pantalla táctil de este PC', 'On a touchscreen of this PC')}>
+      <div className="desk-sublabel">
+        {t('O en una pantalla táctil de este PC', 'Or on a touchscreen of this PC')} <span className="desk-experimental">{t('Experimental', 'Experimental')}</span>
+      </div>
       <div className="sub">
         {t(
-          `A pantalla completa, sin quitarle el foco al juego: Mandos funciona como desde el tablet. Hasta ${max}.`,
-          `Full screen, without taking focus from the game: Controls work just like from the tablet. Up to ${max}.`,
+          `A pantalla completa en otro monitor, hasta ${max}. Mandos solo funciona tocando la pantalla: con el ratón, el juego deja de estar en primer plano.`,
+          `Full screen on another monitor, up to ${max}. Controls only work by touching the screen: with the mouse, the game leaves the foreground.`,
         )}
       </div>
       <div className="desk-screen-list">

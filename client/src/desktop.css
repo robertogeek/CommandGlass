@@ -136,6 +136,17 @@ body {
 .desk-conn { padding-top: clamp(10px, 1.4vh, 16px); border-top: 1px solid var(--line); display: grid; gap: 6px; }
 .desk-conn .desk-sublabel { margin: 0; }
 .desk-screen-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.desk-experimental {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 6px;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font-size: 0.85em;
+  letter-spacing: 0.08em;
+  color: var(--amber);
+  vertical-align: 1px;
+}
 .desk-screen-list .chip { min-height: 38px; text-transform: none; letter-spacing: 0.02em; }
 .desk-device { display: flex; justify-content: space-between; gap: 12px; font-size: var(--fs); }
 

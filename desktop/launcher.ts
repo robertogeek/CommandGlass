@@ -40,21 +40,6 @@ function runFull(file: string, args: string[]): Promise<{ code: number; out: str
   });
 }
 
-/**
- * ¿Tiene el launcher «Ejecutar como administrador» (Propiedades → Compatibilidad)? Entonces Windows lo abre con
- * permisos elevados: CommandGlass no puede abrirlo con la variable ni cerrarlo.
- */
-async function runsAsAdmin(exe: string): Promise<boolean> {
-  for (const hive of ['HKCU', 'HKLM']) {
-    const out = await run('reg', ['query', `${hive}\\Software\\Microsoft\\Windows NT\\CurrentVersion\\AppCompatFlags\\Layers`]);
-    for (const line of out.split(/\r?\n/)) {
-      const m = /^\s+(.+?)\s+REG_SZ\s+(.*)$/.exec(line);
-      if (m && m[1]!.toLowerCase() === exe.toLowerCase() && /\bRUNASADMIN\b/i.test(m[2]!)) return true;
-    }
-  }
-  return false;
-}
-
 async function isRunning(exe: string): Promise<boolean> {
   const out = await run('tasklist', ['/FI', `IMAGENAME eq ${exe}`, '/FO', 'CSV', '/NH']);
   return out.toLowerCase().includes(`"${exe.toLowerCase()}"`);
@@ -101,8 +86,6 @@ export async function launchWithTelemetry(starCitizenRoot: string | null, closeF
   const exe = await findLauncher(starCitizenRoot);
   if (!exe) return { ok: false, reason: 'not-found' };
   if (await isRunning(GAME_EXE)) return { ok: false, reason: 'game-running' };
-  // Con «Ejecutar como administrador» no hay forma de pasarle la variable desde aquí: mejor decirlo antes de cerrar nada.
-  if (await runsAsAdmin(exe)) return { ok: false, reason: 'needs-admin', detail: 'RUNASADMIN' };
   let closed = false;
   if (await isRunning(LAUNCHER_EXE)) {
     if (!closeFirst) return { ok: false, reason: 'launcher-running' };

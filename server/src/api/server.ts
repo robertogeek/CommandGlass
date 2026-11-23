@@ -5,7 +5,7 @@ import QRCode from 'qrcode';
 import { APP_VERSION, CLIENT_DIST, DATA_DIR, SHARED_DIR, type AppConfig } from '../config.ts';
 import type { LiveTailer } from '../ingest/tailer.ts';
 import type { BindingsService, GameLang } from '../game/bindings.ts';
-import type { KeySender } from '../game/keysender.ts';
+import { runAsAdminMarked, type KeySender, type SendResult } from '../game/keysender.ts';
 import { getContact, listContacts, setContactNote } from '../store/contacts.ts';
 import { briefingFor, factionStats, kindStats, loadMissions } from '../store/missions.ts';
 import type { WikiMissions } from '../game/wiki.ts';
@@ -61,6 +61,26 @@ export interface ServerDeps {
 
 /** Acciones que no se envían sin una confirmación explícita desde la interfaz. */
 const DANGEROUS = new Set(['v_self_destruct', 'v_eject', 'force_respawn', 'v_emergency_exit']);
+
+/**
+ * Rastro de Mandos en commandglass.log (va en el informe de diagnóstico): la primera tecla que llega al juego
+ * y cada fallo con su motivo y el programa que estaba delante. Un mismo fallo repetido solo se apunta cada 30 s.
+ */
+const keyLog = { okLogged: false, last: '', at: 0 };
+function logKeyResult(action: string, r: SendResult): void {
+  if (r.ok) {
+    if (!keyLog.okLogged) console.log(`[mandos] primera tecla enviada al juego (${action})${adminNote()}`);
+    keyLog.okLogged = true;
+    return;
+  }
+  const why = `${r.reason}${r.foreground !== undefined ? ` · delante: ${r.foreground || '(nada)'}` : ''}`;
+  const now = Date.now();
+  if (why === keyLog.last && now - keyLog.at < 30_000) return;
+  keyLog.last = why;
+  keyLog.at = now;
+  console.warn(`[mandos] no se ha enviado ${action}: ${why}${adminNote()}`);
+}
+const adminNote = () => (runAsAdminMarked() ? ' · el RSI Launcher o el juego están marcados «Ejecutar como administrador»' : '');
 
 export function startServer({ config, store, tailer, lanUrl, bindings, keys, wiki, catalog, community, uex, starmap, telemetry }: ServerDeps) {
   // Conexiones en directo abiertas; "remote" = desde otro dispositivo (el iPad), no desde este PC.
@@ -576,6 +596,7 @@ export function startServer({ config, store, tailer, lanUrl, bindings, keys, wik
           return json(res, 409, { ok: false, reason: 'confirm', message: tx('Confirma la acción antes de enviarla.', 'Confirm the action before sending it.') });
         }
         const result = phase === 'down' ? await keys.down(id, action.keys) : await keys.tap(action.keys, action.plan);
+        logKeyResult(action.name, result);
         return json(res, 200, result);
       }
 

@@ -413,7 +413,7 @@ function createTray() {
         { label: T('Abrir CommandGlass', 'Open CommandGlass'), click: () => showWindow() },
         { label: T('Abrir en el navegador', 'Open in browser'), click: () => void shell.openExternal(`http://localhost:${PORT}/`) },
         {
-          label: T('Pantallas de este PC', 'Displays on this PC'),
+          label: T('Pantallas táctiles de este PC (experimental)', 'Touchscreens on this PC (experimental)'),
           submenu: (screens?.list() ?? []).map((s) => ({
             label: `${s.label}${s.primary ? T(' (principal)', ' (main)') : ''} · ${s.width}×${s.height}`,
             type: 'checkbox' as const,

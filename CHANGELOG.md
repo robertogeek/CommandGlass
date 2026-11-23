@@ -9,15 +9,19 @@ Este archivo es la fuente de las notas de las dos. Cada versión lleva su parte 
 flujo `Instalador de Windows` copia la sección de la etiqueta (`v0.1.3-beta` → `## 0.1.3-beta`) en la release.
 Lo que se vaya haciendo se apunta en la versión «en desarrollo» de arriba.
 
-## 0.1.8-beta (en desarrollo)
+## 0.1.8-beta — 2026-11-23
 
-- **CommandGlass en las pantallas de este PC**: sin tablet, ábrelo a pantalla completa en un monitor secundario o una pantalla táctil (hasta dos a la vez), desde la ventana del PC o desde el icono de la bandeja. Esas ventanas no le quitan el foco al juego al tocarlas o hacer clic: Mandos funciona igual que desde el tablet, y cada una recuerda su pantalla y su sección. Para escribir (un buscador, una nota) la ventana coge el foco un momento y luego se lo devuelve al juego. En un navegador normal (Chrome, Edge…) en el mismo PC sigue sin poder ser: al tocarlo, el juego deja de estar en primer plano.
-- Botón **Abrir Star Citizen con telemetría**: avisa de que el RSI Launcher sigue abierto en la bandeja aunque no se vea su ventana, detecta si está puesto para **ejecutarse como administrador** (así Windows no deja pasarle la telemetría) y dice cómo arreglarlo, y si no puede cerrarlo explica cómo hacerlo a mano. Lo que pasa al pulsarlo queda en el informe de diagnóstico.
+- **Juego en otro idioma: ahora sí se ve cuándo subes a una nave.** El arreglo de la 0.1.7 no llegaba a quien ya tenía la app instalada: los textos del juego se quedaban guardados de la versión anterior, sin los nuevos. Ahora se vuelven a leer y el historial se procesa de nuevo.
+- **Experimental: CommandGlass en una pantalla táctil de este PC.** Sin tablet, ábrelo a pantalla completa en otro monitor (hasta dos a la vez), desde la ventana del PC o desde el icono de la bandeja. Esas ventanas no le quitan el foco al juego al tocarlas, así que **Mandos funciona si la pantalla es táctil**. Con el ratón no: para llegar al otro monitor el juego deja de estar en primer plano. El resto de secciones se pueden usar igual. Cada ventana recuerda su pantalla y su sección.
+- Botón **Abrir Star Citizen con telemetría**: avisa de que el RSI Launcher puede seguir abierto en la bandeja aunque no se vea su ventana, y si Windows no deja abrirlo o cerrarlo (por ejemplo, porque está puesto para ejecutarse como administrador) explica qué hacer. Lo que pasa al pulsarlo queda en el informe de diagnóstico.
+- **Mandos**: si una tecla no llega a enviarse, el informe de diagnóstico apunta el motivo y qué programa estaba delante. Y si el ayudante de teclado se cierra de golpe, ahora se avisa en vez de dar la tecla por enviada.
 
 **English**
 
-- **CommandGlass on this PC's displays**: no tablet needed, open it full screen on a secondary monitor or a touchscreen (up to two at a time), from the PC window or the tray icon. Those windows don't take focus from the game when you tap or click them: Controls work just like from the tablet, and each one remembers its display and its section. To type (a search box, a note) the window takes focus for a moment and then gives it back to the game. A regular browser (Chrome, Edge…) on the same PC still can't do this: touching it takes the game out of the foreground.
-- **Open Star Citizen with telemetry** button: it tells you the RSI Launcher is still running in the tray even if you can't see its window, detects when it's set to **run as administrator** (Windows then won't let telemetry through) and says how to fix it, and if it can't close it, explains how to do it by hand. What happens when you press it is now in the diagnostic report.
+- **Game in another language: boarding a ship now really shows up.** The 0.1.7 fix didn't reach people who already had the app installed: the game texts stayed cached from the previous version, without the new ones. They're now read again and the history is reprocessed.
+- **Experimental: CommandGlass on a touchscreen of this PC.** No tablet needed, open it full screen on another monitor (up to two at a time), from the PC window or the tray icon. Those windows don't take focus from the game when you touch them, so **Controls work if the screen is a touchscreen**. Not with the mouse: reaching the other monitor takes the game out of the foreground. The other sections work either way. Each window remembers its display and its section.
+- **Open Star Citizen with telemetry** button: it tells you the RSI Launcher may still be running in the tray even if you can't see its window, and if Windows won't let it open or close it (for example, because it's set to run as administrator) it explains what to do. What happens when you press it is now in the diagnostic report.
+- **Controls**: if a key can't be sent, the diagnostic report notes why and which program was in front. And if the keyboard helper suddenly closes, you're now told instead of the key being reported as sent.
 
 ## 0.1.7-beta — 2026-11-23
 
