@@ -84,6 +84,7 @@ module.exports = {
     minVersion: '10.0.17763.0',
     maxVersionTested: '10.0.26100.0',
     artifactName: `${releaseName(version)}.\${ext}`,
+    // El paquete de la Store lo actualiza la Store: sin configuración de actualizaciones.
+    publish: null,
   },
-  publish: null,
 };
