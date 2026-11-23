@@ -523,7 +523,7 @@ function registerIpc() {
 
 // ---------------------------------------------------------------- Discord de la comunidad
 
-/** Enlace de la ventana del PC: la web redirige a la invitación vigente (así se puede cambiar sin sacar versión). */
+/** Enlace de la ventana del PC: la web lleva a la invitación vigente (así se puede cambiar sin sacar versión). */
 const DISCORD_LINK = 'https://robertogeek.com/CommandGlass/discord';
 
 /**
@@ -533,10 +533,14 @@ const DISCORD_LINK = 'https://robertogeek.com/CommandGlass/discord';
 async function openDiscord(url: string) {
   try {
     if (app.getApplicationNameForProtocol('discord://')) {
-      // El código sale de la redirección de la web, sin seguirla.
+      // El código de la invitación vigente lo da la web: en su página (<meta name="cg-discord-invite">) o, si
+      // algún día vuelve a ser una redirección, en la dirección a la que redirige (sin seguirla).
       const res = await fetch(DISCORD_LINK, { redirect: 'manual', signal: AbortSignal.timeout(5000) });
       const target = res.headers.get('location') ?? '';
-      const code = /^https:\/\/(?:discord\.gg|(?:www\.)?discord(?:app)?\.com\/invite)\/([A-Za-z0-9-]+)\/?$/.exec(target)?.[1];
+      const page = res.ok ? await res.text() : '';
+      const code =
+        /^https:\/\/(?:discord\.gg|(?:www\.)?discord(?:app)?\.com\/invite)\/([A-Za-z0-9-]+)\/?$/.exec(target)?.[1] ??
+        /<meta name="cg-discord-invite" content="([A-Za-z0-9-]+)">/.exec(page)?.[1];
       if (code) return void (await shell.openExternal(`discord://-/invite/${code}`));
     }
   } catch {
